@@ -1,0 +1,92 @@
+﻿<resources>
+    <string name="app_name">Grow</string>
+    <string name="fab_add_plant">Nova planta</string>
+    <string name="home_title">Grow</string>
+    <string name="home_settings">Configuracoes</string>
+    <string name="home_focus_title">Seu cultivo em foco</string>
+    <string name="home_focus_subtitle">Acompanhe fases, regas e checklist sem perder o ritmo.</string>
+    <string name="home_search_label">Buscar por nome/strain</string>
+    <string name="home_sort_asc">Dias: ascendente</string>
+    <string name="home_sort_desc">Dias: descendente</string>
+    <string name="home_empty_state">Nenhuma planta encontrada com os filtros atuais.</string>
+    <string name="home_delete_title">Excluir planta</string>
+    <string name="home_delete_text">Deseja excluir "%1$s"? Esta acao nao pode ser desfeita.</string>
+    <string name="home_delete_confirm">Excluir</string>
+    <string name="home_delete_cancel">Cancelar</string>
+    <string name="home_delete_undo">Desfazer</string>
+    <string name="home_deleted_message">"%1$s" excluida</string>
+
+    <string name="settings_title">Configuracoes</string>
+    <string name="back">Voltar</string>
+    <string name="settings_lock_pin_biometric">Bloqueio por PIN/biometria</string>
+    <string name="settings_biometric">Biometria</string>
+    <string name="settings_pin_label">PIN (4-6 digitos)</string>
+    <string name="settings_pin_confirm_label">Confirmar PIN</string>
+    <string name="settings_reveal_pin">Mostrar PIN</string>
+    <string name="settings_pin_length_error">O PIN precisa ter entre 4 e 6 digitos.</string>
+    <string name="settings_pin_mismatch_error">Os PINs digitados nao conferem.</string>
+    <string name="settings_save_pin">Salvar PIN</string>
+    <string name="settings_invalid_pin">PIN invalido.</string>
+    <string name="settings_pin_updated">PIN atualizado com sucesso.</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_export_backup_json">Exportar backup JSON</string>
+    <string name="settings_import_backup_json">Importar backup JSON</string>
+    <string name="settings_backup_file_name">grow-backup.json</string>
+    <string name="settings_backup_exported">Backup exportado com sucesso.</string>
+    <string name="settings_backup_export_error">Falha ao exportar backup.</string>
+    <string name="settings_backup_imported">Backup importado com sucesso.</string>
+    <string name="settings_backup_import_error">Falha ao importar backup.</string>
+
+    <string name="new_plant_title">Nova planta</string>
+    <string name="new_plant_close">Fechar</string>
+    <string name="new_plant_name">Nome</string>
+    <string name="new_plant_strain">Strain</string>
+    <string name="new_plant_stage">Fase</string>
+    <string name="new_plant_medium">Substrato</string>
+    <string name="new_plant_days">Dias de cultivo</string>
+    <string name="new_plant_photo_title">Foto da planta</string>
+    <string name="new_plant_photo_hint">Toque para abrir Camera ou Galeria</string>
+    <string name="new_plant_save">Salvar</string>
+    <string name="new_plant_gallery">Galeria</string>
+    <string name="new_plant_camera">Camera</string>
+    <string name="new_plant_required_fields_error">Preencha todos os campos obrigatorios.</string>
+    <string name="new_plant_saved">Planta salva com sucesso.</string>
+
+    <string name="detail_title_fallback">Detalhes</string>
+    <string name="detail_loading">Carregando...</string>
+    <string name="detail_phase">Fase: %1$s</string>
+    <string name="detail_strain">Strain: %1$s</string>
+    <string name="detail_medium">Substrato: %1$s</string>
+    <string name="detail_days">Dias de cultivo: %1$s</string>
+    <string name="detail_watering">Rega</string>
+    <string name="detail_watering_volume">Volume (ml)</string>
+    <string name="detail_watering_interval">Intervalo (dias)</string>
+    <string name="detail_substrate">Substrato</string>
+    <string name="detail_save_watering">Salvar rega</string>
+    <string name="detail_nutrients">Nutrientes</string>
+    <string name="detail_week">Semana</string>
+    <string name="detail_ec">EC</string>
+    <string name="detail_ph">pH</string>
+    <string name="detail_save_nutrients">Salvar nutrientes</string>
+    <string name="detail_checklist_by_stage">Checklist por fase</string>
+    <string name="detail_timeline">Timeline</string>
+    <string name="detail_watering_invalid">Preencha os campos de rega corretamente.</string>
+    <string name="detail_watering_saved">Rega salva com sucesso.</string>
+    <string name="detail_nutrients_invalid">Preencha os campos de nutrientes corretamente.</string>
+    <string name="detail_nutrients_saved">Nutrientes salvos com sucesso.</string>
+
+    <string name="lock_title">Grow bloqueado</string>
+    <string name="lock_subtitle">Desbloqueie para acessar seus dados de cultivo.</string>
+    <string name="lock_pin">PIN</string>
+    <string name="lock_unlock_pin">Desbloquear com PIN</string>
+    <string name="lock_use_biometric">Usar biometria</string>
+    <string name="lock_use_device_credential">Usar bloqueio do celular</string>
+    <string name="lock_device_credential_hint">Nenhum PIN configurado. Use o bloqueio do celular para desbloquear.</string>
+
+    <string name="plant_delete_desc">Excluir planta %1$s</string>
+    <string name="plant_photo_pick_desc">Selecionar foto</string>
+    <string name="plant_photo_selected_desc">Foto selecionada</string>
+    <string name="plant_next_watering">Proxima rega: %1$s</string>
+    <string name="plant_not_defined">Nao definida</string>
+</resources>
+
