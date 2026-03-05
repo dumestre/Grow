@@ -43,6 +43,7 @@ class PlantDaoInstrumentedTest {
                 days = 10,
                 photoUri = null,
                 nextWateringDate = null,
+                sortOrder = 0,
                 createdAt = System.currentTimeMillis()
             )
         )
@@ -55,6 +56,7 @@ class PlantDaoInstrumentedTest {
                 days = 20,
                 photoUri = null,
                 nextWateringDate = null,
+                sortOrder = 1,
                 createdAt = System.currentTimeMillis()
             )
         )

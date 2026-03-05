@@ -23,7 +23,9 @@ interface GrowRepository {
     suspend fun addWatering(plantId: Long, volumeMl: Int, intervalDays: Int, substrate: String)
     suspend fun addNutrient(log: NutrientLog)
     suspend fun toggleChecklist(itemId: Long, done: Boolean)
+    suspend fun updatePlantStage(plantId: Long, stage: String)
     suspend fun deletePlant(plantId: Long)
+    suspend fun updatePlantsOrder(orderedIds: List<Long>)
     suspend fun seedDataIfNeeded()
 
     fun observeSecurityPreferences(): Flow<SecurityPreferences>

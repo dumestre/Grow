@@ -55,6 +55,7 @@
     <string name="detail_title_fallback">Detalhes</string>
     <string name="detail_loading">Carregando...</string>
     <string name="detail_phase">Fase: %1$s</string>
+    <string name="detail_current_phase">Fase atual: %1$s</string>
     <string name="detail_strain">Strain: %1$s</string>
     <string name="detail_medium">Substrato: %1$s</string>
     <string name="detail_days">Dias de cultivo: %1$s</string>
@@ -74,6 +75,7 @@
     <string name="detail_watering_saved">Rega salva com sucesso.</string>
     <string name="detail_nutrients_invalid">Preencha os campos de nutrientes corretamente.</string>
     <string name="detail_nutrients_saved">Nutrientes salvos com sucesso.</string>
+    <string name="detail_stage_updated">Fase atualizada com sucesso.</string>
 
     <string name="lock_title">Grow bloqueado</string>
     <string name="lock_subtitle">Desbloqueie para acessar seus dados de cultivo.</string>
@@ -88,5 +90,15 @@
     <string name="plant_photo_selected_desc">Foto selecionada</string>
     <string name="plant_next_watering">Proxima rega: %1$s</string>
     <string name="plant_not_defined">Nao definida</string>
+
+    <string name="notification_channel_watering_name">Lembretes de rega</string>
+    <string name="notification_channel_watering_description">Alertas para regar no horario planejado</string>
+    <string name="notification_channel_nutrient_name">Lembretes de nutrientes</string>
+    <string name="notification_channel_nutrient_description">Alertas de revisao de EC, pH e nutrientes</string>
+    <string name="notification_action_open">Abrir app</string>
+    <string name="notification_watering_title">Hora da rega</string>
+    <string name="notification_watering_body">%1$s: chegou o horario da rega planejada.</string>
+    <string name="notification_nutrient_title">Revisar nutrientes</string>
+    <string name="notification_nutrient_body">%1$s: revisar EC/pH e ajuste de nutrientes.</string>
 </resources>
 

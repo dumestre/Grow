@@ -1,6 +1,7 @@
 ﻿package com.daime.grow.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -24,11 +25,18 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -48,20 +56,53 @@ fun PlantCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongPress: (() -> Unit)? = null,
-    onDeleteClick: (() -> Unit)? = null
+    onDeleteClick: (() -> Unit)? = null,
+    isEditing: Boolean = false,
+    isShaking: Boolean = false,
+    isDropTarget: Boolean = false,
+    isSelected: Boolean = false
 ) {
+    val cardShape = RoundedCornerShape(16.dp)
+    val wobbleTransition = rememberInfiniteTransition(label = "card-wobble")
+    val wobble by wobbleTransition.animateFloat(
+        initialValue = -0.45f,
+        targetValue = 0.45f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(180),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "card-wobble-angle"
+    )
+
+    val borderColor = when {
+        isDropTarget -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+        isSelected -> MaterialTheme.colorScheme.primary
+        else -> androidx.compose.ui.graphics.Color.Transparent
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongPress
+            .rotate(if (isShaking) wobble else 0f)
+            .border(
+                width = if (borderColor == androidx.compose.ui.graphics.Color.Transparent) 0.dp else 2.dp,
+                color = borderColor,
+                shape = cardShape
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(cardShape)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongPress
+                )
+                .padding(12.dp)
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -118,7 +159,7 @@ fun PlantCard(
                     BadgeText(plant.stage)
                 }
 
-                if (onDeleteClick != null) {
+                if (onDeleteClick != null && !isEditing) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -140,21 +181,19 @@ fun PlantCard(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            Text(text = plant.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                text = "${plant.days} dias de cultivo",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.alpha(0.85f)
+                text = plant.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = androidx.compose.ui.graphics.Color(0xFFF01264)
             )
+            MetaLine("Dias", "${plant.days} dias de cultivo")
             Spacer(modifier = Modifier.height(6.dp))
             MetaLine("Strain", plant.strain)
             MetaLine("Substrato", plant.medium)
-            Text(
-                text = stringResource(
-                    R.string.plant_next_watering,
-                    plant.nextWateringDate?.toDateLabel() ?: stringResource(R.string.plant_not_defined)
-                ),
-                style = MaterialTheme.typography.bodySmall
+            MetaLine(
+                "Proxima rega",
+                plant.nextWateringDate?.toDateLabel() ?: stringResource(R.string.plant_not_defined)
             )
         }
     }
@@ -176,9 +215,18 @@ private fun BadgeText(text: String) {
 @Composable
 private fun MetaLine(label: String, value: String) {
     Row {
-        Text(text = "$label:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = "$label:",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = androidx.compose.ui.graphics.Color(0xFF1B5E20)
+        )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = value, style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = androidx.compose.ui.graphics.Color(0xFF3A3A3A)
+        )
     }
 }
 

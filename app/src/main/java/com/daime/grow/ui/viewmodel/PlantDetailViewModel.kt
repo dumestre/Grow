@@ -2,6 +2,7 @@
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.daime.grow.domain.model.ChecklistItem
 import com.daime.grow.domain.model.NutrientLog
 import com.daime.grow.domain.model.PlantDetails
 import com.daime.grow.domain.repository.GrowRepository
@@ -29,6 +30,7 @@ sealed interface PlantDetailUiEvent {
     data object WateringSaved : PlantDetailUiEvent
     data object NutrientsInvalid : PlantDetailUiEvent
     data object NutrientsSaved : PlantDetailUiEvent
+    data object StageUpdated : PlantDetailUiEvent
 }
 
 class PlantDetailViewModel(
@@ -47,8 +49,8 @@ class PlantDetailViewModel(
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlantDetailUiState())
 
-    fun addQuickAction(type: String) {
-        viewModelScope.launch { repository.addQuickEvent(plantId, type) }
+    fun addQuickAction(type: String, note: String = "") {
+        viewModelScope.launch { repository.addQuickEvent(plantId, type, note) }
     }
 
     fun onWateringVolumeChange(value: String) {
@@ -124,8 +126,26 @@ class PlantDetailViewModel(
         }
     }
 
-    fun toggleChecklist(itemId: Long, done: Boolean) {
-        viewModelScope.launch { repository.toggleChecklist(itemId, done) }
+    fun toggleChecklist(item: ChecklistItem, done: Boolean) {
+        viewModelScope.launch {
+            repository.toggleChecklist(item.id, done)
+            if (done) {
+                repository.addQuickEvent(
+                    plantId = plantId,
+                    type = "Checklist",
+                    note = "${item.phase}: ${item.task} concluida"
+                )
+            }
+        }
+    }
+
+    fun updatePlantStage(stage: String) {
+        val currentStage = uiState.value.details?.plant?.stage ?: return
+        if (currentStage == stage) return
+        viewModelScope.launch {
+            repository.updatePlantStage(plantId, stage)
+            _events.emit(PlantDetailUiEvent.StageUpdated)
+        }
     }
 }
 

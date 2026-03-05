@@ -63,7 +63,9 @@ private class PlantDetailFakeRepository : GrowRepository {
     override suspend fun addWatering(plantId: Long, volumeMl: Int, intervalDays: Int, substrate: String) {}
     override suspend fun addNutrient(log: NutrientLog) {}
     override suspend fun toggleChecklist(itemId: Long, done: Boolean) {}
+    override suspend fun updatePlantStage(plantId: Long, stage: String) {}
     override suspend fun deletePlant(plantId: Long) {}
+    override suspend fun updatePlantsOrder(orderedIds: List<Long>) {}
     override suspend fun seedDataIfNeeded() {}
     override fun observeSecurityPreferences(): Flow<SecurityPreferences> = security
     override suspend fun setLockEnabled(enabled: Boolean) {}

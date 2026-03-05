@@ -76,6 +76,7 @@ class GrowRepositoryImpl(
         val now = System.currentTimeMillis()
         var createdId = 0L
         database.withTransaction {
+            val nextSortOrder = plantDao.maxSortOrder() + 1
             createdId = plantDao.insert(
                 PlantEntity(
                     name = name,
@@ -85,6 +86,7 @@ class GrowRepositoryImpl(
                     days = days,
                     photoUri = photoUri,
                     nextWateringDate = null,
+                    sortOrder = nextSortOrder,
                     createdAt = now
                 )
             )
@@ -172,6 +174,21 @@ class GrowRepositoryImpl(
         checklistDao.toggle(itemId, done)
     }
 
+    override suspend fun updatePlantStage(plantId: Long, stage: String) {
+        database.withTransaction {
+            plantDao.updateStage(plantId, stage)
+            plantEventDao.insert(
+                PlantEventEntity(
+                    plantId = plantId,
+                    type = "Fase",
+                    note = "Fase alterada para $stage",
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+        }
+        plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
+    }
+
     override suspend fun deletePlant(plantId: Long) {
         val photoUri = plantDao.observePlant(plantId).first()?.photoUri
         database.withTransaction {
@@ -179,6 +196,15 @@ class GrowRepositoryImpl(
         }
         scheduler.cancelForPlant(plantId)
         deletePhotoIfOwned(appContext, photoUri)
+    }
+
+    override suspend fun updatePlantsOrder(orderedIds: List<Long>) {
+        if (orderedIds.isEmpty()) return
+        database.withTransaction {
+            orderedIds.forEachIndexed { index, id ->
+                plantDao.updateSortOrder(id, index)
+            }
+        }
     }
 
     override suspend fun seedDataIfNeeded() {
@@ -196,6 +222,7 @@ class GrowRepositoryImpl(
                     days = 24,
                     photoUri = null,
                     nextWateringDate = now + 2 * 24L * 60L * 60L * 1_000L,
+                    sortOrder = 0,
                     createdAt = now
                 )
             )
@@ -208,6 +235,7 @@ class GrowRepositoryImpl(
                     days = 52,
                     photoUri = null,
                     nextWateringDate = now + 1 * 24L * 60L * 60L * 1_000L,
+                    sortOrder = 1,
                     createdAt = now
                 )
             )

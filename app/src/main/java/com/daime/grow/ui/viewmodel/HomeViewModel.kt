@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
@@ -51,6 +52,7 @@ class HomeViewModel(
 
     private var pendingDelete: Plant? = null
     private var pendingDeleteJob: Job? = null
+    private val pendingDeleteIds = MutableStateFlow<Set<Long>>(emptySet())
 
     private val debouncedQuery = query
         .debounce(350)
@@ -62,12 +64,15 @@ class HomeViewModel(
 
     val uiState: StateFlow<HomeUiState> = filters
         .flatMapLatest { f ->
-            repository.observePlants(f.query, f.stageFilter, f.sortAscending).map { plants ->
+            combine(
+                repository.observePlants(f.query, f.stageFilter, f.sortAscending),
+                pendingDeleteIds
+            ) { plants, hiddenIds ->
                 HomeUiState(
                     query = f.query,
                     stageFilter = f.stageFilter,
                     sortAscending = f.sortAscending,
-                    plants = plants
+                    plants = plants.filterNot { it.id in hiddenIds }
                 )
             }
         }
@@ -87,11 +92,16 @@ class HomeViewModel(
 
     fun requestDelete(plant: Plant) {
         pendingDeleteJob?.cancel()
+        pendingDelete?.let { previous ->
+            pendingDeleteIds.update { it - previous.id }
+        }
         pendingDelete = plant
+        pendingDeleteIds.update { it + plant.id }
         pendingDeleteJob = viewModelScope.launch {
             _events.emit(HomeUiEvent.ShowDeleteUndo(plant.name))
             delay(5_000)
             repository.deletePlant(plant.id)
+            pendingDeleteIds.update { it - plant.id }
             pendingDelete = null
             pendingDeleteJob = null
         }
@@ -99,6 +109,9 @@ class HomeViewModel(
 
     fun undoDelete() {
         pendingDeleteJob?.cancel()
+        pendingDelete?.let { plant ->
+            pendingDeleteIds.update { it - plant.id }
+        }
         pendingDeleteJob = null
         pendingDelete = null
     }
@@ -106,6 +119,12 @@ class HomeViewModel(
     fun deletePlantImmediately(plantId: Long) {
         viewModelScope.launch {
             repository.deletePlant(plantId)
+        }
+    }
+
+    fun updatePlantsOrder(orderedIds: List<Long>) {
+        viewModelScope.launch {
+            repository.updatePlantsOrder(orderedIds)
         }
     }
 

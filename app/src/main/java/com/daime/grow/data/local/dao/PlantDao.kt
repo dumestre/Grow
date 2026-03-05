@@ -16,6 +16,7 @@ interface PlantDao {
         WHERE (:query = '' OR name LIKE '%' || :query || '%' OR strain LIKE '%' || :query || '%')
         AND (:stageFilter = 'Todas' OR stage = :stageFilter)
         ORDER BY
+            sortOrder ASC,
             CASE WHEN :sortAsc = 1 THEN days END ASC,
             CASE WHEN :sortAsc = 0 THEN days END DESC,
             createdAt DESC
@@ -40,6 +41,15 @@ interface PlantDao {
 
     @Query("UPDATE plants SET nextWateringDate = :nextWateringDate WHERE id = :plantId")
     suspend fun updateNextWateringDate(plantId: Long, nextWateringDate: Long)
+
+    @Query("UPDATE plants SET stage = :stage WHERE id = :plantId")
+    suspend fun updateStage(plantId: Long, stage: String)
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM plants")
+    suspend fun maxSortOrder(): Int
+
+    @Query("UPDATE plants SET sortOrder = :sortOrder WHERE id = :plantId")
+    suspend fun updateSortOrder(plantId: Long, sortOrder: Int)
 
     @Query("DELETE FROM plants WHERE id = :plantId")
     suspend fun deleteById(plantId: Long)

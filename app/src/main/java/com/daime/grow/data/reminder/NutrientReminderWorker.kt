@@ -9,13 +9,10 @@ class NutrientReminderWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
     override suspend fun doWork(): Result {
+        val plantId = inputData.getLong("plantId", -1L)
+        if (plantId <= 0L) return Result.success()
         val plantName = inputData.getString("plantName") ?: "Planta"
-        NotificationHelper.showNotification(
-            context = applicationContext,
-            id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
-            title = "Nutrientes",
-            body = "${plantName}: revisar EC/pH e nutrientes"
-        )
+        NotificationHelper.showNutrientReminder(applicationContext, plantId, plantName)
         return Result.success()
     }
 }

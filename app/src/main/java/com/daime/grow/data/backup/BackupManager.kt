@@ -75,6 +75,7 @@ class BackupManager(
         put("days", days)
         put("photoUri", photoUri)
         put("nextWateringDate", nextWateringDate)
+        put("sortOrder", sortOrder)
         put("createdAt", createdAt)
     }
 
@@ -123,6 +124,7 @@ class BackupManager(
         days = getInt("days"),
         photoUri = optString("photoUri").ifBlank { null },
         nextWateringDate = if (isNull("nextWateringDate")) null else getLong("nextWateringDate"),
+        sortOrder = optInt("sortOrder", 0),
         createdAt = getLong("createdAt")
     )
 

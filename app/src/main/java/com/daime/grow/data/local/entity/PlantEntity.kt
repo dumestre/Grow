@@ -13,6 +13,7 @@ data class PlantEntity(
     val days: Int,
     val photoUri: String?,
     val nextWateringDate: Long?,
+    val sortOrder: Int = 0,
     val createdAt: Long
 )
 

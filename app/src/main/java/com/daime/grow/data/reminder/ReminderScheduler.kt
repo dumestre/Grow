@@ -52,7 +52,12 @@ class ReminderScheduler(context: Context) {
         }
 
         val request = PeriodicWorkRequestBuilder<NutrientReminderWorker>(days, TimeUnit.DAYS)
-            .setInputData(Data.Builder().putString("plantName", plant.name).build())
+            .setInputData(
+                Data.Builder()
+                    .putLong("plantId", plant.id)
+                    .putString("plantName", plant.name)
+                    .build()
+            )
             .build()
 
         workManager.enqueueUniquePeriodicWork(
