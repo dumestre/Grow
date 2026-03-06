@@ -40,10 +40,6 @@ fun GrowRoot(container: AppContainer) {
     val lockState by lockViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        homeViewModel.ensureSeedData()
-    }
-
     if (!lockState.isReady) {
         Box(modifier = Modifier.fillMaxSize())
         return

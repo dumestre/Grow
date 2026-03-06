@@ -127,12 +127,6 @@ class HomeViewModel(
             repository.updatePlantsOrder(orderedIds)
         }
     }
-
-    fun ensureSeedData() {
-        viewModelScope.launch {
-            repository.seedDataIfNeeded()
-        }
-    }
 }
 
 
