@@ -103,7 +103,7 @@ fun PlantDetailScreen(
                 return
             }
 
-            val phaseOrder = listOf("Muda", "Vegetativo", "Flora", "Colheita")
+            val phaseOrder = listOf(PlantStage.SEEDLING, PlantStage.VEGETATIVE, PlantStage.FLOWER)
             val checklistByPhase = details.checklistItems
                 .groupBy { it.phase }
                 .toList()
@@ -112,7 +112,7 @@ fun PlantDetailScreen(
                     if (idx == -1) Int.MAX_VALUE else idx
                 }
             var expandedPhases by remember(details.plant.id) {
-                androidx.compose.runtime.mutableStateOf(emptySet<String>())
+                androidx.compose.runtime.mutableStateOf(setOf(details.plant.stage))
             }
             var expandedWatering by remember(details.plant.id) { androidx.compose.runtime.mutableStateOf(false) }
             var expandedNutrients by remember(details.plant.id) { androidx.compose.runtime.mutableStateOf(false) }
@@ -154,9 +154,9 @@ fun PlantDetailScreen(
             item {
                 DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Acoes rapidas", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.detail_quick_actions_title), style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
                         Text(
-                            text = "Use para registrar rapidamente eventos no historico da planta.",
+                            text = stringResource(R.string.detail_quick_actions_desc),
                             style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                         )
                         FlowRow(
@@ -164,14 +164,14 @@ fun PlantDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             listOf(
-                                "Registrar rega" to "Rega",
-                                "Registrar poda" to "Poda",
-                                "Registrar transplante" to "Transplante",
-                                "Registrar flush" to "Flush",
-                                "Registrar colheita" to "Colheita"
+                                stringResource(R.string.detail_quick_action_watering) to "Rega",
+                                stringResource(R.string.detail_quick_action_pruning) to "Poda",
+                                stringResource(R.string.detail_quick_action_transplant) to "Transplante",
+                                stringResource(R.string.detail_quick_action_flush) to "Flush",
+                                stringResource(R.string.detail_quick_action_harvest) to "Colheita"
                             ).forEach { (label, eventType) ->
                                 AssistChip(
-                                    onClick = { viewModel.addQuickAction(eventType, "Acao rapida: $label") },
+                                    onClick = { viewModel.addQuickAction(eventType, "Ação rápida: $label") },
                                     label = { Text(label) }
                                 )
                             }
@@ -286,7 +286,7 @@ fun PlantDetailScreen(
                     style = androidx.compose.material3.MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Abra uma fase e marque as tarefas concluidas. Isso tambem entra no historico.",
+                    text = stringResource(R.string.detail_checklist_desc),
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                 )
             }
@@ -313,11 +313,11 @@ fun PlantDetailScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Fase: $phase",
+                                    text = stringResource(R.string.detail_phase, phase),
                                     style = androidx.compose.material3.MaterialTheme.typography.titleSmall
                                 )
                                 Text(
-                                    text = "$doneCount/${phaseItems.size} concluido",
+                                    text = stringResource(R.string.detail_checklist_completed, doneCount, phaseItems.size),
                                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -423,4 +423,3 @@ private fun DetailAccentCard(
         }
     }
 }
-

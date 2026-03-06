@@ -2,7 +2,7 @@
     <string name="app_name">Grow</string>
     <string name="fab_add_plant">Nova planta</string>
     <string name="home_title">Grow</string>
-    <string name="home_settings">Configuracoes</string>
+    <string name="home_settings">Configurações</string>
     <string name="home_focus_title">Seu cultivo em foco</string>
     <string name="home_focus_subtitle">Acompanhe fases, regas e checklist sem perder o ritmo.</string>
     <string name="home_search_label">Buscar por nome/strain</string>
@@ -10,23 +10,23 @@
     <string name="home_sort_desc">Dias: descendente</string>
     <string name="home_empty_state">Nenhuma planta encontrada com os filtros atuais.</string>
     <string name="home_delete_title">Excluir planta</string>
-    <string name="home_delete_text">Deseja excluir "%1$s"? Esta acao nao pode ser desfeita.</string>
+    <string name="home_delete_text">Deseja excluir \"%1$s\"? Esta ação não pode ser desfeita.</string>
     <string name="home_delete_confirm">Excluir</string>
     <string name="home_delete_cancel">Cancelar</string>
     <string name="home_delete_undo">Desfazer</string>
-    <string name="home_deleted_message">"%1$s" excluida</string>
+    <string name="home_deleted_message">\"%1$s\" excluída</string>
 
-    <string name="settings_title">Configuracoes</string>
+    <string name="settings_title">Configurações</string>
     <string name="back">Voltar</string>
     <string name="settings_lock_pin_biometric">Bloqueio por PIN/biometria</string>
     <string name="settings_biometric">Biometria</string>
-    <string name="settings_pin_label">PIN (4-6 digitos)</string>
+    <string name="settings_pin_label">PIN (4-6 dígitos)</string>
     <string name="settings_pin_confirm_label">Confirmar PIN</string>
     <string name="settings_reveal_pin">Mostrar PIN</string>
-    <string name="settings_pin_length_error">O PIN precisa ter entre 4 e 6 digitos.</string>
-    <string name="settings_pin_mismatch_error">Os PINs digitados nao conferem.</string>
+    <string name="settings_pin_length_error">O PIN precisa ter entre 4 e 6 dígitos.</string>
+    <string name="settings_pin_mismatch_error">Os PINs digitados não conferem.</string>
     <string name="settings_save_pin">Salvar PIN</string>
-    <string name="settings_invalid_pin">PIN invalido.</string>
+    <string name="settings_invalid_pin">PIN inválido.</string>
     <string name="settings_pin_updated">PIN atualizado com sucesso.</string>
     <string name="settings_backup_title">Backup</string>
     <string name="settings_export_backup_json">Exportar backup JSON</string>
@@ -45,11 +45,11 @@
     <string name="new_plant_medium">Substrato</string>
     <string name="new_plant_days">Dias de cultivo</string>
     <string name="new_plant_photo_title">Foto da planta</string>
-    <string name="new_plant_photo_hint">Toque para abrir Camera ou Galeria</string>
+    <string name="new_plant_photo_hint">Toque para abrir Câmera ou Galeria</string>
     <string name="new_plant_save">Salvar</string>
     <string name="new_plant_gallery">Galeria</string>
-    <string name="new_plant_camera">Camera</string>
-    <string name="new_plant_required_fields_error">Preencha todos os campos obrigatorios.</string>
+    <string name="new_plant_camera">Câmera</string>
+    <string name="new_plant_required_fields_error">Preencha todos os campos obrigatórios.</string>
     <string name="new_plant_saved">Planta salva com sucesso.</string>
 
     <string name="detail_title_fallback">Detalhes</string>
@@ -77,6 +77,16 @@
     <string name="detail_nutrients_saved">Nutrientes salvos com sucesso.</string>
     <string name="detail_stage_updated">Fase atualizada com sucesso.</string>
 
+    <string name="detail_quick_actions_title">Ações rápidas</string>
+    <string name="detail_quick_actions_desc">Use para registrar rapidamente eventos no histórico da planta.</string>
+    <string name="detail_quick_action_watering">Registrar rega</string>
+    <string name="detail_quick_action_pruning">Registrar poda</string>
+    <string name="detail_quick_action_transplant">Registrar transplante</string>
+    <string name="detail_quick_action_flush">Registrar flush</string>
+    <string name="detail_quick_action_harvest">Registrar colheita</string>
+    <string name="detail_checklist_desc">Abra uma fase e marque as tarefas concluídas. Isso também entra no histórico.</string>
+    <string name="detail_checklist_completed">%1$d/%2$d concluído</string>
+
     <string name="lock_title">Grow bloqueado</string>
     <string name="lock_subtitle">Desbloqueie para acessar seus dados de cultivo.</string>
     <string name="lock_pin">PIN</string>
@@ -88,17 +98,16 @@
     <string name="plant_delete_desc">Excluir planta %1$s</string>
     <string name="plant_photo_pick_desc">Selecionar foto</string>
     <string name="plant_photo_selected_desc">Foto selecionada</string>
-    <string name="plant_next_watering">Proxima rega: %1$s</string>
-    <string name="plant_not_defined">Nao definida</string>
+    <string name="plant_next_watering">Próxima rega: %1$s</string>
+    <string name="plant_not_defined">Não definida</string>
 
     <string name="notification_channel_watering_name">Lembretes de rega</string>
-    <string name="notification_channel_watering_description">Alertas para regar no horario planejado</string>
+    <string name="notification_channel_watering_description">Alertas para regar no horário planejado</string>
     <string name="notification_channel_nutrient_name">Lembretes de nutrientes</string>
-    <string name="notification_channel_nutrient_description">Alertas de revisao de EC, pH e nutrientes</string>
+    <string name="notification_channel_nutrient_description">Alertas de revisão de EC, pH e nutrientes</string>
     <string name="notification_action_open">Abrir app</string>
     <string name="notification_watering_title">Hora da rega</string>
-    <string name="notification_watering_body">%1$s: chegou o horario da rega planejada.</string>
+    <string name="notification_watering_body">%1$s: chegou o horário da rega planejada.</string>
     <string name="notification_nutrient_title">Revisar nutrientes</string>
     <string name="notification_nutrient_body">%1$s: revisar EC/pH e ajuste de nutrientes.</string>
 </resources>
-

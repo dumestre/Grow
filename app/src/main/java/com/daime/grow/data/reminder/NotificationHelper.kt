@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -96,8 +97,11 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val appIcon = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher_round)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setLargeIcon(appIcon)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -111,7 +115,7 @@ object NotificationHelper {
                 else NotificationCompat.PRIORITY_DEFAULT
             )
             .addAction(
-                R.mipmap.ic_launcher_round,
+                R.drawable.ic_launcher_foreground,
                 context.getString(R.string.notification_action_open),
                 pendingIntent
             )
@@ -125,4 +129,3 @@ object NotificationHelper {
         return (normalizedPlant * 10) + type
     }
 }
-

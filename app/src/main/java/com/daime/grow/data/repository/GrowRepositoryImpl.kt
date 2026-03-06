@@ -175,14 +175,34 @@ class GrowRepositoryImpl(
     }
 
     override suspend fun updatePlantStage(plantId: Long, stage: String) {
+        val now = System.currentTimeMillis()
         database.withTransaction {
             plantDao.updateStage(plantId, stage)
+            
+            // Verifica se já existem itens de checklist para esta nova fase
+            val currentChecklist = checklistDao.getByPlantId(plantId)
+            val hasPhaseItems = currentChecklist.any { it.phase == stage }
+            
+            if (!hasPhaseItems) {
+                val newTasks = ChecklistFactory.defaultChecklist(plantId, stage, now)
+                    .map { item ->
+                        ChecklistItemEntity(
+                            plantId = item.plantId,
+                            phase = item.phase,
+                            task = item.task,
+                            done = item.done,
+                            createdAt = item.createdAt
+                        )
+                    }
+                checklistDao.insertAll(newTasks)
+            }
+
             plantEventDao.insert(
                 PlantEventEntity(
                     plantId = plantId,
                     type = "Fase",
                     note = "Fase alterada para $stage",
-                    createdAt = System.currentTimeMillis()
+                    createdAt = now
                 )
             )
         }
@@ -358,4 +378,3 @@ private fun ChecklistItemEntity.toDomain() = ChecklistItem(
     done = done,
     createdAt = createdAt
 )
-

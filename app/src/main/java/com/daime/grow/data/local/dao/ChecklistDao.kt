@@ -13,6 +13,9 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklist_items WHERE plantId = :plantId ORDER BY createdAt ASC")
     fun observeByPlantId(plantId: Long): Flow<List<ChecklistItemEntity>>
 
+    @Query("SELECT * FROM checklist_items WHERE plantId = :plantId")
+    suspend fun getByPlantId(plantId: Long): List<ChecklistItemEntity>
+
     @Query("SELECT * FROM checklist_items")
     suspend fun getAllNow(): List<ChecklistItemEntity>
 
@@ -28,4 +31,3 @@ interface ChecklistDao {
     @Query("DELETE FROM checklist_items")
     suspend fun clearAll()
 }
-

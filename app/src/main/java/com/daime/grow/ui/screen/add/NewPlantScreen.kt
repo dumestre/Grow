@@ -8,18 +8,24 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -38,20 +44,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -242,64 +249,98 @@ fun NewPlantScreen(
             hostState = snackbarHostState,
             modifier = Modifier
                 .padding(bottom = 8.dp)
-                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .align(Alignment.BottomCenter)
         )
     }
 
     if (showSheet) {
         AlertDialog(
             onDismissRequest = { showSheet = false },
-            title = { Text(stringResource(R.string.new_plant_photo_title)) },
+            title = {
+                Text(
+                    text = stringResource(R.string.new_plant_photo_title),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(
-                        onClick = {
-                            showSheet = false
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                            } else {
-                                getContentLauncher.launch("image/*")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showSheet = false
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                } else {
+                                    getContentLauncher.launch("image/*")
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                            .padding(12.dp)
                     ) {
-                        Icon(imageVector = Icons.Rounded.PhotoLibrary, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Rounded.PhotoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Text(
                             text = stringResource(R.string.new_plant_gallery),
-                            modifier = Modifier.padding(start = 8.dp)
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                    TextButton(
-                        onClick = {
-                            showSheet = false
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (granted) {
-                                val file = createPersistentPhotoFile(context)
-                                val providerUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                pendingCameraFile = file
-                                pendingCameraPhoto = providerUri.toString()
-                                cameraUri = providerUri
-                                cameraUri?.let { cameraLauncher.launch(it) }
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showSheet = false
+                                val granted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (granted) {
+                                    val file = createPersistentPhotoFile(context)
+                                    val providerUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                    pendingCameraFile = file
+                                    pendingCameraPhoto = providerUri.toString()
+                                    cameraUri = providerUri
+                                    cameraUri?.let { cameraLauncher.launch(it) }
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                            .padding(12.dp)
                     ) {
-                        Icon(imageVector = Icons.Rounded.PhotoCamera, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Rounded.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Text(
                             text = stringResource(R.string.new_plant_camera),
-                            modifier = Modifier.padding(start = 8.dp)
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { showSheet = false }) {
+                TextButton(
+                    onClick = { showSheet = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(stringResource(R.string.new_plant_close))
                 }
             }
@@ -328,4 +369,3 @@ private fun createPersistentPhotoFile(context: Context): File {
     val directory = File(context.filesDir, "plant_photos").apply { mkdirs() }
     return File(directory, "plant_${UUID.randomUUID()}.jpg")
 }
-
