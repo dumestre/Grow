@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,6 +56,10 @@ fun GrowRoot(container: AppContainer) {
     val context = LocalContext.current
 
     var showNotificationSheet by remember { mutableStateOf(false) }
+    
+    // Estados para sincronizar o arrasto com a barra de navegação
+    var isDraggingPlant by remember { mutableStateOf(false) }
+    var trashBounds by remember { mutableStateOf<Rect?>(null) }
 
     if (!lockState.isReady) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -93,7 +98,10 @@ fun GrowRoot(container: AppContainer) {
                     viewModel = homeViewModel,
                     onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
                     onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
-                    onAddPlant = { navController.navigate(NavRoute.NewPlant.route) }
+                    onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
+                    externalIsDragging = isDraggingPlant,
+                    onDraggingChanged = { isDraggingPlant = it },
+                    externalTrashBounds = trashBounds
                 )
             }
 
@@ -179,6 +187,8 @@ fun GrowRoot(container: AppContainer) {
                     }
                 },
                 onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
+                isDeleting = isDraggingPlant,
+                onFabBounds = { trashBounds = it },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

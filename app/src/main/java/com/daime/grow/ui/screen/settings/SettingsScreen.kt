@@ -44,7 +44,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
-import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,7 +97,6 @@ fun SettingsScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = { RoundedBackButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
         },

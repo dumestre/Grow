@@ -73,7 +73,10 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onOpenDetails: (Long) -> Unit,
     onOpenSettings: () -> Unit,
-    onAddPlant: () -> Unit
+    onAddPlant: () -> Unit,
+    externalIsDragging: Boolean = false,
+    onDraggingChanged: (Boolean) -> Unit = {},
+    externalTrashBounds: Rect? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
@@ -87,19 +90,26 @@ fun HomeScreen(
     var dragOffsetX by remember { mutableStateOf(0f) }
     var dragOffsetY by remember { mutableStateOf(0f) }
     var draggedCardBounds by remember { mutableStateOf<Rect?>(null) }
-    var trashFabBounds by remember { mutableStateOf<Rect?>(null) }
+
     val reorderStepXPx = with(LocalDensity.current) { 170.dp.toPx() }
     val reorderStepYPx = with(LocalDensity.current) { 190.dp.toPx() }
+    
     val isDragging = draggedIndex != null
+    
+    // Sincroniza o estado de arrasto interno com o externo (Root -> NavBS)
+    LaunchedEffect(isDragging) {
+        onDraggingChanged(isDragging)
+    }
+
     val isOverTrash = isDragging &&
         draggedCardBounds != null &&
-        trashFabBounds != null &&
+        externalTrashBounds != null &&
         draggedCardBounds!!.overlaps(
             Rect(
-                left = trashFabBounds!!.left - 24f,
-                top = trashFabBounds!!.top - 24f,
-                right = trashFabBounds!!.right + 24f,
-                bottom = trashFabBounds!!.bottom + 24f
+                left = externalTrashBounds.left - 24f,
+                top = externalTrashBounds.top - 24f,
+                right = externalTrashBounds.right + 24f,
+                bottom = externalTrashBounds.bottom + 24f
             )
         )
     val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.68f else 1f, label = "dragged-scale")
@@ -150,28 +160,8 @@ fun HomeScreen(
                     scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        floatingActionButton = {
-            if (isDragging) {
-                FloatingActionButton(
-                    onClick = { },
-                    containerColor = Color(0xFFC62828),
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            trashFabBounds = coordinates.boundsInRoot()
-                        }
-                        .graphicsLayer {
-                            scaleX = if (isOverTrash) 1.12f else 1f
-                            scaleY = if (isOverTrash) 1.12f else 1f
-                        }
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = stringResource(R.string.home_delete_confirm)
-                    )
-                }
-            }
         }
+        // FAB removido daqui, pois agora está na barra de navegação inferior
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -323,7 +313,7 @@ fun HomeScreen(
                                             scaleX = draggedScale
                                             scaleY = draggedScale
                                         }
-                                        .zIndex(2f)
+                                        .zIndex(100f) // Aumentado para garantir que fique por cima da barra
                                         .onGloballyPositioned { coordinates ->
                                             draggedCardBounds = coordinates.boundsInRoot()
                                         }
@@ -412,7 +402,7 @@ fun HomeScreen(
                             plantPendingDelete = null
                         }
                     ) {
-                        Text(stringResource(R.string.home_delete_confirm))
+                        Text(stringResource(R.string.home_delete_confirm), color = Color.Red)
                     }
                 },
                 dismissButton = {
