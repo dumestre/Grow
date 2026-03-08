@@ -9,6 +9,7 @@ data class Plant(
     val days: Int,
     val photoUri: String?,
     val nextWateringDate: Long?,
-    val createdAt: Long
+    val createdAt: Long,
+    val sharedOnMural: Boolean = false
 )
 

@@ -12,5 +12,6 @@ class AppContainer(context: Context) {
     val preferencesRepository = SecurityPreferencesRepository(appContext)
     val reminderScheduler = ReminderScheduler(appContext)
     val backupManager = BackupManager(appContext, database)
+    val muralDao = database.muralDao()
 }
 

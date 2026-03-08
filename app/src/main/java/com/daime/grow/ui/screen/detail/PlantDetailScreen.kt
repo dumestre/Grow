@@ -1,5 +1,9 @@
 ﻿package com.daime.grow.ui.screen.detail
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,11 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -31,18 +31,23 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,6 +75,8 @@ fun PlantDetailScreen(
     val nutrientsInvalidMessage = stringResource(R.string.detail_nutrients_invalid)
     val nutrientsSavedMessage = stringResource(R.string.detail_nutrients_saved)
     val stageUpdatedMessage = stringResource(R.string.detail_stage_updated)
+    
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -83,54 +90,60 @@ fun PlantDetailScreen(
         }
     }
 
-    Box(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-        ) {
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(details?.plant?.name ?: stringResource(R.string.detail_title_fallback)) },
-                navigationIcon = { RoundedBackButton(onClick = onBack) }
+                navigationIcon = { RoundedBackButton(onClick = onBack) },
+                scrollBehavior = scrollBehavior
             )
-
-            if (details == null) {
-                Text(stringResource(R.string.detail_loading))
-                return
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { padding ->
+        if (details == null) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                Text(stringResource(R.string.detail_loading), modifier = Modifier.padding(16.dp))
             }
+            return@Scaffold
+        }
 
-            val phaseOrder = listOf(PlantStage.SEEDLING, PlantStage.VEGETATIVE, PlantStage.FLOWER)
-            val checklistByPhase = details.checklistItems
-                .groupBy { it.phase }
-                .toList()
-                .sortedBy { entry ->
-                    val idx = phaseOrder.indexOf(entry.first)
-                    if (idx == -1) Int.MAX_VALUE else idx
-                }
-            var expandedPhases by remember(details.plant.id) {
-                androidx.compose.runtime.mutableStateOf(setOf(details.plant.stage))
+        val phaseOrder = listOf(PlantStage.SEEDLING, PlantStage.VEGETATIVE, PlantStage.FLOWER)
+        val checklistByPhase = details.checklistItems
+            .groupBy { it.phase }
+            .toList()
+            .sortedBy { entry ->
+                val idx = phaseOrder.indexOf(entry.first)
+                if (idx == -1) Int.MAX_VALUE else idx
             }
-            var expandedWatering by remember(details.plant.id) { androidx.compose.runtime.mutableStateOf(false) }
-            var expandedNutrients by remember(details.plant.id) { androidx.compose.runtime.mutableStateOf(false) }
+        var expandedPhases by remember(details.plant.id) {
+            mutableStateOf(setOf(details.plant.stage))
+        }
+        var expandedWatering by remember(details.plant.id) { mutableStateOf(false) }
+        var expandedNutrients by remember(details.plant.id) { mutableStateOf(false) }
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                top = padding.calculateTopPadding() + 16.dp,
+                bottom = padding.calculateBottomPadding() + 24.dp,
+                start = 16.dp,
+                end = 16.dp
+            )
+        ) {
             item {
                 DetailAccentCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             stringResource(R.string.detail_current_phase, details.plant.stage),
-                            style = androidx.compose.material3.MaterialTheme.typography.titleSmall
+                            style = MaterialTheme.typography.titleSmall
                         )
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -154,10 +167,10 @@ fun PlantDetailScreen(
             item {
                 DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.detail_quick_actions_title), style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.detail_quick_actions_title), style = MaterialTheme.typography.titleMedium)
                         Text(
                             text = stringResource(R.string.detail_quick_actions_desc),
-                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall
                         )
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -283,11 +296,11 @@ fun PlantDetailScreen(
             item {
                 Text(
                     stringResource(R.string.detail_checklist_by_stage),
-                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
                     text = stringResource(R.string.detail_checklist_desc),
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
@@ -314,11 +327,11 @@ fun PlantDetailScreen(
                             Column {
                                 Text(
                                     text = stringResource(R.string.detail_phase, phase),
-                                    style = androidx.compose.material3.MaterialTheme.typography.titleSmall
+                                    style = MaterialTheme.typography.titleSmall
                                 )
                                 Text(
                                     text = stringResource(R.string.detail_checklist_completed, doneCount, phaseItems.size),
-                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
                             Icon(
@@ -353,34 +366,26 @@ fun PlantDetailScreen(
             }
 
             item {
-                Text(stringResource(R.string.detail_timeline), style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.detail_timeline), style = MaterialTheme.typography.titleMedium)
             }
 
             items(details.events, key = { it.id }) { event ->
                 DetailAccentCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(event.type, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+                        Text(event.type, style = MaterialTheme.typography.titleMedium)
                         if (event.note.isNotBlank()) Text(event.note)
                         Text(
                             SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(event.createdAt)),
-                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
             }
-            }
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(androidx.compose.ui.Alignment.BottomCenter)
-                .padding(16.dp)
-        )
     }
 }
 
@@ -391,7 +396,7 @@ private fun DetailAccentCard(
     elevation: androidx.compose.material3.CardElevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     content: @Composable () -> Unit
 ) {
-    val accent = androidx.compose.material3.MaterialTheme.colorScheme.tertiary
+    val accent = MaterialTheme.colorScheme.tertiary
     Card(
         modifier = modifier,
         colors = colors,

@@ -14,6 +14,7 @@ data class PlantEntity(
     val photoUri: String?,
     val nextWateringDate: Long?,
     val sortOrder: Int = 0,
-    val createdAt: Long
+    val createdAt: Long,
+    val sharedOnMural: Boolean = false
 )
 

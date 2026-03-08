@@ -19,7 +19,8 @@ data class AddPlantUiState(
     val days: String = "",
     val photoUri: String? = null,
     val isSaving: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val shareOnMural: Boolean = false
 )
 
 sealed interface AddPlantUiEvent {
@@ -41,6 +42,7 @@ class AddPlantViewModel(
     fun onMediumChange(value: String) = update { copy(medium = value, error = null) }
     fun onDaysChange(value: String) = update { copy(days = value.filter { c -> c.isDigit() }, error = null) }
     fun onPhotoSelected(uri: String?) = update { copy(photoUri = uri) }
+    fun onShareOnMuralChange(value: Boolean) = update { copy(shareOnMural = value) }
 
     fun save(onSaved: (Long) -> Unit) {
         val state = _uiState.value
@@ -59,7 +61,8 @@ class AddPlantViewModel(
                 stage = state.stage,
                 medium = state.medium.trim(),
                 days = days,
-                photoUri = state.photoUri
+                photoUri = state.photoUri,
+                shareOnMural = state.shareOnMural
             )
             _events.emit(AddPlantUiEvent.Saved)
             update { AddPlantUiState() }

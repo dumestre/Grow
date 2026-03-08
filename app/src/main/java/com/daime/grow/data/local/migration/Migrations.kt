@@ -90,3 +90,47 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plants ADD COLUMN sharedOnMural INTEGER NOT NULL DEFAULT 0")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                plantId INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                FOREIGN KEY(plantId) REFERENCES plants(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_posts_plantId ON mural_posts(plantId)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                username TEXT NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                postId INTEGER NOT NULL,
+                userId INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                FOREIGN KEY(postId) REFERENCES mural_posts(id) ON DELETE CASCADE,
+                FOREIGN KEY(userId) REFERENCES mural_users(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_postId ON mural_comments(postId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_userId ON mural_comments(userId)")
+    }
+}
+

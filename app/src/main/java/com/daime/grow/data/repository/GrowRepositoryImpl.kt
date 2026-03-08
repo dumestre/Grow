@@ -40,6 +40,7 @@ class GrowRepositoryImpl(
     private val wateringDao = database.wateringLogDao()
     private val nutrientDao = database.nutrientLogDao()
     private val checklistDao = database.checklistDao()
+    private val muralDao = database.muralDao()
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
         return plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0)
@@ -71,7 +72,8 @@ class GrowRepositoryImpl(
         stage: String,
         medium: String,
         days: Int,
-        photoUri: String?
+        photoUri: String?,
+        shareOnMural: Boolean
     ): Long {
         val now = System.currentTimeMillis()
         var createdId = 0L
@@ -87,7 +89,8 @@ class GrowRepositoryImpl(
                     photoUri = photoUri,
                     nextWateringDate = null,
                     sortOrder = nextSortOrder,
-                    createdAt = now
+                    createdAt = now,
+                    sharedOnMural = shareOnMural
                 )
             )
 
@@ -111,6 +114,15 @@ class GrowRepositoryImpl(
                     createdAt = now
                 )
             )
+
+            if (shareOnMural) {
+                muralDao.insertPost(
+                    com.daime.grow.data.local.entity.MuralPostEntity(
+                        plantId = createdId,
+                        createdAt = now
+                    )
+                )
+            }
         }
         val createdPlant = plantDao.observePlant(createdId).first()
         createdPlant?.toDomain()?.let { scheduler.scheduleForPlant(it) }
@@ -316,6 +328,53 @@ class GrowRepositoryImpl(
     override suspend fun importBackup(uri: Uri) {
         backupManager.importFrom(uri)
     }
+
+    // Mural
+    override fun observeMuralPosts(): Flow<List<com.daime.grow.data.local.dao.MuralPostWithPlant>> {
+        return muralDao.observeMuralPostsWithPlants()
+    }
+
+    override fun observeMuralPost(postId: Long): Flow<com.daime.grow.data.local.dao.MuralPostWithPlant?> {
+        return muralDao.observeMuralPostsWithPlants().map { posts ->
+            posts.find { it.id == postId }
+        }
+    }
+
+    override fun observeComments(postId: Long): Flow<List<com.daime.grow.data.local.dao.CommentWithUser>> {
+        return muralDao.observeCommentsWithUsers(postId)
+    }
+
+    override suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long?) {
+        muralDao.insertComment(
+            com.daime.grow.data.local.entity.MuralCommentEntity(
+                postId = postId,
+                userId = userId,
+                content = content,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    override suspend fun createOrGetUser(username: String): Long {
+        var user = muralDao.getUserByUsername(username)
+        if (user == null) {
+            return muralDao.insertUser(
+                com.daime.grow.data.local.entity.MuralUserEntity(
+                    username = username,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+        }
+        return user.id
+    }
+
+    private var currentUserId: Long? = null
+
+    override suspend fun getCurrentUserId(): Long? = currentUserId
+
+    fun setCurrentUserId(userId: Long) {
+        currentUserId = userId
+    }
 }
 
 private fun deletePhotoIfOwned(appContext: Context, photoUri: String?) {
@@ -340,7 +399,8 @@ private fun PlantEntity.toDomain() = Plant(
     days = days,
     photoUri = photoUri,
     nextWateringDate = nextWateringDate,
-    createdAt = createdAt
+    createdAt = createdAt,
+    sharedOnMural = sharedOnMural
 )
 
 private fun PlantEventEntity.toDomain() = PlantEvent(

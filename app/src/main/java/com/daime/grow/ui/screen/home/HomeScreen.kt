@@ -1,5 +1,6 @@
 ﻿package com.daime.grow.ui.screen.home
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,21 +13,18 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -34,40 +32,41 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
@@ -86,6 +85,8 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    
     var plantPendingDelete by remember { mutableStateOf<com.daime.grow.domain.model.Plant?>(null) }
     var orderedPlants by remember { mutableStateOf(state.plants) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -125,12 +126,70 @@ fun HomeScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-    ) {
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 16.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ) {
+                        OutlinedTextField(
+                            value = state.query,
+                            onValueChange = viewModel::onQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(stringResource(R.string.home_search_label), style = MaterialTheme.typography.bodySmall) },
+                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            singleLine = true,
+                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent
+                            )
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    if (isDragging) return@FloatingActionButton
+                    onAddPlant()
+                },
+                containerColor = if (isDragging) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier
+                    .padding(bottom = homeFabBottomPadding)
+                    .onGloballyPositioned { coordinates ->
+                        trashFabBounds = coordinates.boundsInRoot()
+                    }
+                    .graphicsLayer {
+                        if (isDragging) {
+                            scaleX = if (isOverTrash) 1.12f else 1f
+                            scaleY = if (isOverTrash) 1.12f else 1f
+                        }
+                    }
+            ) {
+                Icon(
+                    imageVector = if (isDragging) Icons.Rounded.Delete else Icons.Default.Add,
+                    contentDescription = if (isDragging) {
+                        stringResource(R.string.home_delete_confirm)
+                    } else {
+                        stringResource(R.string.fab_add_plant)
+                    }
+                )
+            }
+        }
+    ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             state = gridState,
@@ -139,14 +198,17 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 84.dp, top = 96.dp)
+            contentPadding = PaddingValues(
+                top = padding.calculateTopPadding() + 8.dp,
+                bottom = padding.calculateBottomPadding() + 84.dp
+            )
         ) {
             item(span = { GridItemSpan(2) }) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
@@ -155,11 +217,11 @@ fun HomeScreen(
                     ) {
                         Text(
                             stringResource(R.string.home_focus_title),
-                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium
                         )
                         Text(
                             stringResource(R.string.home_focus_subtitle),
-                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -207,6 +269,7 @@ fun HomeScreen(
                     )
                 }
             }
+            
             val plantsToRender = orderedPlants
             val dragFromIndex = draggedIndex
             val dragToIndex = dropIndex
@@ -225,11 +288,12 @@ fun HomeScreen(
             } else {
                 plantsToRender
             }
+
             if (plantsToRender.isEmpty()) {
                 item(span = { GridItemSpan(2) }) {
                     Text(
                         text = stringResource(R.string.home_empty_state),
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             } else {
@@ -351,76 +415,6 @@ fun HomeScreen(
                     )
                 }
             }
-        }
-
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-            color = androidx.compose.material3.MaterialTheme.colorScheme.surface,
-            tonalElevation = 3.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = viewModel::onQueryChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                    placeholder = { Text(stringResource(R.string.home_search_label)) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    textStyle = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                    singleLine = true
-                )
-                IconButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = stringResource(R.string.home_settings)
-                    )
-                }
-            }
-        }
-
-        FloatingActionButton(
-            onClick = {
-                if (isDragging) return@FloatingActionButton
-                onAddPlant()
-            },
-            containerColor = if (isDragging) Color(0xFFC62828) else androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = homeFabBottomPadding)
-                .onGloballyPositioned { coordinates ->
-                    trashFabBounds = coordinates.boundsInRoot()
-                }
-                .graphicsLayer {
-                    if (isDragging) {
-                        scaleX = if (isOverTrash) 1.12f else 1f
-                        scaleY = if (isOverTrash) 1.12f else 1f
-                    }
-                }
-        ) {
-            Icon(
-                imageVector = if (isDragging) Icons.Rounded.Delete else Icons.Default.Add,
-                contentDescription = if (isDragging) {
-                    stringResource(R.string.home_delete_confirm)
-                } else {
-                    stringResource(R.string.fab_add_plant)
-                }
-            )
         }
 
         plantPendingDelete?.let { plant ->

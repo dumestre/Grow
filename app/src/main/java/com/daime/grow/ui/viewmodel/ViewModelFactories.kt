@@ -18,6 +18,7 @@ class ViewModelFactories(container: AppContainer) {
     val addPlant: ViewModelProvider.Factory = singleFactory { AddPlantViewModel(repository) }
     val lock: ViewModelProvider.Factory = singleFactory { LockViewModel(repository) }
     val settings: ViewModelProvider.Factory = singleFactory { SettingsViewModel(repository) }
+    val mural: ViewModelProvider.Factory = singleFactory { MuralViewModel(container.muralDao) }
 
     val detail = DetailFactory(repository)
 

@@ -1,6 +1,8 @@
 ﻿package com.daime.grow.domain.repository
 
 import android.net.Uri
+import com.daime.grow.data.local.dao.CommentWithUser
+import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.domain.model.NutrientLog
 import com.daime.grow.domain.model.Plant
 import com.daime.grow.domain.model.PlantDetails
@@ -16,7 +18,8 @@ interface GrowRepository {
         stage: String,
         medium: String,
         days: Int,
-        photoUri: String?
+        photoUri: String?,
+        shareOnMural: Boolean = false
     ): Long
 
     suspend fun addQuickEvent(plantId: Long, type: String, note: String = "")
@@ -36,5 +39,12 @@ interface GrowRepository {
 
     suspend fun exportBackup(uri: Uri)
     suspend fun importBackup(uri: Uri)
-}
 
+    // Mural
+    fun observeMuralPosts(): Flow<List<MuralPostWithPlant>>
+    fun observeMuralPost(postId: Long): Flow<MuralPostWithPlant?>
+    fun observeComments(postId: Long): Flow<List<CommentWithUser>>
+    suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null)
+    suspend fun createOrGetUser(username: String): Long
+    suspend fun getCurrentUserId(): Long?
+}
