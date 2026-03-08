@@ -8,18 +8,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -27,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
@@ -111,7 +103,6 @@ fun HomeScreen(
             )
         )
     val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.68f else 1f, label = "dragged-scale")
-    val homeFabBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 20.dp
 
     LaunchedEffect(state.plants) {
         val currentIds = state.plants.map { it.id }.toSet()
@@ -161,32 +152,24 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (isDragging) return@FloatingActionButton
-                    onAddPlant()
-                },
-                containerColor = if (isDragging) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier
-                    .padding(bottom = homeFabBottomPadding)
-                    .onGloballyPositioned { coordinates ->
-                        trashFabBounds = coordinates.boundsInRoot()
-                    }
-                    .graphicsLayer {
-                        if (isDragging) {
+            if (isDragging) {
+                FloatingActionButton(
+                    onClick = { },
+                    containerColor = Color(0xFFC62828),
+                    modifier = Modifier
+                        .onGloballyPositioned { coordinates ->
+                            trashFabBounds = coordinates.boundsInRoot()
+                        }
+                        .graphicsLayer {
                             scaleX = if (isOverTrash) 1.12f else 1f
                             scaleY = if (isOverTrash) 1.12f else 1f
                         }
-                    }
-            ) {
-                Icon(
-                    imageVector = if (isDragging) Icons.Rounded.Delete else Icons.Default.Add,
-                    contentDescription = if (isDragging) {
-                        stringResource(R.string.home_delete_confirm)
-                    } else {
-                        stringResource(R.string.fab_add_plant)
-                    }
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.home_delete_confirm)
+                    )
+                }
             }
         }
     ) { padding ->

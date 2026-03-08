@@ -178,6 +178,7 @@ fun GrowRoot(container: AppContainer) {
                         }
                     }
                 },
+                onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

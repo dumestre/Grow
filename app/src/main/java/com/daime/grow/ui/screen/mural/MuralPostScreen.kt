@@ -41,7 +41,7 @@ fun MuralPostScreen(
     val state by viewModel.postUiState.collectAsStateWithLifecycle()
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
     var showUsernameDialog by remember { mutableStateOf(false) }
-    var showEditCommentDialog by remember { mutableStateOf<CommentWithUser?>(null) }
+    var editingComment by remember { mutableStateOf<CommentWithUser?>(null) }
     var pendingComment by remember { mutableStateOf("") }
     var pendingReplyToId by remember { mutableStateOf<Long?>(null) }
     var replyToComment by remember { mutableStateOf<CommentWithUser?>(null) }
@@ -120,9 +120,15 @@ fun MuralPostScreen(
                                 MuralCommentItem(
                                     comment = comment,
                                     currentUserId = currentUserId,
-                                    onReplyClick = { replyToComment = it },
+                                    onReplyClick = { 
+                                        replyToComment = it
+                                        editingComment = null
+                                    },
                                     onDeleteClick = { viewModel.deleteComment(it.id) },
-                                    onEditClick = { showEditCommentDialog = it },
+                                    onEditClick = { 
+                                        editingComment = it
+                                        replyToComment = null
+                                    },
                                     depth = depth
                                 )
                             }
@@ -165,9 +171,16 @@ fun MuralPostScreen(
                     ) {
                         CommentInput(
                             currentUserId = currentUserId,
+                            editingComment = editingComment,
+                            onCancelEdit = { editingComment = null },
                             onSendComment = { content ->
-                                viewModel.addComment(postId, currentUserId!!, content, replyToComment?.id)
-                                replyToComment = null
+                                if (editingComment != null) {
+                                    viewModel.editComment(editingComment!!.id, content)
+                                    editingComment = null
+                                } else {
+                                    viewModel.addComment(postId, currentUserId!!, content, replyToComment?.id)
+                                    replyToComment = null
+                                }
                             },
                             onRequestUsername = { content ->
                                 pendingComment = content
@@ -195,17 +208,6 @@ fun MuralPostScreen(
                     showUsernameDialog = false
                     replyToComment = null
                 }
-            }
-        )
-    }
-
-    showEditCommentDialog?.let { comment ->
-        EditCommentDialog(
-            initialText = comment.content,
-            onDismiss = { showEditCommentDialog = null },
-            onConfirm = { newContent ->
-                viewModel.editComment(comment.id, newContent)
-                showEditCommentDialog = null
             }
         )
     }
