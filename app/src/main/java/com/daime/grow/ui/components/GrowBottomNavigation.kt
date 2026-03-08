@@ -1,13 +1,19 @@
 package com.daime.grow.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -15,6 +21,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,7 +33,8 @@ enum class BottomNavItem(
     val title: String,
     val iconRes: Int?,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val unselectedIcon: ImageVector,
+    val hasBadge: Boolean = false
 ) {
     Home(
         route = "home",
@@ -47,7 +55,8 @@ enum class BottomNavItem(
         title = "Avisos",
         iconRes = null,
         selectedIcon = Icons.Filled.Notifications,
-        unselectedIcon = Icons.Outlined.Notifications
+        unselectedIcon = Icons.Outlined.Notifications,
+        hasBadge = true // Indicador de notificação ativa
     ),
     Settings(
         route = "settings",
@@ -75,19 +84,30 @@ fun GrowBottomNavigationBar(
                 selected = selected,
                 onClick = { onNavigate(item.route) },
                 icon = {
-                    if (item.iconRes != null) {
-                        Icon(
-                            painter = painterResource(id = item.iconRes),
-                            contentDescription = item.title,
-                            modifier = Modifier.size(26.dp),
-                            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Icon(
-                            imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.title,
-                            modifier = Modifier.size(26.dp)
-                        )
+                    BadgedBox(
+                        badge = {
+                            if (item.hasBadge) {
+                                Badge(
+                                    modifier = Modifier.size(8.dp),
+                                    containerColor = Color.Red
+                                )
+                            }
+                        }
+                    ) {
+                        if (item.iconRes != null) {
+                            Icon(
+                                painter = painterResource(id = item.iconRes),
+                                contentDescription = item.title,
+                                modifier = Modifier.size(26.dp),
+                                tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.title,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
                 },
                 label = { Text(item.title) },

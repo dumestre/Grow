@@ -1,57 +1,33 @@
 package com.daime.grow.ui.screen.mural
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Grass
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.daime.grow.R
 import com.daime.grow.data.local.dao.CommentWithUser
+import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.ui.viewmodel.MuralViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,13 +41,17 @@ fun MuralPostScreen(
     val state by viewModel.postUiState.collectAsStateWithLifecycle()
     val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
     var showUsernameDialog by remember { mutableStateOf(false) }
+    var showEditCommentDialog by remember { mutableStateOf<CommentWithUser?>(null) }
     var pendingComment by remember { mutableStateOf("") }
+    var pendingReplyToId by remember { mutableStateOf<Long?>(null) }
+    var replyToComment by remember { mutableStateOf<CommentWithUser?>(null) }
 
     LaunchedEffect(postId) {
         viewModel.loadPost(postId)
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {
@@ -86,10 +66,12 @@ fun MuralPostScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -110,7 +92,7 @@ fun MuralPostScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Comentários",
+                        text = "Conversa",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -118,18 +100,82 @@ fun MuralPostScreen(
                     
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    CommentsList(
-                        comments = state.comments,
-                        currentUserId = currentUserId,
-                        onSendComment = { content ->
-                            viewModel.addComment(postId, currentUserId!!, content)
-                        },
-                        onRequestUsername = { text -> 
-                            pendingComment = text
-                            showUsernameDialog = true 
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                    val tree = remember(state.comments) { buildCommentTree(state.comments) }
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(bottom = 16.dp + innerPadding.calculateBottomPadding())
+                    ) {
+                        if (tree.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "Seja o primeiro a comentar!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        } else {
+                            items(tree, key = { it.first.id }) { (comment, depth) ->
+                                MuralCommentItem(
+                                    comment = comment,
+                                    currentUserId = currentUserId,
+                                    onReplyClick = { replyToComment = it },
+                                    onDeleteClick = { viewModel.deleteComment(it.id) },
+                                    onEditClick = { showEditCommentDialog = it },
+                                    depth = depth
+                                )
+                            }
+                        }
+                    }
+
+                    // Reply Feedback Area
+                    AnimatedVisibility(
+                        visible = replyToComment != null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(modifier = Modifier.weight(1f)) {
+                                Icon(Icons.AutoMirrored.Filled.Reply, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Respondendo a @${replyToComment?.username}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            IconButton(onClick = { replyToComment = null }, modifier = Modifier.size(20.dp)) {
+                                Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+
+                    Surface(
+                        tonalElevation = 2.dp,
+                        shadowElevation = 8.dp,
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        CommentInput(
+                            currentUserId = currentUserId,
+                            onSendComment = { content ->
+                                viewModel.addComment(postId, currentUserId!!, content, replyToComment?.id)
+                                replyToComment = null
+                            },
+                            onRequestUsername = { content ->
+                                pendingComment = content
+                                pendingReplyToId = replyToComment?.id
+                                showUsernameDialog = true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -142,18 +188,31 @@ fun MuralPostScreen(
             onConfirm = { username ->
                 viewModel.createOrGetUser(username) { userId ->
                     if (pendingComment.isNotBlank()) {
-                        viewModel.addComment(postId, userId, pendingComment)
+                        viewModel.addComment(postId, userId, pendingComment, pendingReplyToId)
                         pendingComment = ""
+                        pendingReplyToId = null
                     }
                     showUsernameDialog = false
+                    replyToComment = null
                 }
+            }
+        )
+    }
+
+    showEditCommentDialog?.let { comment ->
+        EditCommentDialog(
+            initialText = comment.content,
+            onDismiss = { showEditCommentDialog = null },
+            onConfirm = { newContent ->
+                viewModel.editComment(comment.id, newContent)
+                showEditCommentDialog = null
             }
         )
     }
 }
 
 @Composable
-private fun PostHeader(post: com.daime.grow.data.local.dao.MuralPostWithPlant) {
+private fun PostHeader(post: MuralPostWithPlant) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,7 +231,7 @@ private fun PostHeader(post: com.daime.grow.data.local.dao.MuralPostWithPlant) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Grass,
+                        painter = painterResource(id = R.drawable.planta),
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -238,192 +297,4 @@ private fun PostHeader(post: com.daime.grow.data.local.dao.MuralPostWithPlant) {
             }
         }
     }
-}
-
-@Composable
-private fun CommentsList(
-    comments: List<CommentWithUser>,
-    currentUserId: Long?,
-    onSendComment: (String) -> Unit,
-    onRequestUsername: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var commentText by remember { mutableStateOf("") }
-
-    Column(modifier = modifier) {
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-        if (comments.isEmpty()) {
-            Text(
-                text = "Seja o primeiro a comentar!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp)
-            )
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f, fill = false)
-            ) {
-                items(comments, key = { it.id }) { comment ->
-                    CommentItem(comment = comment)
-                }
-            }
-        }
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            tonalElevation = 2.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = commentText,
-                    onValueChange = { commentText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Comentar...") },
-                    shape = RoundedCornerShape(24.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        if (commentText.isNotBlank()) {
-                            if (currentUserId == null) {
-                                onRequestUsername(commentText)
-                            } else {
-                                onSendComment(commentText)
-                                commentText = ""
-                            }
-                        }
-                    },
-                    enabled = commentText.isNotBlank()
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Enviar",
-                        tint = if (commentText.isNotBlank())
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommentItem(comment: CommentWithUser) {
-    val userColor = remember(comment.username) { 
-        val colors = listOf(
-            Color(0xFF1976D2), Color(0xFF388E3C), Color(0xFFD32F2F), 
-            Color(0xFFF57C00), Color(0xFF7B1FA2), Color(0xFF00796B),
-            Color(0xFFC2185B), Color(0xFF5D4037), Color(0xFF455A64)
-        )
-        val index = comment.username.hashCode().let { if (it < 0) -it else it } % colors.size
-        colors[index]
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "@${comment.username}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = userColor,
-                    fontWeight = FontWeight.Black
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = formatDateSimple(comment.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = comment.content,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun UsernameDialog(
-    reason: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var username by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Criar usuário",
-                fontWeight = FontWeight.SemiBold
-            )
-        },
-        text = {
-            Column {
-                Text(
-                    text = reason,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = {
-                        username = it.replace(" ", "")
-                    },
-                    label = { Text("Nome") },
-                    prefix = { Text("@") },
-                    singleLine = true,
-                    isError = error != null,
-                    supportingText = error?.let { { Text(it) } },
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    when {
-                        username.length < 3 -> error = "Mínimo 3 caracteres"
-                        !username.matches(Regex("^[a-zA-Z0-9_]+$")) -> error = "Apenas letras, números e _"
-                        else -> onConfirm(username)
-                    }
-                }
-            ) {
-                Text("Continuar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-}
-
-private fun formatDateSimple(timestamp: Long): String {
-    val sdf = java.text.SimpleDateFormat("dd/MM/yy", java.util.Locale.getDefault())
-    return sdf.format(java.util.Date(timestamp))
 }

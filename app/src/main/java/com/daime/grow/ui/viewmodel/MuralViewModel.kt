@@ -9,10 +9,12 @@ import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.data.local.entity.MuralCommentEntity
 import com.daime.grow.data.local.entity.MuralPostEntity
 import com.daime.grow.data.local.entity.MuralUserEntity
+import com.daime.grow.data.preferences.MuralPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class MuralUiState(
@@ -27,7 +29,8 @@ data class MuralPostUiState(
 )
 
 class MuralViewModel(
-    private val muralDao: MuralDao
+    private val muralDao: MuralDao,
+    private val preferencesRepository: MuralPreferencesRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MuralUiState())
     val uiState: StateFlow<MuralUiState> = _uiState.asStateFlow()
@@ -40,6 +43,15 @@ class MuralViewModel(
 
     init {
         loadPosts()
+        observeStoredUser()
+    }
+
+    private fun observeStoredUser() {
+        viewModelScope.launch {
+            preferencesRepository.currentUserId.collect { id ->
+                _currentUserId.value = id
+            }
+        }
     }
 
     private fun loadPosts() {
@@ -74,7 +86,6 @@ class MuralViewModel(
         }
     }
 
-    // Helper to get comments for preview in individual items
     fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {
         return muralDao.observeCommentsWithUsers(postId)
     }
@@ -91,33 +102,22 @@ class MuralViewModel(
         }
     }
 
-    fun unsharePlant(plantId: Long) {
-        viewModelScope.launch {
-            muralDao.updatePlantSharedStatus(plantId, false)
-        }
-    }
-
     fun createOrGetUser(username: String, onComplete: (Long) -> Unit) {
         viewModelScope.launch {
             var user = muralDao.getUserByUsername(username)
-            if (user == null) {
-                val userId = muralDao.insertUser(
+            val userId = if (user == null) {
+                muralDao.insertUser(
                     MuralUserEntity(
                         username = username,
                         createdAt = System.currentTimeMillis()
                     )
                 )
-                _currentUserId.value = userId
-                onComplete(userId)
             } else {
-                _currentUserId.value = user.id
-                onComplete(user.id)
+                user.id
             }
+            preferencesRepository.saveUserId(userId)
+            onComplete(userId)
         }
-    }
-
-    fun setCurrentUserId(userId: Long) {
-        _currentUserId.value = userId
     }
 
     fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null) {
@@ -133,13 +133,29 @@ class MuralViewModel(
             )
         }
     }
+
+    fun deleteComment(commentId: Long) {
+        viewModelScope.launch {
+            muralDao.deleteComment(commentId)
+        }
+    }
+
+    fun editComment(commentId: Long, newContent: String) {
+        viewModelScope.launch {
+            val comment = muralDao.getComment(commentId)
+            if (comment != null) {
+                muralDao.updateComment(comment.copy(content = newContent))
+            }
+        }
+    }
 }
 
 class MuralViewModelFactory(
-    private val muralDao: MuralDao
+    private val muralDao: MuralDao,
+    private val preferencesRepository: MuralPreferencesRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return MuralViewModel(muralDao) as T
+        return MuralViewModel(muralDao, preferencesRepository) as T
     }
 }

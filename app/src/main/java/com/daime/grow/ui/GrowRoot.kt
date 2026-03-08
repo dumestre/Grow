@@ -1,9 +1,11 @@
 ﻿package com.daime.grow.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +57,7 @@ fun GrowRoot(container: AppContainer) {
     var showNotificationSheet by remember { mutableStateOf(false) }
 
     if (!lockState.isReady) {
-        Box(modifier = Modifier.fillMaxSize())
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
         return
     }
 
@@ -79,15 +81,15 @@ fun GrowRoot(container: AppContainer) {
         NavRoute.Settings.route
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         NavHost(
             navController = navController,
             startDestination = NavRoute.Home.route,
-            modifier = Modifier.padding(bottom = if (showBottomBar) 80.dp else 0.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable(NavRoute.Home.route) {
                 HomeScreen(
-                    innerPadding = PaddingValues(),
+                    innerPadding = if (showBottomBar) PaddingValues(bottom = 80.dp) else PaddingValues(),
                     viewModel = homeViewModel,
                     onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
                     onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
@@ -97,7 +99,7 @@ fun GrowRoot(container: AppContainer) {
 
             composable(NavRoute.Mural.route) {
                 MuralScreen(
-                    innerPadding = PaddingValues(),
+                    innerPadding = if (showBottomBar) PaddingValues(bottom = 80.dp) else PaddingValues(),
                     viewModel = muralViewModel,
                     onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
                 )
@@ -136,7 +138,7 @@ fun GrowRoot(container: AppContainer) {
 
             composable(NavRoute.Settings.route) {
                 SettingsScreen(
-                    innerPadding = PaddingValues(),
+                    innerPadding = if (showBottomBar) PaddingValues(bottom = 80.dp) else PaddingValues(),
                     viewModel = settingsViewModel,
                     onBack = { navController.popBackStack() }
                 )

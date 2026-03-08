@@ -45,6 +45,9 @@ interface MuralDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: MuralUserEntity): Long
 
+    @Query("SELECT * FROM mural_comments WHERE id = :commentId LIMIT 1")
+    suspend fun getComment(commentId: Long): MuralCommentEntity?
+
     @Query("SELECT * FROM mural_comments WHERE postId = :postId ORDER BY createdAt ASC")
     fun observeComments(postId: Long): Flow<List<MuralCommentEntity>>
 
@@ -59,6 +62,9 @@ interface MuralDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComment(comment: MuralCommentEntity): Long
+
+    @Update
+    suspend fun updateComment(comment: MuralCommentEntity)
 
     @Query("DELETE FROM mural_comments WHERE id = :commentId")
     suspend fun deleteComment(commentId: Long)

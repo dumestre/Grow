@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,18 +27,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.daime.grow.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSheet(
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
@@ -52,19 +57,22 @@ fun NotificationSheet(
                 text = "Notificações",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                textAlign = TextAlign.Center
             )
             
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             
             // Mock data for notifications
             val notifications = listOf(
-                NotificationItemData(1, "mariagreen", "curtiu sua planta 'Skunk #1'", "há 2 min", Icons.Default.Favorite, Color.Red),
-                NotificationItemData(2, "bob_grower", "respondeu seu comentário: 'Ficou top!'", "há 15 min", Icons.AutoMirrored.Filled.Reply, Color(0xFF1976D2)),
-                NotificationItemData(3, "alice_weed", "compartilhou uma nova planta: 'Northern Lights'", "há 1h", Icons.Default.Grass, Color(0xFF388E3C)),
-                NotificationItemData(4, "cannabis_king", "comentou no seu post: 'Quanto tempo de vega?'", "há 3h", Icons.AutoMirrored.Filled.Comment, Color(0xFFF57C00)),
-                NotificationItemData(5, "grower_master", "curtiu seu comentário no mural", "há 5h", Icons.Default.Favorite, Color.Red),
-                NotificationItemData(6, "nature_lover", "compartilhou 'Lemon Haze'", "há 1d", Icons.Default.Grass, Color(0xFF388E3C))
+                NotificationItemData(1, "mariagreen", "curtiu sua planta 'Skunk #1'", "há 2 min", icon = Icons.Default.Favorite, iconColor = Color.Red),
+                NotificationItemData(2, "bob_grower", "respondeu seu comentário: 'Ficou top!'", "há 15 min", icon = Icons.AutoMirrored.Filled.Reply, iconColor = Color(0xFF1976D2)),
+                NotificationItemData(3, "alice_weed", "compartilhou uma nova planta: 'Northern Lights'", "há 1h", iconRes = R.drawable.planta, iconColor = Color(0xFF388E3C)),
+                NotificationItemData(4, "cannabis_king", "comentou no seu post: 'Quanto tempo de vega?'", "há 3h", icon = Icons.AutoMirrored.Filled.Comment, iconColor = Color(0xFFF57C00)),
+                NotificationItemData(5, "grower_master", "curtiu seu comentário no mural", "há 5h", icon = Icons.Default.Favorite, iconColor = Color.Red),
+                NotificationItemData(6, "nature_lover", "compartilhou 'Lemon Haze'", "há 1d", iconRes = R.drawable.planta, iconColor = Color(0xFF388E3C))
             )
             
             LazyColumn {
@@ -85,7 +93,8 @@ data class NotificationItemData(
     val username: String,
     val action: String,
     val time: String,
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    val iconRes: Int? = null,
     val iconColor: Color
 )
 
@@ -103,12 +112,21 @@ fun NotificationRow(item: NotificationItemData) {
             modifier = Modifier.size(40.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    tint = item.iconColor,
-                    modifier = Modifier.size(20.dp)
-                )
+                if (item.iconRes != null) {
+                    Icon(
+                        painter = painterResource(id = item.iconRes),
+                        contentDescription = null,
+                        tint = item.iconColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else if (item.icon != null) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = item.iconColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
         
