@@ -95,7 +95,7 @@ fun GrowBottomNavigationBar(
             NavIconItem(item, currentRoute, onNavigate)
         }
 
-        // FAB Centralizado dentro da barra (sem sair para fora)
+        // FAB Centralizado dentro da barra
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -107,14 +107,14 @@ fun GrowBottomNavigationBar(
                 containerColor = if (isDeleting) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
                 shape = CircleShape,
                 modifier = Modifier
-                    .size(48.dp) // Um pouco menor para caber bem dentro da barra de 80dp
+                    .size(48.dp)
                     .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
                 elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
             ) {
                 Icon(
                     imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
                     contentDescription = null,
-                    tint = if (isDeleting) Color.White else Color(0xFF1B5E20)
+                    tint = if (isDeleting) Color(0xFF333333) else Color(0xFF1B5E20)
                 )
             }
         }
