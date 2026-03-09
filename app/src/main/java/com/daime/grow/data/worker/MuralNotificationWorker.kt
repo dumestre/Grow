@@ -11,7 +11,7 @@ import com.daime.grow.R
 import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralCommentDto
 import com.daime.grow.data.remote.model.MuralPostDto
-import io.github.jan_tennert.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.from
 import kotlinx.datetime.Instant
 
 class MuralNotificationWorker(
@@ -28,7 +28,11 @@ class MuralNotificationWorker(
         try {
             // 1. Verificar novos comentários em seus posts
             val myPosts = supabase.from("mural_posts")
-                .select { filter { eq("user_id", userId) } }
+                .select { 
+                    filter { 
+                        eq("user_id", userId) 
+                    } 
+                }
                 .decodeList<MuralPostDto>()
 
             val postIds = myPosts.mapNotNull { it.id }

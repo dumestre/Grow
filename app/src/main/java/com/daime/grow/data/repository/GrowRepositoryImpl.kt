@@ -26,8 +26,8 @@ import com.daime.grow.domain.model.WateringLog
 import com.daime.grow.domain.repository.GrowRepository
 import com.daime.grow.domain.usecase.ChecklistFactory
 import com.daime.grow.ui.util.ImageUtils
-import io.github.jan_tennert.supabase.postgrest.from
-import io.github.jan_tennert.supabase.storage.storage
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -167,9 +167,7 @@ class GrowRepositoryImpl(
             }
 
             // 2. Enviar Post para o Supabase
-            // Nota: Precisamos converter o ID local do usuário para o UUID do Supabase
-            // Para simplificar agora, buscaremos o usuário remoto pelo username local
-            val localUser = muralDao.getUserById(userId) ?: return
+            val localUser = muralDao.getUser(userId) ?: return
             val remoteUser = supabase.from("mural_users")
                 .select { filter { eq("username", localUser.username) } }
                 .decodeSingle<MuralUserDto>()
@@ -488,7 +486,7 @@ private fun WateringLogEntity.toDomain() = WateringLog(
     volumeMl = volumeMl,
     intervalDays = intervalDays,
     substrate = substrate,
-    nextWateringDate = nextDate ?: nextWateringDate, // Fallback if nextDate is null
+    nextWateringDate = nextWateringDate ?: 0L,
     createdAt = createdAt
 )
 

@@ -14,12 +14,13 @@ import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralCommentDto
 import com.daime.grow.data.remote.model.MuralLikeDto
 import com.daime.grow.data.remote.model.MuralUserDto
-import io.github.jan_tennert.supabase.postgrest.from
-import io.github.jan_tennert.supabase.realtime.PostgresAction
-import io.github.jan_tennert.supabase.realtime.Realtime
-import io.github.jan_tennert.supabase.realtime.channel
-import io.github.jan_tennert.supabase.realtime.postgresListDataFlow
-import io.github.jan_tennert.supabase.realtime.realtime
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.realtime.decodeRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -105,18 +106,7 @@ class MuralViewModel(
     private fun loadLikes(postId: Long) {
         viewModelScope.launch {
             try {
-                // Aqui precisaríamos do UUID do post no Supabase
-                // Para simplificar, assumimos que temos o ID remoto
-                // val remotePostId = ...
-                
-                // val likes = supabase.from("mural_likes").select {
-                //     filter { eq("post_id", remotePostId) }
-                // }.decodeList<MuralLikeDto>()
-                
-                // _postUiState.value = _postUiState.value.copy(
-                //     likeCount = likes.size,
-                //     isLiked = likes.any { it.user_id == currentRemoteUserId }
-                // )
+                // Implementação futura com Supabase
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -133,13 +123,7 @@ class MuralViewModel(
         viewModelScope.launch {
             try {
                 // Lógica remota do Supabase
-                if (newIsLiked) {
-                    // supabase.from("mural_likes").insert(MuralLikeDto(...))
-                } else {
-                    // supabase.from("mural_likes").delete { filter { ... } }
-                }
             } catch (e: Exception) {
-                // Reverter em caso de erro
                 _postUiState.value = currentState
             }
         }
@@ -148,19 +132,19 @@ class MuralViewModel(
     private fun subscribeToCommentsRealtime(postId: Long) {
         viewModelScope.launch {
             val channel = supabase.realtime.channel("comments_$postId")
-            val dataFlow = channel.postgresListDataFlow(
-                schema = "public",
-                table = "mural_comments",
-                filter = "post_id=eq.$postId"
-            )
+            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "mural_comments"
+            }
 
             channel.subscribe()
 
-            dataFlow.collect { action ->
+            changeFlow.collect { action ->
                 when (action) {
                     is PostgresAction.Insert -> {
                         val dto = action.decodeRecord<MuralCommentDto>()
-                        syncRemoteCommentToLocal(dto)
+                        if (dto.post_id == postId.toString()) { // Filtro manual simplificado
+                             syncRemoteCommentToLocal(dto)
+                        }
                     }
                     else -> {}
                 }
@@ -171,21 +155,18 @@ class MuralViewModel(
     private fun subscribeToLikesRealtime(postId: Long) {
         viewModelScope.launch {
             val channel = supabase.realtime.channel("likes_$postId")
-            val dataFlow = channel.postgresListDataFlow(
-                schema = "public",
-                table = "mural_likes",
-                filter = "post_id=eq.$postId"
-            )
+            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "mural_likes"
+            }
             channel.subscribe()
-            dataFlow.collect {
-                // Recarregar likes quando houver mudança
+            changeFlow.collect {
                 loadLikes(postId)
             }
         }
     }
 
     private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
-        // Sincronização básica
+        // Implementação futura
     }
 
     fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {

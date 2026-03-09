@@ -6,6 +6,7 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.auth.Auth
 
+
 object SupabaseClient {
     private const val SUPABASE_URL = "https://dvyidxhutjmgtvkjkkkm.supabase.co"
     // Usando a Key Anon (Public) Completa que você passou

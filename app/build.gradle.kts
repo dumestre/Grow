@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.fragment.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -70,12 +71,14 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     // Supabase
+    implementation(libs.supabase.kt.android)
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.storage)
     implementation(libs.supabase.realtime)
-    implementation(libs.supabase.auth) // Alterado de gotrue para auth
+    implementation(libs.supabase.auth)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.play.services.auth)
 
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
