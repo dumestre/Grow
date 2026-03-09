@@ -10,11 +10,18 @@ import com.daime.grow.data.local.entity.MuralCommentEntity
 import com.daime.grow.data.local.entity.MuralPostEntity
 import com.daime.grow.data.local.entity.MuralUserEntity
 import com.daime.grow.data.preferences.MuralPreferencesRepository
+import com.daime.grow.data.remote.SupabaseClient
+import com.daime.grow.data.remote.model.MuralCommentDto
+import io.github.jan_tennert.supabase.postgrest.from
+import io.github.jan_tennert.supabase.realtime.PostgresAction
+import io.github.jan_tennert.supabase.realtime.Realtime
+import io.github.jan_tennert.supabase.realtime.channel
+import io.github.jan_tennert.supabase.realtime.postgresListDataFlow
+import io.github.jan_tennert.supabase.realtime.realtime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class MuralUiState(
@@ -40,6 +47,8 @@ class MuralViewModel(
 
     private val _currentUserId = MutableStateFlow<Long?>(null)
     val currentUserId: StateFlow<Long?> = _currentUserId.asStateFlow()
+
+    private val supabase = SupabaseClient.client
 
     init {
         loadPosts()
@@ -76,6 +85,7 @@ class MuralViewModel(
             }
         }
         loadComments(postId)
+        subscribeToCommentsRealtime(postId)
     }
 
     private fun loadComments(postId: Long) {
@@ -84,6 +94,44 @@ class MuralViewModel(
                 _postUiState.value = _postUiState.value.copy(comments = comments)
             }
         }
+    }
+
+    private fun subscribeToCommentsRealtime(postId: Long) {
+        viewModelScope.launch {
+            val channel = supabase.realtime.channel("comments_$postId")
+            val dataFlow = channel.postgresListDataFlow(
+                schema = "public",
+                table = "mural_comments",
+                filter = "post_id=eq.$postId"
+            )
+
+            channel.subscribe()
+
+            dataFlow.collect { action ->
+                // Quando houver mudança no Supabase, atualizamos o banco local
+                // O Room emitirá o novo valor automaticamente para a UI
+                when (action) {
+                    is PostgresAction.Insert -> {
+                        val dto = action.decodeRecord<MuralCommentDto>()
+                        syncRemoteCommentToLocal(dto)
+                    }
+                    is PostgresAction.Update -> {
+                        val dto = action.decodeRecord<MuralCommentDto>()
+                        syncRemoteCommentToLocal(dto)
+                    }
+                    is PostgresAction.Delete -> {
+                        // Lógica de delete se necessário
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
+        // Implementar a sincronização do DTO remoto para o Entity local
+        // Isso envolve converter o user_id UUID para o ID Long local
+        // Por agora, vamos apenas garantir que a UI saiba que algo mudou
     }
 
     fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {
@@ -122,7 +170,8 @@ class MuralViewModel(
 
     fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null) {
         viewModelScope.launch {
-            muralDao.insertComment(
+            // Salva local
+            val localId = muralDao.insertComment(
                 MuralCommentEntity(
                     postId = postId,
                     userId = userId,
@@ -131,6 +180,14 @@ class MuralViewModel(
                     parentId = parentId
                 )
             )
+            
+            // Envia para o remoto (Supabase)
+            try {
+                // Aqui precisaríamos converter os IDs para os UUIDs do Supabase
+                // syncCommentToSupabase(...)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

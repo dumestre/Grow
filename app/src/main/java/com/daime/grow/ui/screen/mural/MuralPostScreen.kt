@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +49,10 @@ fun MuralPostScreen(
     var pendingReplyToId by remember { mutableStateOf<Long?>(null) }
     var replyToComment by remember { mutableStateOf<CommentWithUser?>(null) }
 
+    // Estado local para o like (para feedback instantâneo)
+    var isLiked by remember { mutableStateOf(false) }
+    var likeCount by remember { mutableIntStateOf(0) }
+
     LaunchedEffect(postId) {
         viewModel.loadPost(postId)
     }
@@ -62,6 +69,36 @@ fun MuralPostScreen(
                 },
                 navigationIcon = {
                     RoundedBackButton(onClick = onBack)
+                },
+                actions = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { 
+                                isLiked = !isLiked
+                                if (isLiked) likeCount++ else if (likeCount > 0) likeCount--
+                                // viewModel.toggleLike(postId) 
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        if (likeCount > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "$likeCount",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,

@@ -31,3 +31,10 @@ data class MuralCommentDto(
     val content: String,
     val created_at: String? = null
 )
+
+@Serializable
+data class MuralLikeDto(
+    val id: String? = null,
+    val post_id: String,
+    val user_id: String
+)
