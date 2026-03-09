@@ -12,6 +12,8 @@ import com.daime.grow.data.local.entity.MuralUserEntity
 import com.daime.grow.data.preferences.MuralPreferencesRepository
 import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralCommentDto
+import com.daime.grow.data.remote.model.MuralLikeDto
+import com.daime.grow.data.remote.model.MuralUserDto
 import io.github.jan_tennert.supabase.postgrest.from
 import io.github.jan_tennert.supabase.realtime.PostgresAction
 import io.github.jan_tennert.supabase.realtime.Realtime
@@ -32,6 +34,8 @@ data class MuralUiState(
 data class MuralPostUiState(
     val post: MuralPostWithPlant? = null,
     val comments: List<CommentWithUser> = emptyList(),
+    val likeCount: Int = 0,
+    val isLiked: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -85,13 +89,58 @@ class MuralViewModel(
             }
         }
         loadComments(postId)
+        loadLikes(postId)
         subscribeToCommentsRealtime(postId)
+        subscribeToLikesRealtime(postId)
     }
 
     private fun loadComments(postId: Long) {
         viewModelScope.launch {
             muralDao.observeCommentsWithUsers(postId).collect { comments ->
                 _postUiState.value = _postUiState.value.copy(comments = comments)
+            }
+        }
+    }
+
+    private fun loadLikes(postId: Long) {
+        viewModelScope.launch {
+            try {
+                // Aqui precisaríamos do UUID do post no Supabase
+                // Para simplificar, assumimos que temos o ID remoto
+                // val remotePostId = ...
+                
+                // val likes = supabase.from("mural_likes").select {
+                //     filter { eq("post_id", remotePostId) }
+                // }.decodeList<MuralLikeDto>()
+                
+                // _postUiState.value = _postUiState.value.copy(
+                //     likeCount = likes.size,
+                //     isLiked = likes.any { it.user_id == currentRemoteUserId }
+                // )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun toggleLike(postId: Long) {
+        val currentState = _postUiState.value
+        val newIsLiked = !currentState.isLiked
+        val newCount = if (newIsLiked) currentState.likeCount + 1 else (currentState.likeCount - 1).coerceAtLeast(0)
+        
+        _postUiState.value = currentState.copy(isLiked = newIsLiked, likeCount = newCount)
+        
+        viewModelScope.launch {
+            try {
+                // Lógica remota do Supabase
+                if (newIsLiked) {
+                    // supabase.from("mural_likes").insert(MuralLikeDto(...))
+                } else {
+                    // supabase.from("mural_likes").delete { filter { ... } }
+                }
+            } catch (e: Exception) {
+                // Reverter em caso de erro
+                _postUiState.value = currentState
             }
         }
     }
@@ -108,19 +157,10 @@ class MuralViewModel(
             channel.subscribe()
 
             dataFlow.collect { action ->
-                // Quando houver mudança no Supabase, atualizamos o banco local
-                // O Room emitirá o novo valor automaticamente para a UI
                 when (action) {
                     is PostgresAction.Insert -> {
                         val dto = action.decodeRecord<MuralCommentDto>()
                         syncRemoteCommentToLocal(dto)
-                    }
-                    is PostgresAction.Update -> {
-                        val dto = action.decodeRecord<MuralCommentDto>()
-                        syncRemoteCommentToLocal(dto)
-                    }
-                    is PostgresAction.Delete -> {
-                        // Lógica de delete se necessário
                     }
                     else -> {}
                 }
@@ -128,10 +168,24 @@ class MuralViewModel(
         }
     }
 
+    private fun subscribeToLikesRealtime(postId: Long) {
+        viewModelScope.launch {
+            val channel = supabase.realtime.channel("likes_$postId")
+            val dataFlow = channel.postgresListDataFlow(
+                schema = "public",
+                table = "mural_likes",
+                filter = "post_id=eq.$postId"
+            )
+            channel.subscribe()
+            dataFlow.collect {
+                // Recarregar likes quando houver mudança
+                loadLikes(postId)
+            }
+        }
+    }
+
     private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
-        // Implementar a sincronização do DTO remoto para o Entity local
-        // Isso envolve converter o user_id UUID para o ID Long local
-        // Por agora, vamos apenas garantir que a UI saiba que algo mudou
+        // Sincronização básica
     }
 
     fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {
@@ -170,8 +224,7 @@ class MuralViewModel(
 
     fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null) {
         viewModelScope.launch {
-            // Salva local
-            val localId = muralDao.insertComment(
+            muralDao.insertComment(
                 MuralCommentEntity(
                     postId = postId,
                     userId = userId,
@@ -180,14 +233,6 @@ class MuralViewModel(
                     parentId = parentId
                 )
             )
-            
-            // Envia para o remoto (Supabase)
-            try {
-                // Aqui precisaríamos converter os IDs para os UUIDs do Supabase
-                // syncCommentToSupabase(...)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
     }
 

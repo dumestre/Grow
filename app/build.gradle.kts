@@ -13,8 +13,8 @@ android {
         applicationId = "com.daime.grow"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -23,6 +23,10 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // Adiciona o suporte para gerar e enviar os símbolos de debug nativos
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -69,7 +73,7 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.storage)
     implementation(libs.supabase.realtime)
-    implementation(libs.supabase.gotrue)
+    implementation(libs.supabase.auth) // Alterado de gotrue para auth
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.serialization.json)
 
