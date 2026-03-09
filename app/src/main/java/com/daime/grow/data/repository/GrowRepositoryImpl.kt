@@ -12,6 +12,9 @@ import com.daime.grow.data.local.entity.PlantEventEntity
 import com.daime.grow.data.local.entity.WateringLogEntity
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
 import com.daime.grow.data.reminder.ReminderScheduler
+import com.daime.grow.data.remote.SupabaseClient
+import com.daime.grow.data.remote.model.MuralPostDto
+import com.daime.grow.data.remote.model.MuralUserDto
 import com.daime.grow.domain.model.ChecklistItem
 import com.daime.grow.domain.model.NutrientLog
 import com.daime.grow.domain.model.Plant
@@ -22,10 +25,14 @@ import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.domain.model.WateringLog
 import com.daime.grow.domain.repository.GrowRepository
 import com.daime.grow.domain.usecase.ChecklistFactory
+import com.daime.grow.ui.util.ImageUtils
+import io.github.jan_tennert.supabase.postgrest.from
+import io.github.jan_tennert.supabase.storage.storage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 
 class GrowRepositoryImpl(
     private val appContext: Context,
@@ -41,6 +48,7 @@ class GrowRepositoryImpl(
     private val nutrientDao = database.nutrientLogDao()
     private val checklistDao = database.checklistDao()
     private val muralDao = database.muralDao()
+    private val supabase = SupabaseClient.client
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
         return plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0)
@@ -124,9 +132,62 @@ class GrowRepositoryImpl(
                 )
             }
         }
+
+        // Sincronização com Supabase se compartilhado
+        if (shareOnMural) {
+            syncToSupabase(name, strain, stage, medium, days, photoUri)
+        }
+
         val createdPlant = plantDao.observePlant(createdId).first()
         createdPlant?.toDomain()?.let { scheduler.scheduleForPlant(it) }
         return createdId
+    }
+
+    private suspend fun syncToSupabase(
+        name: String,
+        strain: String,
+        stage: String,
+        medium: String,
+        days: Int,
+        photoUri: String?
+    ) {
+        try {
+            val userId = getCurrentUserId() ?: return
+            var remotePhotoUrl: String? = null
+
+            // 1. Upload da foto se existir
+            if (photoUri != null) {
+                val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
+                if (bytes != null) {
+                    val fileName = "plant_${UUID.randomUUID()}.webp"
+                    val bucket = supabase.storage.from("plant-photos")
+                    bucket.upload(fileName, bytes)
+                    remotePhotoUrl = bucket.publicUrl(fileName)
+                }
+            }
+
+            // 2. Enviar Post para o Supabase
+            // Nota: Precisamos converter o ID local do usuário para o UUID do Supabase
+            // Para simplificar agora, buscaremos o usuário remoto pelo username local
+            val localUser = muralDao.getUserById(userId) ?: return
+            val remoteUser = supabase.from("mural_users")
+                .select { filter { eq("username", localUser.username) } }
+                .decodeSingle<MuralUserDto>()
+
+            supabase.from("mural_posts").insert(
+                MuralPostDto(
+                    user_id = remoteUser.id!!,
+                    plant_name = name,
+                    strain = strain,
+                    stage = stage,
+                    medium = medium,
+                    days = days,
+                    photo_url = remotePhotoUrl
+                )
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override suspend fun addQuickEvent(plantId: Long, type: String, note: String) {
@@ -358,12 +419,22 @@ class GrowRepositoryImpl(
     override suspend fun createOrGetUser(username: String): Long {
         var user = muralDao.getUserByUsername(username)
         if (user == null) {
-            return muralDao.insertUser(
+            val now = System.currentTimeMillis()
+            val localId = muralDao.insertUser(
                 com.daime.grow.data.local.entity.MuralUserEntity(
                     username = username,
-                    createdAt = System.currentTimeMillis()
+                    createdAt = now
                 )
             )
+            // Sincronizar usuário com Supabase
+            try {
+                supabase.from("mural_users").insert(
+                    MuralUserDto(username = username)
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return localId
         }
         return user.id
     }
@@ -417,7 +488,7 @@ private fun WateringLogEntity.toDomain() = WateringLog(
     volumeMl = volumeMl,
     intervalDays = intervalDays,
     substrate = substrate,
-    nextWateringDate = nextWateringDate,
+    nextWateringDate = nextDate ?: nextWateringDate, // Fallback if nextDate is null
     createdAt = createdAt
 )
 

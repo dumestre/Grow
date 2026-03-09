@@ -3,7 +3,6 @@
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.SystemBarStyle
 import androidx.fragment.app.FragmentActivity
 import com.daime.grow.ui.GrowRoot
 import com.daime.grow.ui.theme.GrowTheme
@@ -11,16 +10,11 @@ import com.daime.grow.ui.theme.GrowTheme
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+        
+        // Ativa o modo Edge-to-Edge corretamente para Android 15+
+        // Sem passar SystemBarStyle manual para evitar uso de APIs descontinuadas
+        // O Compose e o Material3 gerenciam as cores das barras automaticamente
+        enableEdgeToEdge()
 
         val container = (application as GrowApplication).appContainer
         setContent {
@@ -30,4 +24,3 @@ class MainActivity : FragmentActivity() {
         }
     }
 }
-
