@@ -1,11 +1,14 @@
 ﻿package com.daime.grow.ui.screen.detail
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -13,11 +16,14 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.viewmodel.PlantDetailUiEvent
@@ -59,7 +65,7 @@ fun PlantDetailScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(details?.plant?.name ?: "Detalhes") },
+                title = { Text(details?.plant?.name ?: stringResource(R.string.detail_title_fallback)) },
                 navigationIcon = { RoundedBackButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
@@ -68,7 +74,7 @@ fun PlantDetailScreen(
     ) { padding ->
         if (details == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text("Carregando detalhes...", modifier = Modifier.padding(16.dp))
+                Text(stringResource(R.string.detail_loading), modifier = Modifier.padding(16.dp))
             }
             return@Scaffold
         }
@@ -133,12 +139,12 @@ fun PlantDetailScreen(
                 item { NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it } }
                 item { 
                     Column {
-                        Text("Checklist por Estágio", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.detail_checklist_by_stage), style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
                         ChecklistSection(checklistByPhase, expandedPhases, viewModel) { expandedPhases = it }
                     }
                 }
-                item { Text("Linha do Tempo", style = MaterialTheme.typography.titleMedium) }
+                item { Text(stringResource(R.string.detail_timeline), style = MaterialTheme.typography.titleMedium) }
                 items(details.events) { event -> TimelineItem(event) }
             }
         }
@@ -148,10 +154,20 @@ fun PlantDetailScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewModel: PlantDetailViewModel) {
-    DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Estágio Atual: ${details.plant.stage}", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    DetailAccentCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.detail_current_phase, details.plant.stage),
+                style = MaterialTheme.typography.titleSmall
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 PlantStage.entries.forEach { stage ->
                     FilterChip(
                         selected = details.plant.stage == stage,
@@ -160,10 +176,9 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
                     )
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Strain: ${details.plant.strain.ifEmpty { "Não informada" }}")
-            Text("Substrato: ${details.plant.medium.ifEmpty { "Não informado" }}")
-            Text("Idade: ${details.plant.days} dias")
+            Text(stringResource(R.string.detail_strain, details.plant.strain))
+            Text(stringResource(R.string.detail_medium, details.plant.medium))
+            Text(stringResource(R.string.detail_days, details.plant.days.toString()))
         }
     }
 }
@@ -172,11 +187,27 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
 @Composable
 private fun QuickActionsSection(viewModel: PlantDetailViewModel) {
     DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Ações Rápidas", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Rega", "Poda", "Transplante", "Flush", "Colheita").forEach { label ->
-                    AssistChip(onClick = { viewModel.addQuickAction(label, "Ação rápida: $label") }, label = { Text(label) })
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.detail_quick_actions_title), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(R.string.detail_quick_actions_desc),
+                style = MaterialTheme.typography.bodySmall
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    stringResource(R.string.detail_quick_action_watering) to "Rega",
+                    stringResource(R.string.detail_quick_action_pruning) to "Poda",
+                    stringResource(R.string.detail_quick_action_transplant) to "Transplante",
+                    stringResource(R.string.detail_quick_action_flush) to "Flush",
+                    stringResource(R.string.detail_quick_action_harvest) to "Colheita"
+                ).forEach { (label, eventType) ->
+                    AssistChip(
+                        onClick = { viewModel.addQuickAction(eventType, "Ação rápida: $label") },
+                        label = { Text(label) }
+                    )
                 }
             }
         }
@@ -186,15 +217,16 @@ private fun QuickActionsSection(viewModel: PlantDetailViewModel) {
 @Composable
 private fun WateringSection(state: com.daime.grow.ui.viewmodel.PlantDetailUiState, viewModel: PlantDetailViewModel, expanded: Boolean, onExpand: (Boolean) -> Unit) {
     DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(12.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth().clickable { onExpand(!expanded) }, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Configurar Rega", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.detail_watering))
                 Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null)
             }
             if (expanded) {
-                OutlinedTextField(value = state.wateringVolume, onValueChange = viewModel::onWateringVolumeChange, label = { Text("Volume (L/ml)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = state.wateringInterval, onValueChange = viewModel::onWateringIntervalChange, label = { Text("Intervalo (Horas)") }, modifier = Modifier.fillMaxWidth())
-                Button(onClick = viewModel::saveWatering, modifier = Modifier.fillMaxWidth()) { Text("Salvar Rega") }
+                OutlinedTextField(value = state.wateringVolume, onValueChange = viewModel::onWateringVolumeChange, label = { Text(stringResource(R.string.detail_watering_volume)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = state.wateringInterval, onValueChange = viewModel::onWateringIntervalChange, label = { Text(stringResource(R.string.detail_watering_interval)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = state.wateringSubstrate, onValueChange = viewModel::onWateringSubstrateChange, label = { Text(stringResource(R.string.detail_substrate)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Button(onClick = viewModel::saveWatering, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.detail_save_watering)) }
             }
         }
     }
@@ -203,15 +235,16 @@ private fun WateringSection(state: com.daime.grow.ui.viewmodel.PlantDetailUiStat
 @Composable
 private fun NutrientSection(state: com.daime.grow.ui.viewmodel.PlantDetailUiState, viewModel: PlantDetailViewModel, expanded: Boolean, onExpand: (Boolean) -> Unit) {
     DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(12.dp).animateContentSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth().clickable { onExpand(!expanded) }, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Nutrientes / Solo", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.detail_nutrients))
                 Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null)
             }
             if (expanded) {
-                OutlinedTextField(value = state.nutrientPh, onValueChange = viewModel::onNutrientPhChange, label = { Text("pH") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = state.nutrientEc, onValueChange = viewModel::onNutrientEcChange, label = { Text("EC/PPM") }, modifier = Modifier.fillMaxWidth())
-                Button(onClick = viewModel::saveNutrients, modifier = Modifier.fillMaxWidth()) { Text("Salvar Dados") }
+                OutlinedTextField(value = state.nutrientWeek, onValueChange = viewModel::onNutrientWeekChange, label = { Text(stringResource(R.string.detail_week)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = state.nutrientEc, onValueChange = viewModel::onNutrientEcChange, label = { Text(stringResource(R.string.detail_ec)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = state.nutrientPh, onValueChange = viewModel::onNutrientPhChange, label = { Text(stringResource(R.string.detail_ph)) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                Button(onClick = viewModel::saveNutrients, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.detail_save_nutrients)) }
             }
         }
     }
@@ -227,23 +260,29 @@ private fun ChecklistSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         checklistByPhase.forEach { (phase, items) ->
             val isExpanded = phase in expandedPhases
+            val doneCount = items.count { it.done }
             DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.animateContentSize()) {
-                    ListItem(
-                        headlineContent = { Text("Fase: $phase") },
-                        supportingContent = { Text("${items.count { it.done }}/${items.size} concluídos") },
-                        trailingContent = { Icon(if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null) },
-                        modifier = Modifier.clickable { 
-                            onExpandToggle(if (isExpanded) expandedPhases - phase else expandedPhases + phase)
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                    )
+                Column(modifier = Modifier.padding(vertical = 4.dp).animateContentSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onExpandToggle(if (isExpanded) expandedPhases - phase else expandedPhases + phase) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = stringResource(R.string.detail_phase, phase), style = MaterialTheme.typography.titleSmall)
+                            Text(text = stringResource(R.string.detail_checklist_completed, doneCount, items.size), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Icon(if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null)
+                    }
                     if (isExpanded) {
-                        items.forEach { item ->
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        items.forEachIndexed { index, item ->
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(item.task, modifier = Modifier.weight(1f))
                                 Checkbox(checked = item.done, onCheckedChange = { viewModel.toggleChecklist(item, it) })
                             }
+                            if (index < items.lastIndex) HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
                         }
                     }
                 }
@@ -255,7 +294,7 @@ private fun ChecklistSection(
 @Composable
 private fun TimelineSection(events: List<com.daime.grow.domain.model.PlantEvent>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Linha do Tempo", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.detail_timeline), style = MaterialTheme.typography.titleMedium)
         if (events.isEmpty()) {
             Text("Nenhum evento registrado ainda.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
         } else {
@@ -266,26 +305,55 @@ private fun TimelineSection(events: List<com.daime.grow.domain.model.PlantEvent>
 
 @Composable
 private fun TimelineItem(event: com.daime.grow.domain.model.PlantEvent) {
-    DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(event.type, style = MaterialTheme.typography.titleSmall)
-            if (event.note.isNotBlank()) Text(event.note, style = MaterialTheme.typography.bodyMedium)
+    DetailAccentCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(event.type, style = MaterialTheme.typography.titleMedium)
+            if (event.note.isNotBlank()) Text(event.note)
             Text(
-                SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(event.createdAt)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(event.createdAt)),
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
 }
 
 @Composable
-private fun DetailAccentCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+private fun DetailAccentCard(
+    modifier: Modifier = Modifier,
+    colors: CardColors = CardDefaults.cardColors(),
+    elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    content: @Composable () -> Unit
+) {
+    val accent = MaterialTheme.colorScheme.tertiary
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = colors,
+        elevation = elevation,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.22f))
     ) {
-        Column { content() }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                accent.copy(alpha = 0.9f),
+                                accent.copy(alpha = 0.35f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                content()
+            }
+        }
     }
 }
