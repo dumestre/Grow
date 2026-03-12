@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -62,17 +61,72 @@ class HomeViewModel(
         HomeFilters(q, stage, asc)
     }
 
+    // Placeholders para teste corrigidos
+    private val placeholders = listOf(
+        Plant(
+            id = -1,
+            name = "Gorilla Glue #4",
+            strain = "Gorilla Glue",
+            medium = "Solo Orgânico",
+            stage = PlantStage.VEGETATIVE,
+            days = 42,
+            photoUri = null,
+            nextWateringDate = null,
+            createdAt = System.currentTimeMillis()
+        ),
+        Plant(
+            id = -2,
+            name = "Purple Haze",
+            strain = "Sativa",
+            medium = "Coco",
+            stage = PlantStage.FLOWER,
+            days = 15,
+            photoUri = null,
+            nextWateringDate = null,
+            createdAt = System.currentTimeMillis()
+        ),
+        Plant(
+            id = -3,
+            name = "Northern Lights",
+            strain = "Indica",
+            medium = "Hidroponia",
+            stage = PlantStage.SEEDLING,
+            days = 5,
+            photoUri = null,
+            nextWateringDate = null,
+            createdAt = System.currentTimeMillis()
+        ),
+        Plant(
+            id = -4,
+            name = "Lemon Haze",
+            strain = "Lemon",
+            medium = "Solo Mix",
+            stage = PlantStage.VEGETATIVE,
+            days = 28,
+            photoUri = null,
+            nextWateringDate = null,
+            createdAt = System.currentTimeMillis()
+        )
+    )
+
     val uiState: StateFlow<HomeUiState> = filters
         .flatMapLatest { f ->
             combine(
                 repository.observePlants(f.query, f.stageFilter, f.sortAscending),
                 pendingDeleteIds
             ) { plants, hiddenIds ->
+                // Se não houver plantas reais, usa os placeholders
+                val plantsToShow = if (plants.isEmpty() && f.query.isBlank() && f.stageFilter == PlantStage.ALL) {
+                    placeholders
+                } else {
+                    plants.filterNot { it.id in hiddenIds }
+                }
+
                 HomeUiState(
                     query = f.query,
                     stageFilter = f.stageFilter,
                     sortAscending = f.sortAscending,
-                    plants = plants.filterNot { it.id in hiddenIds }
+                    plants = plantsToShow
                 )
             }
         }
@@ -91,6 +145,7 @@ class HomeViewModel(
     }
 
     fun requestDelete(plant: Plant) {
+        if (plant.id < 0) return // Não deleta placeholders
         pendingDeleteJob?.cancel()
         pendingDelete?.let { previous ->
             pendingDeleteIds.update { it - previous.id }
@@ -117,16 +172,16 @@ class HomeViewModel(
     }
 
     fun deletePlantImmediately(plantId: Long) {
+        if (plantId < 0) return
         viewModelScope.launch {
             repository.deletePlant(plantId)
         }
     }
 
     fun updatePlantsOrder(orderedIds: List<Long>) {
+        if (orderedIds.any { it < 0 }) return
         viewModelScope.launch {
             repository.updatePlantsOrder(orderedIds)
         }
     }
 }
-
-

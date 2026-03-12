@@ -1,50 +1,16 @@
 ﻿package com.daime.grow.ui.screen.home
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -54,6 +20,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
@@ -82,6 +49,11 @@ fun HomeScreen(
     val gridState = rememberLazyGridState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     
+    val configuration = LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600
+    // No tablet aumentamos o número de colunas
+    val columnsCount = if (isTablet) 4 else 2
+
     var plantPendingDelete by remember { mutableStateOf<com.daime.grow.domain.model.Plant?>(null) }
     var orderedPlants by remember { mutableStateOf(state.plants) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
@@ -91,12 +63,12 @@ fun HomeScreen(
     var dragOffsetY by remember { mutableStateOf(0f) }
     var draggedCardBounds by remember { mutableStateOf<Rect?>(null) }
 
-    val reorderStepXPx = with(LocalDensity.current) { 170.dp.toPx() }
+    // Reorder steps precisam ser dinâmicos para a largura das colunas
+    val reorderStepXPx = with(LocalDensity.current) { (configuration.screenWidthDp / columnsCount).dp.toPx() }
     val reorderStepYPx = with(LocalDensity.current) { 190.dp.toPx() }
     
     val isDragging = draggedIndex != null
     
-    // Sincroniza o estado de arrasto interno com o externo (Root -> NavBS)
     LaunchedEffect(isDragging) {
         onDraggingChanged(isDragging)
     }
@@ -122,9 +94,6 @@ fun HomeScreen(
         if (newItems.isNotEmpty()) {
             orderedPlants = orderedPlants + newItems
         }
-        if (draggedPlantId != null && draggedPlantId !in currentIds) {
-            draggedPlantId = null
-        }
     }
 
     Scaffold(
@@ -135,7 +104,8 @@ fun HomeScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 16.dp),
+                            .padding(end = 16.dp)
+                            .then(if (isTablet) Modifier.widthIn(max = 600.dp) else Modifier), // Limita largura no tablet
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     ) {
@@ -147,63 +117,56 @@ fun HomeScreen(
                             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
                             textStyle = MaterialTheme.typography.bodySmall,
                             singleLine = true,
-                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color.Transparent,
                                 unfocusedBorderColor = Color.Transparent
                             )
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
+                scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Fixed(columnsCount),
             state = gridState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = if (isTablet) 32.dp else 16.dp), // Mais margem no tablet
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 16.dp // Reduzido de 84dp para 16dp
+                bottom = padding.calculateBottomPadding() + 24.dp
             )
         ) {
-            item(span = { GridItemSpan(2) }) {
+            item(span = { GridItemSpan(columnsCount) }) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
                             stringResource(R.string.home_focus_title),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.headlineSmall // Título maior no tablet
                         )
                         Text(
                             stringResource(R.string.home_focus_subtitle),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
             }
 
-            item(span = { GridItemSpan(2) }) {
+            item(span = { GridItemSpan(columnsCount) }) {
                 FlowRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -217,7 +180,7 @@ fun HomeScreen(
                 }
             }
 
-            item(span = { GridItemSpan(2) }) {
+            item(span = { GridItemSpan(columnsCount) }) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -242,47 +205,34 @@ fun HomeScreen(
                 }
             }
             
-            val plantsToRender = orderedPlants
-            val dragFromIndex = draggedIndex
-            val dragToIndex = dropIndex
-            val previewPlants = if (
-                isDragging &&
-                draggedPlantId != null &&
-                dragFromIndex != null &&
-                dragToIndex != null &&
-                dragFromIndex in plantsToRender.indices &&
-                dragToIndex in plantsToRender.indices
-            ) {
-                plantsToRender.toMutableList().apply {
-                    val dragged = removeAt(dragFromIndex)
-                    add(dragToIndex, dragged)
+            val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
+                orderedPlants.toMutableList().apply {
+                    val dragged = removeAt(draggedIndex!!)
+                    add(dropIndex!!, dragged)
                 }
             } else {
-                plantsToRender
+                orderedPlants
             }
 
-            if (plantsToRender.isEmpty()) {
-                item(span = { GridItemSpan(2) }) {
-                    Text(
-                        text = stringResource(R.string.home_empty_state),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+            if (previewPlants.isEmpty()) {
+                item(span = { GridItemSpan(columnsCount) }) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.home_empty_state),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
             } else {
                 itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
                     val isDraggedItem = plant.id == draggedPlantId
                     val fromIndex = draggedIndex
                     val toIndex = dropIndex
-                    val dragCompensation = if (
-                        isDragging &&
-                        isDraggedItem &&
-                        fromIndex != null &&
-                        toIndex != null
-                    ) {
-                        val fromCol = fromIndex % 2
-                        val toCol = toIndex % 2
-                        val fromRow = fromIndex / 2
-                        val toRow = toIndex / 2
+                    val dragCompensation = if (isDragging && isDraggedItem && fromIndex != null && toIndex != null) {
+                        val fromCol = fromIndex % columnsCount
+                        val toCol = toIndex % columnsCount
+                        val fromRow = fromIndex / columnsCount
+                        val toRow = toIndex / columnsCount
                         IntOffset(
                             x = ((toCol - fromCol) * reorderStepXPx).roundToInt(),
                             y = ((toRow - fromRow) * reorderStepYPx).roundToInt()
@@ -290,10 +240,10 @@ fun HomeScreen(
                     } else {
                         IntOffset.Zero
                     }
+
                     PlantCard(
                         plant = plant,
                         onClick = { onOpenDetails(plant.id) },
-                        onLongPress = null,
                         onDeleteClick = { plantPendingDelete = plant },
                         isEditing = isDragging,
                         isShaking = isDragging && isDraggedItem,
@@ -336,20 +286,10 @@ fun HomeScreen(
                                         if (isOverTrash && draggedId != null) {
                                             viewModel.deletePlantImmediately(draggedId)
                                             orderedPlants = orderedPlants.filterNot { it.id == draggedId }
-                                        } else {
-                                            val from = draggedIndex
-                                            val to = dropIndex
-                                            if (
-                                                from != null &&
-                                                to != null &&
-                                                from != to &&
-                                                from in orderedPlants.indices &&
-                                                to in orderedPlants.indices
-                                            ) {
-                                                orderedPlants = orderedPlants.toMutableList().apply {
-                                                    val moved = removeAt(from)
-                                                    add(to, moved)
-                                                }
+                                        } else if (draggedIndex != null && dropIndex != null && draggedIndex != dropIndex) {
+                                            orderedPlants = orderedPlants.toMutableList().apply {
+                                                val moved = removeAt(draggedIndex!!)
+                                                add(dropIndex!!, moved)
                                             }
                                         }
                                         if (orderedPlants.isNotEmpty()) {
@@ -379,7 +319,7 @@ fun HomeScreen(
 
                                         val colShift = (dragOffsetX / reorderStepXPx).roundToInt()
                                         val rowShift = (dragOffsetY / reorderStepYPx).roundToInt()
-                                        val target = (from + colShift + (rowShift * 2)).coerceIn(0, orderedPlants.lastIndex)
+                                        val target = (from + colShift + (rowShift * columnsCount)).coerceIn(0, orderedPlants.lastIndex)
                                         dropIndex = target
                                     }
                                 )
