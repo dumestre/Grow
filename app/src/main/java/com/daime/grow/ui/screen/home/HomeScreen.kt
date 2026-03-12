@@ -161,7 +161,6 @@ fun HomeScreen(
                 )
             )
         }
-        // FAB removido daqui, pois agora está na barra de navegação inferior
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -173,7 +172,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 84.dp
+                bottom = padding.calculateBottomPadding() + 16.dp // Reduzido de 84dp para 16dp
             )
         ) {
             item(span = { GridItemSpan(2) }) {
@@ -313,7 +312,7 @@ fun HomeScreen(
                                             scaleX = draggedScale
                                             scaleY = draggedScale
                                         }
-                                        .zIndex(100f) // Aumentado para garantir que fique por cima da barra
+                                        .zIndex(100f)
                                         .onGloballyPositioned { coordinates ->
                                             draggedCardBounds = coordinates.boundsInRoot()
                                         }

@@ -1,12 +1,9 @@
 package com.daime.grow.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,17 +12,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +23,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.rounded.Delete
 
 enum class BottomNavItem(
     val route: String,
@@ -47,7 +37,7 @@ enum class BottomNavItem(
         route = "home",
         title = "Plantas",
         iconRes = com.daime.grow.R.drawable.planta,
-        selectedIcon = Icons.Outlined.Settings, // Fallback
+        selectedIcon = Icons.Outlined.Settings,
         unselectedIcon = Icons.Outlined.Settings
     ),
     Mural(
@@ -83,65 +73,93 @@ fun GrowBottomNavigationBar(
     isDeleting: Boolean = false,
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
 ) {
-    NavigationBar(
-        modifier = modifier.height(80.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp, // Volta para a cor original (sem o tom de elevação)
+        modifier = modifier
     ) {
-        val items = BottomNavItem.entries
-        
-        // Primeiros dois itens
-        items.take(2).forEach { item ->
-            NavIconItem(item, currentRoute, onNavigate)
-        }
-
-        // FAB Centralizado dentro da barra
-        Box(
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                // Aplica o padding APENAS embaixo para os gestos/botões do Android
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
         ) {
-            FloatingActionButton(
-                onClick = { if (!isDeleting) onAddClick() },
-                containerColor = if (isDeleting) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
-                shape = CircleShape,
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                    .fillMaxWidth()
+                    .height(48.dp), // Altura slim real para ser bem fina
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
-                    contentDescription = null,
-                    tint = if (isDeleting) Color(0xFF333333) else Color(0xFF1B5E20)
-                )
-            }
-        }
+                val items = BottomNavItem.entries
+                
+                // Primeiro par de ícones
+                items.take(2).forEach { item ->
+                    NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
+                }
 
-        // Últimos dois itens
-        items.drop(2).forEach { item ->
-            NavIconItem(item, currentRoute, onNavigate)
+                // FAB Centralizado - Tamanho reduzido para a barra slim
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    FloatingActionButton(
+                        onClick = { if (!isDeleting) onAddClick() },
+                        containerColor = if (isDeleting) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(36.dp) 
+                            .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = if (isDeleting) Color(0xFF333333) else Color(0xFF1B5E20)
+                        )
+                    }
+                }
+
+                // Segundo par de ícones
+                items.drop(2).forEach { item ->
+                    NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun RowScope.NavIconItem(
+private fun NavIconItem(
     item: BottomNavItem,
     currentRoute: String?,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val selected = currentRoute == item.route
-    NavigationBarItem(
-        selected = selected,
-        onClick = { onNavigate(item.route) },
-        icon = {
+    val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(bounded = false, radius = 24.dp),
+                onClick = { onNavigate(item.route) }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             BadgedBox(
                 badge = {
                     if (item.hasBadge) {
                         Badge(
-                            modifier = Modifier.size(8.dp),
+                            modifier = Modifier.size(5.dp),
                             containerColor = Color.Red
                         )
                     }
@@ -151,23 +169,23 @@ private fun RowScope.NavIconItem(
                     Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = item.title,
-                        modifier = Modifier.size(24.dp),
-                        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(18.dp),
+                        tint = color
                     )
                 } else {
                     Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = item.title,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(18.dp),
+                        tint = color
                     )
                 }
             }
-        },
-        label = { Text(item.title, style = MaterialTheme.typography.labelSmall) },
-        colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = MaterialTheme.colorScheme.primary,
-            selectedTextColor = MaterialTheme.colorScheme.primary,
-            indicatorColor = Color.Transparent
-        )
-    )
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.labelSmall,
+                color = color
+            )
+        }
+    }
 }
