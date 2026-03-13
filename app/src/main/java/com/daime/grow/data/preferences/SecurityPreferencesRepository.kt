@@ -21,6 +21,7 @@ class SecurityPreferencesRepository(private val context: Context) {
         val lockEnabled = booleanPreferencesKey("lock_enabled")
         val biometricEnabled = booleanPreferencesKey("biometric_enabled")
         val pinHash = stringPreferencesKey("pin_hash")
+        val useAlternativeIcons = booleanPreferencesKey("use_alternative_icons")
     }
 
     fun observe(): Flow<SecurityPreferences> = context.securityDataStore.data
@@ -29,7 +30,8 @@ class SecurityPreferencesRepository(private val context: Context) {
             SecurityPreferences(
                 lockEnabled = prefs[Keys.lockEnabled] ?: false,
                 biometricEnabled = prefs[Keys.biometricEnabled] ?: false,
-                pinHash = prefs[Keys.pinHash] ?: ""
+                pinHash = prefs[Keys.pinHash] ?: "",
+                useAlternativeIcons = prefs[Keys.useAlternativeIcons] ?: true // Default true para mascaramento
             )
         }
 
@@ -52,10 +54,13 @@ class SecurityPreferencesRepository(private val context: Context) {
         return stored == hashPin(pin)
     }
 
+    suspend fun setAlternativeIcons(enabled: Boolean) {
+        context.securityDataStore.edit { it[Keys.useAlternativeIcons] = enabled }
+    }
+
     private fun hashPin(pin: String): String {
         return MessageDigest.getInstance("SHA-256")
             .digest(pin.toByteArray())
             .joinToString("") { "%02x".format(it) }
     }
 }
-

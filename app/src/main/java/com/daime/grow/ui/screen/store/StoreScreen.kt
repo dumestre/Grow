@@ -26,14 +26,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -55,6 +60,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,7 +69,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,51 +79,88 @@ import java.util.Locale
 
 data class StoreCategory(val name: String, val icon: ImageVector)
 data class StoreProduct(val name: String, val price: Double, val category: String, val rating: String)
+data class CartItem(val product: StoreProduct, val quantity: Int)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoreScreen(
-    innerPadding: PaddingValues
+    innerPadding: PaddingValues,
+    useAlternativeIcons: Boolean = true
 ) {
     var searchQuery by remember { mutableStateOf("") }
     
-    // Usando LocalConfiguration para detecção de tablet conforme solicitado
-    val configuration = LocalConfiguration.current
-    val isTablet = configuration.screenWidthDp >= 600
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val screenWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val isTablet = screenWidthDp >= 600.dp
     
-    val categories = listOf(
-        StoreCategory("Sementes", Icons.Default.Spa),
-        StoreCategory("Nutrientes", Icons.Default.Science),
-        StoreCategory("Iluminação", Icons.Default.Lightbulb),
-        StoreCategory("Vasos", Icons.Default.Inventory),
-        StoreCategory("Acessórios", Icons.Default.Build)
-    )
+    val cartItems = remember { mutableStateListOf<CartItem>() }
+    val cartCount = cartItems.sumOf { it.quantity }
 
-    val products = listOf(
-        StoreProduct("Fertilizante Vega 1L", 89.90, "Nutrientes", "4.8"),
-        StoreProduct("Painel LED 240W", 1250.00, "Iluminação", "5.0"),
-        StoreProduct("Vaso de Feltro 15L", 35.00, "Vasos", "4.5"),
-        StoreProduct("Tesoura de Poda Pro", 45.90, "Acessórios", "4.7"),
-        StoreProduct("Substrato Orgânico 20kg", 120.00, "Nutrientes", "4.9"),
-        StoreProduct("Medidor de pH Digital", 150.00, "Acessórios", "4.6")
-    )
+    // DEFINIÇÃO DAS CATEGORIAS (REAL vs ALTERNATIVA)
+    val categories = if (useAlternativeIcons) {
+        listOf(
+            StoreCategory("Sementes", Icons.Default.Spa),
+            StoreCategory("Substratos", Icons.Default.Build),
+            StoreCategory("Nutrientes", Icons.Default.WaterDrop),
+            StoreCategory("Acessórios", Icons.Default.Checklist),
+            StoreCategory("Manuais", Icons.Default.ContentPaste)
+        )
+    } else {
+        listOf(
+            StoreCategory("Sedas", Icons.Default.Description),
+            StoreCategory("Isqueiros", Icons.Default.LocalFireDepartment),
+            StoreCategory("Piteiras", Icons.Default.FilterAlt),
+            StoreCategory("Dichavadores", Icons.Default.Settings),
+            StoreCategory("Boladores", Icons.Default.Build)
+        )
+    }
+
+    // DEFINIÇÃO DOS PRODUTOS (REAL vs ALTERNATIVA)
+    val products = if (useAlternativeIcons) {
+        listOf(
+            StoreProduct("Kit Sementes Orgânicas", 25.50, "Sementes", "4.9"),
+            StoreProduct("Substrato Premium 5L", 38.00, "Substratos", "4.7"),
+            StoreProduct("Fertilizante NPK 10-10-10", 14.00, "Nutrientes", "4.5"),
+            StoreProduct("Tesoura de Poda Curva", 45.00, "Acessórios", "4.8"),
+            StoreProduct("Etiquetas de Identificação", 12.00, "Acessórios", "4.6"),
+            StoreProduct("Guia Prático de Cultivo", 15.00, "Manuais", "4.9")
+        )
+    } else {
+        listOf(
+            StoreProduct("Seda King Size Slim", 5.50, "Sedas", "4.9"),
+            StoreProduct("Isqueiro Recarregável", 8.00, "Isqueiros", "4.7"),
+            StoreProduct("Piteira de Papel", 4.00, "Piteiras", "4.5"),
+            StoreProduct("Dichavador Metal 3 Fases", 45.00, "Dichavadores", "4.8"),
+            StoreProduct("Bolador Automático 110mm", 25.00, "Boladores", "4.6"),
+            StoreProduct("Seda Brown Orgânica", 6.00, "Sedas", "4.9")
+        )
+    }
 
     Scaffold(
         floatingActionButton = {
             SmallFloatingActionButton(
-                onClick = { },
-                containerColor = Color(0xFF121212), // Preto
-                contentColor = Color.White, // Ícone Branco
+                onClick = { /* Implementar navegação para carrinho */ },
+                containerColor = Color(0xFF121212),
+                contentColor = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.padding(bottom = if (isTablet) 16.dp else 84.dp) // Posicionado acima da barra branca (60dp + respiro)
+                modifier = Modifier.padding(bottom = if (isTablet) 16.dp else 84.dp)
             ) {
                 BadgedBox(
                     badge = { 
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.tertiary, // Verde do botão ADD
-                            contentColor = Color(0xFF1B5E20),
-                            modifier = Modifier.size(16.dp)
-                        ) { Text("2", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold) } 
+                        if (cartCount > 0) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = Color(0xFF1B5E20),
+                                modifier = Modifier.size(16.dp)
+                            ) { 
+                                Text(
+                                    cartCount.toString(), 
+                                    fontSize = 9.sp, 
+                                    fontWeight = FontWeight.ExtraBold 
+                                ) 
+                            }
+                        }
                     }
                 ) {
                     Icon(
@@ -139,11 +183,10 @@ fun StoreScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Título e Busca
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(modifier = Modifier.padding(top = 24.dp)) {
                     Text(
-                        "Grow Store", 
+                        "Loja", 
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
@@ -167,7 +210,6 @@ fun StoreScreen(
                 }
             }
 
-            // Banner
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -190,7 +232,7 @@ fun StoreScreen(
                             }
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "Tudo para sua Colheita\ncom descontos reais",
+                                "Tudo o que você precisa\ncom os melhores preços",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -201,7 +243,6 @@ fun StoreScreen(
                 }
             }
 
-            // Categorias
             item(span = { GridItemSpan(maxLineSpan) }) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -213,9 +254,18 @@ fun StoreScreen(
                 }
             }
 
-            // Grid de Produtos
             items(products) { product ->
-                ProductCard(product)
+                ProductCard(
+                    product = product,
+                    onAddToCart = { qty ->
+                        val index = cartItems.indexOfFirst { it.product.name == product.name }
+                        if (index != -1) {
+                            cartItems[index] = cartItems[index].copy(quantity = cartItems[index].quantity + qty)
+                        } else {
+                            cartItems.add(CartItem(product, qty))
+                        }
+                    }
+                )
             }
         }
     }
@@ -247,13 +297,19 @@ fun CategoryItem(category: StoreCategory) {
             category.name,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
 
 @Composable
-fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
+fun ProductCard(
+    product: StoreProduct, 
+    modifier: Modifier = Modifier,
+    onAddToCart: (Int) -> Unit
+) {
     var quantity by remember { mutableIntStateOf(1) }
 
     Card(
@@ -317,7 +373,6 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(16.dp))
 
-                // SELETOR DE QUANTIDADE
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         "Quantidade", 
@@ -358,9 +413,8 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // BOTÃO ADICIONAR AO CARRINHO (OUTLINED)
                 OutlinedButton(
-                    onClick = { /* Add ao carrinho */ },
+                    onClick = { onAddToCart(quantity) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(36.dp),
@@ -378,9 +432,8 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // BOTÃO COMPRAR (SÓLIDO PRETO)
                 Button(
-                    onClick = { /* Comprar agora */ },
+                    onClick = { onAddToCart(quantity) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(42.dp),

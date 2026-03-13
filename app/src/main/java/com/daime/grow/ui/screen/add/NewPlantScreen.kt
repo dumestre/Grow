@@ -10,7 +10,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -45,13 +44,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,7 +66,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -77,8 +75,6 @@ import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PhotoPickerBox
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.screen.mural.UsernameDialog
-import com.daime.grow.ui.theme.GrowTheme
-import com.daime.grow.ui.viewmodel.AddPlantUiEvent
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
 import java.io.File
 import java.util.UUID
@@ -90,54 +86,56 @@ fun NewPlantScreen(
     viewModel: AddPlantViewModel,
     onSaved: (Long) -> Unit,
     onClose: () -> Unit,
-    onCheckUser: (String, (Long) -> Unit) -> Unit = { _, _ -> }
+    onCheckUser: (String, (Long) -> Unit) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var showSheet by remember { mutableStateOf(false) }
-    var showUsernameDialog by remember { mutableStateOf(false) }
-    var cameraUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingCameraPhoto by remember { mutableStateOf<String?>(null) }
-    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val strainRequester = remember { FocusRequester() }
     val mediumRequester = remember { FocusRequester() }
     val daysRequester = remember { FocusRequester() }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val requiredFieldsError = stringResource(R.string.new_plant_required_fields_error)
-    val savedMessage = stringResource(R.string.new_plant_saved)
 
-    LaunchedEffect(viewModel) {
-        viewModel.events.collect { event ->
-            when (event) {
-                AddPlantUiEvent.RequiredFieldsError -> snackbarHostState.showSnackbar(requiredFieldsError)
-                AddPlantUiEvent.Saved -> snackbarHostState.showSnackbar(savedMessage)
-            }
+    var showSheet by remember { mutableStateOf(false) }
+    var showUsernameDialog by remember { mutableStateOf(false) }
+
+    var pendingCameraPhoto by remember { mutableStateOf<String?>(null) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val persistentUri = persistPhotoToAppStorage(context, uri)
+            viewModel.onPhotoSelected(persistentUri)
         }
     }
 
-    val pickMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        val persisted = uri?.let { persistPhotoToAppStorage(context, it) }
-        viewModel.onPhotoSelected(persisted)
+    val getContentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            val persistentUri = persistPhotoToAppStorage(context, uri)
+            viewModel.onPhotoSelected(persistentUri)
+        }
     }
 
-    val getContentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        val persisted = uri?.let { persistPhotoToAppStorage(context, it) }
-        viewModel.onPhotoSelected(persisted)
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
         if (success) {
             viewModel.onPhotoSelected(pendingCameraPhoto)
         } else {
-            pendingCameraFile?.let { runCatching { it.delete() } }
+            pendingCameraFile?.delete()
         }
-        pendingCameraPhoto = null
-        pendingCameraFile = null
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
             val file = createPersistentPhotoFile(context)
             val providerUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             pendingCameraFile = file
@@ -147,16 +145,17 @@ fun NewPlantScreen(
         }
     }
 
-    Box(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-            .padding(16.dp)
-    ) {
+            .padding(16.dp),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -256,7 +255,7 @@ fun NewPlantScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(
                                 imageVector = Icons.Rounded.Share,
                                 contentDescription = null,
@@ -298,13 +297,6 @@ fun NewPlantScreen(
                 Text(stringResource(R.string.new_plant_save))
             }
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .padding(bottom = 8.dp)
-                .align(Alignment.BottomCenter)
-        )
     }
 
     if (showSheet) {
@@ -437,40 +429,4 @@ private fun createPersistentPhotoFile(context: Context): File {
     return File(directory, "plant_${UUID.randomUUID()}.jpg")
 }
 
-@Preview(showBackground = true)
-@Composable
-fun NewPlantScreenPreview() {
-    GrowTheme {
-        NewPlantScreen(
-            innerPadding = PaddingValues(),
-            viewModel = AddPlantViewModel(object : com.daime.grow.domain.repository.GrowRepository {
-                override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean) = kotlinx.coroutines.flow.flowOf(emptyList<com.daime.grow.domain.model.Plant>())
-                override fun observePlantDetails(plantId: Long) = kotlinx.coroutines.flow.flowOf(null)
-                override suspend fun addPlant(name: String, strain: String, stage: String, medium: String, days: Int, photoUri: String?, shareOnMural: Boolean) = 0L
-                override suspend fun addQuickEvent(plantId: Long, type: String, note: String) {}
-                override suspend fun addWatering(plantId: Long, volumeMl: Int, intervalDays: Int, substrate: String) {}
-                override suspend fun addNutrient(log: com.daime.grow.domain.model.NutrientLog) {}
-                override suspend fun toggleChecklist(itemId: Long, done: Boolean) {}
-                override suspend fun updatePlantStage(plantId: Long, stage: String) {}
-                override suspend fun deletePlant(plantId: Long) {}
-                override suspend fun updatePlantsOrder(orderedIds: List<Long>) {}
-                override suspend fun seedDataIfNeeded() {}
-                override fun observeSecurityPreferences() = kotlinx.coroutines.flow.flowOf(com.daime.grow.domain.model.SecurityPreferences())
-                override suspend fun setLockEnabled(enabled: Boolean) {}
-                override suspend fun setBiometricEnabled(enabled: Boolean) {}
-                override suspend fun updatePin(pin: String) {}
-                override suspend fun verifyPin(pin: String) = true
-                override suspend fun exportBackup(uri: Uri) {}
-                override suspend fun importBackup(uri: Uri) {}
-                override fun observeMuralPosts() = kotlinx.coroutines.flow.flowOf(emptyList<com.daime.grow.data.local.dao.MuralPostWithPlant>())
-                override fun observeMuralPost(postId: Long) = kotlinx.coroutines.flow.flowOf(null)
-                override fun observeComments(postId: Long) = kotlinx.coroutines.flow.flowOf(emptyList<com.daime.grow.data.local.dao.CommentWithUser>())
-                override suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long?) {}
-                override suspend fun createOrGetUser(username: String): Long = 0L
-                override suspend fun getCurrentUserId(): Long? = null
-            }),
-            onSaved = {},
-            onClose = {}
-        )
-    }
-}
+

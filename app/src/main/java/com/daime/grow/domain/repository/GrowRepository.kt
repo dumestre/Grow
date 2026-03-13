@@ -36,6 +36,7 @@ interface GrowRepository {
     suspend fun setBiometricEnabled(enabled: Boolean)
     suspend fun updatePin(pin: String)
     suspend fun verifyPin(pin: String): Boolean
+    suspend fun setAlternativeIcons(enabled: Boolean)
 
     suspend fun exportBackup(uri: Uri)
     suspend fun importBackup(uri: Uri)

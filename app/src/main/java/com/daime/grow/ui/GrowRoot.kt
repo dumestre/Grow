@@ -57,6 +57,8 @@ fun GrowRoot(container: AppContainer) {
     val muralViewModel: MuralViewModel = viewModel(factory = factories.mural)
 
     val lockState by lockViewModel.uiState.collectAsStateWithLifecycle()
+    val securityPrefs by settingsViewModel.security.collectAsStateWithLifecycle()
+    
     val context = LocalContext.current
 
     var showNotificationSheet by remember { mutableStateOf(false) }
@@ -154,6 +156,7 @@ fun GrowRoot(container: AppContainer) {
                             },
                             onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
                             isDeleting = isDraggingPlant,
+                            useAlternativeIcons = securityPrefs.useAlternativeIcons,
                             onFabBounds = { trashBounds = it }
                         )
                     }
@@ -196,7 +199,10 @@ fun GrowRoot(container: AppContainer) {
                     }
 
                     composable(NavRoute.Store.route) {
-                        StoreScreen(innerPadding = innerPadding)
+                        StoreScreen(
+                            innerPadding = innerPadding,
+                            useAlternativeIcons = securityPrefs.useAlternativeIcons
+                        )
                     }
 
                     composable(NavRoute.NewPlant.route) {

@@ -11,6 +11,7 @@ import com.daime.grow.data.local.entity.PlantEntity
 import com.daime.grow.data.local.entity.PlantEventEntity
 import com.daime.grow.data.local.entity.WateringLogEntity
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
+import com.daime.grow.data.remote.model.AppConfigDto
 import com.daime.grow.data.reminder.ReminderScheduler
 import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralPostDto
@@ -299,6 +300,9 @@ class GrowRepositoryImpl(
     }
 
     override suspend fun seedDataIfNeeded() {
+        // Aproveitar o seed para sincronizar a config remota
+        syncRemoteConfig()
+
         if (plantDao.count() > 0) return
         val now = System.currentTimeMillis()
         val ids = mutableListOf<Long>()
@@ -378,6 +382,24 @@ class GrowRepositoryImpl(
 
     override suspend fun verifyPin(pin: String): Boolean {
         return requireNotNull(securityRepository).verifyPin(pin)
+    }
+
+    override suspend fun setAlternativeIcons(enabled: Boolean) {
+        requireNotNull(securityRepository).setAlternativeIcons(enabled)
+    }
+
+    private suspend fun syncRemoteConfig() {
+        try {
+            val config = supabase.from("app_config")
+                .select { filter { eq("key", "use_alternative_icons") } }
+                .decodeSingleOrNull<AppConfigDto>()
+            
+            config?.let {
+                securityRepository?.setAlternativeIcons(it.value_bool)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override suspend fun exportBackup(uri: Uri) {

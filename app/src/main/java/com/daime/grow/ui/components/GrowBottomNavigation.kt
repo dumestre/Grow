@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.Yard
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ enum class BottomNavItem(
     val iconRes: Int?,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
+    val alternativeIcon: ImageVector = Icons.Outlined.Yard, // Ícone neutro (Horta/Jardim)
     val hasBadge: Boolean = false
 ) {
     Home(
@@ -94,6 +96,7 @@ fun GrowBottomNavigationBar(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
     isDeleting: Boolean = false,
+    useAlternativeIcons: Boolean = true, // Flag de mascaramento
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
 ) {
     Surface(
@@ -117,7 +120,7 @@ fun GrowBottomNavigationBar(
                 val secondGroup = items.drop(3)
 
                 firstGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
+                    NavIconItem(item, currentRoute, onNavigate, useAlternativeIcons, Modifier.weight(1f))
                 }
 
                 Box(
@@ -145,7 +148,7 @@ fun GrowBottomNavigationBar(
                 }
 
                 secondGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
+                    NavIconItem(item, currentRoute, onNavigate, useAlternativeIcons, Modifier.weight(1f))
                 }
             }
         }
@@ -157,6 +160,7 @@ private fun NavIconItem(
     item: BottomNavItem,
     currentRoute: String?,
     onNavigate: (String) -> Unit,
+    useAlternativeIcons: Boolean,
     modifier: Modifier = Modifier
 ) {
     val selected = currentRoute == item.route
@@ -186,7 +190,7 @@ private fun NavIconItem(
                     }
                 }
             ) {
-                if (item.iconRes != null) {
+                if (!useAlternativeIcons && item.iconRes != null) {
                     Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = item.title,
@@ -195,7 +199,7 @@ private fun NavIconItem(
                     )
                 } else {
                     Icon(
-                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                        imageVector = if (useAlternativeIcons) item.alternativeIcon else if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = item.title,
                         modifier = Modifier.size(24.dp),
                         tint = color
