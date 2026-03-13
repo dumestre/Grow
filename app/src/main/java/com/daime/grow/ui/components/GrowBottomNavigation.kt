@@ -97,8 +97,8 @@ fun GrowBottomNavigationBar(
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
+        color = Color.White,
+        tonalElevation = 0.dp,
         modifier = modifier
     ) {
         Column(
@@ -133,7 +133,7 @@ fun GrowBottomNavigationBar(
                         modifier = Modifier
                             .size(42.dp) 
                             .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
                     ) {
                         Icon(
                             imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,

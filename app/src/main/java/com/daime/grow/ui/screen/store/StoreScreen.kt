@@ -1,7 +1,6 @@
 package com.daime.grow.ui.screen.store
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -85,25 +84,26 @@ fun StoreScreen(
                 enter = scaleIn() + fadeIn(),
                 exit = scaleOut() + fadeOut()
             ) {
-                FloatingActionButton(
+                SmallFloatingActionButton(
                     onClick = { },
                     containerColor = Color(0xFF121212),
                     contentColor = Color.White,
                     shape = CircleShape,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = if (isTablet) 16.dp else 74.dp)
                 ) {
                     BadgedBox(
                         badge = { 
                             Badge(
-                                containerColor = MaterialTheme.colorScheme.tertiary, // Mesmo verde do botão ADD
-                                contentColor = Color(0xFF1B5E20)
-                            ) { Text("2", fontWeight = FontWeight.Bold) } 
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = Color(0xFF1B5E20),
+                                modifier = Modifier.size(16.dp)
+                            ) { Text("2", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold) } 
                         }
                     ) {
                         Icon(
                             Icons.Default.ShoppingCart, 
                             contentDescription = "Carrinho",
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -117,7 +117,7 @@ fun StoreScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
                 .nestedScroll(nestedScrollConnection),
-            contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 80.dp),
+            contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 100.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

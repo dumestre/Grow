@@ -24,7 +24,7 @@ fun GrowNavigationRail(
         modifier = modifier
             .fillMaxHeight()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.White,
         header = {
             FloatingActionButton(
                 onClick = { if (!isDeleting) onAddClick() },
@@ -79,7 +79,7 @@ fun GrowNavigationRail(
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                    indicatorColor = Color.Transparent // Removido fundo de seleção para visual mais limpo no branco
                 )
             )
         }
