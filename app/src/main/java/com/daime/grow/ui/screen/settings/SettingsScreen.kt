@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
+import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +68,9 @@ fun SettingsScreen(
     val backupImportErrorMessage = stringResource(R.string.settings_backup_import_error)
     
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    
+    val configuration = LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -107,7 +112,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(if (isTablet) 32.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val backupFileName = stringResource(R.string.settings_backup_file_name)
@@ -117,99 +122,186 @@ fun SettingsScreen(
             val pinMismatch = normalizedPinConfirm.isNotEmpty() && normalizedPin != normalizedPinConfirm
             val canSavePin = normalizedPin.length in 4..6 && normalizedPin == normalizedPinConfirm
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RowSetting(
-                        title = stringResource(R.string.settings_lock_pin_biometric),
-                        checked = security.lockEnabled,
-                        onCheckedChange = viewModel::setLockEnabled
-                    )
-
-                    RowSetting(
-                        title = stringResource(R.string.settings_biometric),
-                        checked = security.biometricEnabled,
-                        onCheckedChange = viewModel::setBiometricEnabled
-                    )
-
-                    OutlinedTextField(
-                        value = normalizedPin,
-                        onValueChange = { pinInput = it },
-                        label = { Text(stringResource(R.string.settings_pin_label)) },
-                        visualTransformation = if (revealPin) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        isError = pinLengthInvalid || pinMismatch,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = normalizedPinConfirm,
-                        onValueChange = { pinConfirmInput = it },
-                        label = { Text(stringResource(R.string.settings_pin_confirm_label)) },
-                        visualTransformation = if (revealPin) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        isError = pinMismatch,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            if (isTablet) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(stringResource(R.string.settings_reveal_pin))
-                        Switch(
-                            checked = revealPin,
-                            onCheckedChange = { revealPin = it },
-                            modifier = Modifier.scale(0.7f)
+                        SecuritySettingsContent(
+                            security = security,
+                            viewModel = viewModel,
+                            normalizedPin = normalizedPin,
+                            onPinInputChange = { pinInput = it },
+                            normalizedPinConfirm = normalizedPinConfirm,
+                            onPinConfirmInputChange = { pinConfirmInput = it },
+                            revealPin = revealPin,
+                            onRevealPinChange = { revealPin = it },
+                            pinLengthInvalid = pinLengthInvalid,
+                            pinMismatch = pinMismatch,
+                            canSavePin = canSavePin,
+                            onSavePin = {
+                                viewModel.updatePin(normalizedPin)
+                                pinInput = ""
+                                pinConfirmInput = ""
+                            }
                         )
                     }
 
-                    if (pinLengthInvalid) {
-                        Text(
-                            text = stringResource(R.string.settings_pin_length_error),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    } else if (pinMismatch) {
-                        Text(
-                            text = stringResource(R.string.settings_pin_mismatch_error),
-                            color = MaterialTheme.colorScheme.error
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        BackupSettingsContent(
+                            backupFileName = backupFileName,
+                            onCreateDocument = { createDocument.launch(it) },
+                            onOpenDocument = { openDocument.launch(arrayOf("application/json")) }
                         )
                     }
-
-                    Button(
-                        onClick = {
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    SecuritySettingsContent(
+                        security = security,
+                        viewModel = viewModel,
+                        normalizedPin = normalizedPin,
+                        onPinInputChange = { pinInput = it },
+                        normalizedPinConfirm = normalizedPinConfirm,
+                        onPinConfirmInputChange = { pinConfirmInput = it },
+                        revealPin = revealPin,
+                        onRevealPinChange = { revealPin = it },
+                        pinLengthInvalid = pinLengthInvalid,
+                        pinMismatch = pinMismatch,
+                        canSavePin = canSavePin,
+                        onSavePin = {
                             viewModel.updatePin(normalizedPin)
                             pinInput = ""
                             pinConfirmInput = ""
-                        },
-                        enabled = canSavePin,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.settings_save_pin))
-                    }
+                        }
+                    )
                 }
-            }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.settings_backup_title), style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { createDocument.launch(backupFileName) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.settings_export_backup_json))
-                    }
-                    Button(onClick = { openDocument.launch(arrayOf("application/json")) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.settings_import_backup_json))
-                    }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    BackupSettingsContent(
+                        backupFileName = backupFileName,
+                        onCreateDocument = { createDocument.launch(it) },
+                        onOpenDocument = { openDocument.launch(arrayOf("application/json")) }
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SecuritySettingsContent(
+    security: SecurityPreferences,
+    viewModel: SettingsViewModel,
+    normalizedPin: String,
+    onPinInputChange: (String) -> Unit,
+    normalizedPinConfirm: String,
+    onPinConfirmInputChange: (String) -> Unit,
+    revealPin: Boolean,
+    onRevealPinChange: (Boolean) -> Unit,
+    pinLengthInvalid: Boolean,
+    pinMismatch: Boolean,
+    canSavePin: Boolean,
+    onSavePin: () -> Unit
+) {
+    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        RowSetting(
+            title = stringResource(R.string.settings_lock_pin_biometric),
+            checked = security.lockEnabled,
+            onCheckedChange = viewModel::setLockEnabled
+        )
+
+        RowSetting(
+            title = stringResource(R.string.settings_biometric),
+            checked = security.biometricEnabled,
+            onCheckedChange = viewModel::setBiometricEnabled
+        )
+
+        OutlinedTextField(
+            value = normalizedPin,
+            onValueChange = onPinInputChange,
+            label = { Text(stringResource(R.string.settings_pin_label)) },
+            visualTransformation = if (revealPin) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            isError = pinLengthInvalid || pinMismatch,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = normalizedPinConfirm,
+            onValueChange = onPinConfirmInputChange,
+            label = { Text(stringResource(R.string.settings_pin_confirm_label)) },
+            visualTransformation = if (revealPin) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+            isError = pinMismatch,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.settings_reveal_pin))
+            Switch(
+                checked = revealPin,
+                onCheckedChange = onRevealPinChange,
+                modifier = Modifier.scale(0.7f)
+            )
+        }
+
+        if (pinLengthInvalid) {
+            Text(
+                text = stringResource(R.string.settings_pin_length_error),
+                color = MaterialTheme.colorScheme.error
+            )
+        } else if (pinMismatch) {
+            Text(
+                text = stringResource(R.string.settings_pin_mismatch_error),
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Button(
+            onClick = onSavePin,
+            enabled = canSavePin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.settings_save_pin))
+        }
+    }
+}
+
+@Composable
+private fun BackupSettingsContent(
+    backupFileName: String,
+    onCreateDocument: (String) -> Unit,
+    onOpenDocument: () -> Unit
+) {
+    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_backup_title), style = MaterialTheme.typography.titleMedium)
+        Button(onClick = { onCreateDocument(backupFileName) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.settings_export_backup_json))
+        }
+        Button(onClick = { onOpenDocument() }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.settings_import_backup_json))
         }
     }
 }

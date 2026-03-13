@@ -1,10 +1,20 @@
 package com.daime.grow.ui.screen.store
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -14,18 +24,45 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,24 +79,11 @@ fun StoreScreen(
     innerPadding: PaddingValues
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    
+    // Usando LocalConfiguration para detecção de tablet conforme solicitado
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
     
-    // Controle de visibilidade do FAB ao rolar
-    var isFabVisible by remember { mutableStateOf(true) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: NestedScrollSource): androidx.compose.ui.geometry.Offset {
-                if (available.y < -1) {
-                    isFabVisible = false
-                } else if (available.y > 1) {
-                    isFabVisible = true
-                }
-                return androidx.compose.ui.geometry.Offset.Zero
-            }
-        }
-    }
-
     val categories = listOf(
         StoreCategory("Sementes", Icons.Default.Spa),
         StoreCategory("Nutrientes", Icons.Default.Science),
@@ -79,44 +103,38 @@ fun StoreScreen(
 
     Scaffold(
         floatingActionButton = {
-            AnimatedVisibility(
-                visible = isFabVisible,
-                enter = scaleIn() + fadeIn(),
-                exit = scaleOut() + fadeOut()
+            SmallFloatingActionButton(
+                onClick = { },
+                containerColor = Color(0xFF121212), // Preto
+                contentColor = Color.White, // Ícone Branco
+                shape = CircleShape,
+                modifier = Modifier.padding(bottom = if (isTablet) 16.dp else 84.dp) // Posicionado acima da barra branca (60dp + respiro)
             ) {
-                SmallFloatingActionButton(
-                    onClick = { },
-                    containerColor = Color(0xFF121212),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.padding(bottom = if (isTablet) 16.dp else 74.dp)
-                ) {
-                    BadgedBox(
-                        badge = { 
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.tertiary,
-                                contentColor = Color(0xFF1B5E20),
-                                modifier = Modifier.size(16.dp)
-                            ) { Text("2", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold) } 
-                        }
-                    ) {
-                        Icon(
-                            Icons.Default.ShoppingCart, 
-                            contentDescription = "Carrinho",
-                            modifier = Modifier.size(20.dp)
-                        )
+                BadgedBox(
+                    badge = { 
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.tertiary, // Verde do botão ADD
+                            contentColor = Color(0xFF1B5E20),
+                            modifier = Modifier.size(16.dp)
+                        ) { Text("2", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold) } 
                     }
+                ) {
+                    Icon(
+                        Icons.Default.ShoppingCart, 
+                        contentDescription = "Carrinho",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
-        }
+        },
+        containerColor = Color.Transparent
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (isTablet) 3 else 2),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
-                .nestedScroll(nestedScrollConnection),
+                .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 100.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -340,7 +358,7 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // BOTÃO ADICIONAR AO CARRINHO
+                // BOTÃO ADICIONAR AO CARRINHO (OUTLINED)
                 OutlinedButton(
                     onClick = { /* Add ao carrinho */ },
                     modifier = Modifier
@@ -360,7 +378,7 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // BOTÃO COMPRAR
+                // BOTÃO COMPRAR (SÓLIDO PRETO)
                 Button(
                     onClick = { /* Comprar agora */ },
                     modifier = Modifier
