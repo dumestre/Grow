@@ -1,17 +1,19 @@
 ﻿package com.daime.grow.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -59,9 +61,23 @@ fun GrowRoot(container: AppContainer) {
 
     var showNotificationSheet by remember { mutableStateOf(false) }
     
-    // Estados para sincronizar o arrasto com a barra de navegação
     var isDraggingPlant by remember { mutableStateOf(false) }
     var trashBounds by remember { mutableStateOf<Rect?>(null) }
+
+    // Estado global para esconder a barra de navegação no scroll
+    var isBottomBarVisible by remember { mutableStateOf(true) }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -1) {
+                    isBottomBarVisible = false
+                } else if (available.y > 1) {
+                    isBottomBarVisible = true
+                }
+                return Offset.Zero
+            }
+        }
+    }
 
     if (!lockState.isReady) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -91,12 +107,10 @@ fun GrowRoot(container: AppContainer) {
         NavRoute.Settings.route
     )
 
-    // Detecção de Tablet (Largura >= 600dp)
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // Se for tablet, mostra a barra lateral (Rail)
         if (isTablet && showNavElements) {
             GrowNavigationRail(
                 currentRoute = currentRoute,
@@ -119,29 +133,38 @@ fun GrowRoot(container: AppContainer) {
         Scaffold(
             modifier = Modifier.weight(1f),
             bottomBar = {
-                // Se NÃO for tablet, mostra a barra inferior (Bottom Bar)
                 if (!isTablet && showNavElements) {
-                    GrowBottomNavigationBar(
-                        currentRoute = currentRoute,
-                        onNavigate = { route ->
-                            if (route == NavRoute.Notifications.route) {
-                                showNotificationSheet = true
-                            } else if (route != currentRoute) {
-                                navController.navigate(route) {
-                                    popUpTo(NavRoute.Home.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                    AnimatedVisibility(
+                        visible = isBottomBarVisible,
+                        enter = slideInVertically(initialOffsetY = { it }),
+                        exit = slideOutVertically(targetOffsetY = { it })
+                    ) {
+                        GrowBottomNavigationBar(
+                            currentRoute = currentRoute,
+                            onNavigate = { route ->
+                                if (route == NavRoute.Notifications.route) {
+                                    showNotificationSheet = true
+                                } else if (route != currentRoute) {
+                                    navController.navigate(route) {
+                                        popUpTo(NavRoute.Home.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                            }
-                        },
-                        onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                        isDeleting = isDraggingPlant,
-                        onFabBounds = { trashBounds = it }
-                    )
+                            },
+                            onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
+                            isDeleting = isDraggingPlant,
+                            onFabBounds = { trashBounds = it }
+                        )
+                    }
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(nestedScrollConnection)
+            ) {
                 NavHost(
                     navController = navController,
                     startDestination = NavRoute.Home.route,

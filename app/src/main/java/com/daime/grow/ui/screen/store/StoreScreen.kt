@@ -1,11 +1,16 @@
 package com.daime.grow.ui.screen.store
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,7 +43,24 @@ fun StoreScreen(
     innerPadding: PaddingValues
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val configuration = LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600
     
+    // Controle de visibilidade do FAB ao rolar
+    var isFabVisible by remember { mutableStateOf(true) }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (available.y < -1) {
+                    isFabVisible = false
+                } else if (available.y > 1) {
+                    isFabVisible = true
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+
     val categories = listOf(
         StoreCategory("Sementes", Icons.Default.Spa),
         StoreCategory("Nutrientes", Icons.Default.Science),
@@ -48,62 +74,83 @@ fun StoreScreen(
         StoreProduct("Painel LED 240W", 1250.00, "Iluminação", "5.0"),
         StoreProduct("Vaso de Feltro 15L", 35.00, "Vasos", "4.5"),
         StoreProduct("Tesoura de Poda Pro", 45.90, "Acessórios", "4.7"),
-        StoreProduct("Substrato Orgânico 20kg", 120.00, "Nutrientes", "4.9")
+        StoreProduct("Substrato Orgânico 20kg", 120.00, "Nutrientes", "4.9"),
+        StoreProduct("Medidor de pH Digital", 150.00, "Acessórios", "4.6")
     )
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Grow Store", 
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    ) 
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        BadgedBox(badge = { Badge { Text("2") } }) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Carrinho", tint = MaterialTheme.colorScheme.primary)
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = isFabVisible,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
+            ) {
+                FloatingActionButton(
+                    onClick = { },
+                    containerColor = Color(0xFF121212),
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    BadgedBox(
+                        badge = { 
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.tertiary, // Mesmo verde do botão ADD
+                                contentColor = Color(0xFF1B5E20)
+                            ) { Text("2", fontWeight = FontWeight.Bold) } 
                         }
+                    ) {
+                        Icon(
+                            Icons.Default.ShoppingCart, 
+                            contentDescription = "Carrinho",
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+                }
+            }
         }
     ) { padding ->
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(if (isTablet) 3 else 2),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 90.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 16.dp)
+                .nestedScroll(nestedScrollConnection),
+            contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + 80.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Barra de Busca
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    placeholder = { Text("O que você procura hoje?", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        unfocusedBorderColor = Color.Transparent
+            // Título e Busca
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Column(modifier = Modifier.padding(top = 24.dp)) {
+                    Text(
+                        "Grow Store", 
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("O que você procura hoje?", fontSize = 14.sp) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            unfocusedBorderColor = Color.Transparent
+                        )
+                    )
+                }
             }
 
             // Banner
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -137,7 +184,7 @@ fun StoreScreen(
             }
 
             // Categorias
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(vertical = 4.dp)
@@ -148,19 +195,9 @@ fun StoreScreen(
                 }
             }
 
-            // Produtos
-            items(products.chunked(2)) { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ProductCard(pair[0], Modifier.weight(1f))
-                    if (pair.size > 1) {
-                        ProductCard(pair[1], Modifier.weight(1f))
-                    } else {
-                        Spacer(Modifier.weight(1f))
-                    }
-                }
+            // Grid de Produtos
+            items(products) { product ->
+                ProductCard(product)
             }
         }
     }
@@ -202,7 +239,7 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
     var quantity by remember { mutableIntStateOf(1) }
 
     Card(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -251,7 +288,7 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 
                 Text(
                     "R$ ${String.format(Locale.getDefault(), "%.2f", product.price)}",
@@ -262,7 +299,7 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(16.dp))
 
-                // SELETOR DE QUANTIDADE (ACIMA DO BOTÃO)
+                // SELETOR DE QUANTIDADE
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         "Quantidade", 
@@ -303,21 +340,39 @@ fun ProductCard(product: StoreProduct, modifier: Modifier = Modifier) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // BOTÃO COMPRAR (PRETO / CINZA ESCURO)
+                // BOTÃO ADICIONAR AO CARRINHO
+                OutlinedButton(
+                    onClick = { /* Add ao carrinho */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFF121212).copy(alpha = 0.5f)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        "ADD AO CARRINHO", 
+                        fontSize = 10.sp, 
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF121212)
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // BOTÃO COMPRAR
                 Button(
-                    onClick = { /* Lógica de adicionar ao carrinho */ },
+                    onClick = { /* Comprar agora */ },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(42.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF121212), // Preto / Cinza Escuro
+                        containerColor = Color(0xFF121212),
                         contentColor = Color.White
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
-                    Icon(Icons.Default.ShoppingCart, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
                     Text(
                         "COMPRAR", 
                         fontSize = 12.sp, 
