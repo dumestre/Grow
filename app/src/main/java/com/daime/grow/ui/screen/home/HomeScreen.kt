@@ -51,7 +51,6 @@ fun HomeScreen(
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
-    // No tablet aumentamos o número de colunas
     val columnsCount = if (isTablet) 4 else 2
 
     var plantPendingDelete by remember { mutableStateOf<com.daime.grow.domain.model.Plant?>(null) }
@@ -63,7 +62,6 @@ fun HomeScreen(
     var dragOffsetY by remember { mutableStateOf(0f) }
     var draggedCardBounds by remember { mutableStateOf<Rect?>(null) }
 
-    // Reorder steps precisam ser dinâmicos para a largura das colunas
     val reorderStepXPx = with(LocalDensity.current) { (configuration.screenWidthDp / columnsCount).dp.toPx() }
     val reorderStepYPx = with(LocalDensity.current) { 190.dp.toPx() }
     
@@ -105,7 +103,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(end = 16.dp)
-                            .then(if (isTablet) Modifier.widthIn(max = 600.dp) else Modifier), // Limita largura no tablet
+                            .then(if (isTablet) Modifier.widthIn(max = 600.dp) else Modifier),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     ) {
@@ -133,12 +131,12 @@ fun HomeScreen(
             state = gridState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = if (isTablet) 32.dp else 16.dp), // Mais margem no tablet
+                .padding(horizontal = if (isTablet) 32.dp else 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
-                bottom = padding.calculateBottomPadding() + 24.dp
+                bottom = innerPadding.calculateBottomPadding() + 80.dp // Uso o innerPadding do Root + margem extra
             )
         ) {
             item(span = { GridItemSpan(columnsCount) }) {
@@ -154,7 +152,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             stringResource(R.string.home_focus_title),
-                            style = MaterialTheme.typography.headlineSmall // Título maior no tablet
+                            style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
                             stringResource(R.string.home_focus_subtitle),

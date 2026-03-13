@@ -9,9 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -22,8 +26,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.rounded.Delete
+import com.daime.grow.ui.navigation.NavRoute
 
 enum class BottomNavItem(
     val route: String,
@@ -34,21 +43,35 @@ enum class BottomNavItem(
     val hasBadge: Boolean = false
 ) {
     Home(
-        route = "home",
+        route = NavRoute.Home.route,
         title = "Plantas",
         iconRes = com.daime.grow.R.drawable.planta,
-        selectedIcon = Icons.Outlined.Settings,
-        unselectedIcon = Icons.Outlined.Settings
+        selectedIcon = Icons.Outlined.Spa,
+        unselectedIcon = Icons.Outlined.Spa
+    ),
+    PosColheta(
+        route = NavRoute.PosColheta.route,
+        title = "Pós",
+        iconRes = null,
+        selectedIcon = Icons.Outlined.Inventory2,
+        unselectedIcon = Icons.Outlined.Inventory2
     ),
     Mural(
-        route = "mural",
+        route = NavRoute.Mural.route,
         title = "Mural",
         iconRes = null,
         selectedIcon = Icons.Outlined.Public,
         unselectedIcon = Icons.Outlined.Public
     ),
+    Store(
+        route = NavRoute.Store.route,
+        title = "Loja",
+        iconRes = null,
+        selectedIcon = Icons.Filled.ShoppingCart,
+        unselectedIcon = Icons.Outlined.ShoppingCart
+    ),
     Notifications(
-        route = "notifications",
+        route = NavRoute.Notifications.route,
         title = "Avisos",
         iconRes = null,
         selectedIcon = Icons.Filled.Notifications,
@@ -56,7 +79,7 @@ enum class BottomNavItem(
         hasBadge = true
     ),
     Settings(
-        route = "settings",
+        route = NavRoute.Settings.route,
         title = "Ajustes",
         iconRes = null,
         selectedIcon = Icons.Filled.Settings,
@@ -75,32 +98,31 @@ fun GrowBottomNavigationBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp, // Volta para a cor original (sem o tom de elevação)
+        tonalElevation = 3.dp,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // Aplica o padding APENAS embaixo para os gestos/botões do Android
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp), // Altura slim real para ser bem fina
+                    .height(60.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val items = BottomNavItem.entries
-                
-                // Primeiro par de ícones
-                items.take(2).forEach { item ->
+                val firstGroup = items.take(3)
+                val secondGroup = items.drop(3)
+
+                firstGroup.forEach { item ->
                     NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
                 }
 
-                // FAB Centralizado - Tamanho reduzido para a barra slim
                 Box(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.1f)
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center
                 ) {
@@ -109,21 +131,20 @@ fun GrowBottomNavigationBar(
                         containerColor = if (isDeleting) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
                         shape = CircleShape,
                         modifier = Modifier
-                            .size(36.dp) 
+                            .size(42.dp) 
                             .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                     ) {
                         Icon(
                             imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = if (isDeleting) Color(0xFF333333) else Color(0xFF1B5E20)
+                            modifier = Modifier.size(22.dp),
+                            tint = if (isDeleting) Color.White else Color(0xFF1B5E20)
                         )
                     }
                 }
 
-                // Segundo par de ícones
-                items.drop(2).forEach { item ->
+                secondGroup.forEach { item ->
                     NavIconItem(item, currentRoute, onNavigate, Modifier.weight(1f))
                 }
             }
@@ -146,7 +167,7 @@ private fun NavIconItem(
             .fillMaxHeight()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = false, radius = 24.dp),
+                indication = ripple(bounded = false, radius = 26.dp),
                 onClick = { onNavigate(item.route) }
             ),
         contentAlignment = Alignment.Center
@@ -159,7 +180,7 @@ private fun NavIconItem(
                 badge = {
                     if (item.hasBadge) {
                         Badge(
-                            modifier = Modifier.size(5.dp),
+                            modifier = Modifier.size(6.dp),
                             containerColor = Color.Red
                         )
                     }
@@ -169,22 +190,28 @@ private fun NavIconItem(
                     Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = item.title,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = color
                     )
                 } else {
                     Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = item.title,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = color
                     )
                 }
             }
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.labelSmall,
-                color = color
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                ),
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
     }

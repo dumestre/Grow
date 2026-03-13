@@ -110,4 +110,6 @@
     <string name="notification_watering_body">%1$s: chegou o horário da rega planejada.</string>
     <string name="notification_nutrient_title">Revisar nutrientes</string>
     <string name="notification_nutrient_body">%1$s: revisar EC/pH e ajuste de nutrientes.</string>
+
+    <string name="detail_action_harvest_long">Colher e Secar</string>
 </resources>

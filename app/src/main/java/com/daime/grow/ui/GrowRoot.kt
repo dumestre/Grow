@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +34,9 @@ import com.daime.grow.ui.screen.home.HomeScreen
 import com.daime.grow.ui.screen.lock.LockScreen
 import com.daime.grow.ui.screen.mural.MuralPostScreen
 import com.daime.grow.ui.screen.mural.MuralScreen
+import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
+import com.daime.grow.ui.screen.store.StoreScreen
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.LockViewModel
@@ -81,7 +84,10 @@ fun GrowRoot(container: AppContainer) {
 
     val showNavElements = currentRoute in listOf(
         NavRoute.Home.route,
+        NavRoute.PosColheta.route,
         NavRoute.Mural.route,
+        NavRoute.Store.route,
+        NavRoute.Notifications.route,
         NavRoute.Settings.route
     )
 
@@ -154,12 +160,20 @@ fun GrowRoot(container: AppContainer) {
                         )
                     }
 
+                    composable(NavRoute.PosColheta.route) {
+                        PosColhetaScreen(innerPadding = innerPadding)
+                    }
+
                     composable(NavRoute.Mural.route) {
                         MuralScreen(
                             innerPadding = innerPadding,
                             viewModel = muralViewModel,
                             onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
                         )
+                    }
+
+                    composable(NavRoute.Store.route) {
+                        StoreScreen(innerPadding = innerPadding)
                     }
 
                     composable(NavRoute.NewPlant.route) {

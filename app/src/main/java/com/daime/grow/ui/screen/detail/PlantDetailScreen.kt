@@ -37,7 +37,8 @@ import java.util.Locale
 fun PlantDetailScreen(
     innerPadding: PaddingValues,
     viewModel: PlantDetailViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToPosColheta: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val details = state.details
@@ -107,7 +108,7 @@ fun PlantDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     InfoSection(details, viewModel)
-                    QuickActionsSection(viewModel)
+                    QuickActionsSection(viewModel, onNavigateToPosColheta)
                     WateringSection(state, viewModel, expandedWatering) { expandedWatering = it }
                     NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it }
                 }
@@ -134,7 +135,7 @@ fun PlantDetailScreen(
                 )
             ) {
                 item { InfoSection(details, viewModel) }
-                item { QuickActionsSection(viewModel) }
+                item { QuickActionsSection(viewModel, onNavigateToPosColheta) }
                 item { WateringSection(state, viewModel, expandedWatering) { expandedWatering = it } }
                 item { NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it } }
                 item { 
@@ -185,7 +186,7 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuickActionsSection(viewModel: PlantDetailViewModel) {
+private fun QuickActionsSection(viewModel: PlantDetailViewModel, onHarvestClick: () -> Unit) {
     DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.detail_quick_actions_title), style = MaterialTheme.typography.titleMedium)
@@ -201,13 +202,22 @@ private fun QuickActionsSection(viewModel: PlantDetailViewModel) {
                     stringResource(R.string.detail_quick_action_watering) to "Rega",
                     stringResource(R.string.detail_quick_action_pruning) to "Poda",
                     stringResource(R.string.detail_quick_action_transplant) to "Transplante",
-                    stringResource(R.string.detail_quick_action_flush) to "Flush",
-                    stringResource(R.string.detail_quick_action_harvest) to "Colheita"
+                    stringResource(R.string.detail_quick_action_flush) to "Flush"
                 ).forEach { (label, eventType) ->
                     AssistChip(
                         onClick = { viewModel.addQuickAction(eventType, "Ação rápida: $label") },
                         label = { Text(label) }
                     )
+                }
+                
+                // Botão especial de Colheita que navega para Pós-Colheita
+                Button(
+                    onClick = onHarvestClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(stringResource(R.string.detail_action_harvest_long), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
