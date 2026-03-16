@@ -3,5 +3,23 @@
     <color name="grow_primary_dark">#15803D</color>
     <color name="grow_background">#F5F7FB</color>
     <color name="grow_text">#14532D</color>
-</resources>
 
+    <!-- Fallback para cores do tema escuro -->
+    <color name="grow_primary_dark_theme">#4ADE80</color>
+    <color name="grow_background_dark">#0F1712</color>
+    <color name="grow_surface_dark">#1A231E</color>
+    <color name="grow_text_dark">#BBF7D0</color>
+
+    <!-- Cores para gradientes e UI -->
+    <color name="grow_harvest_gradient_start">#FFFF4081</color>
+    <color name="grow_harvest_gradient_end">#FF9C27B0</color>
+    <color name="grow_plant_name_accent">#FFF01264</color>
+    <color name="grow_delete_background">#FFC62828</color>
+    <color name="grow_delete_icon_tint">#FF1B5E20</color>
+    
+    <!-- Cores de status -->
+    <color name="grow_humidity_ideal">#FF388E3C</color>
+    <color name="grow_humidity_alert">#FFFBC02D</color>
+    <color name="grow_humidity_danger">#FFD32F2F</color>
+    <color name="grow_humidity_dry">#FF1976D2</color>
+</resources>

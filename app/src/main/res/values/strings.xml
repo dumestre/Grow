@@ -5,7 +5,7 @@
     <string name="home_settings">Configurações</string>
     <string name="home_focus_title">Seu cultivo em foco</string>
     <string name="home_focus_subtitle">Acompanhe fases, regas e checklist sem perder o ritmo.</string>
-    <string name="home_search_label">Buscar por nome/strain</string>
+    <string name="home_search_label">Buscar por nome/espécie</string>
     <string name="home_sort_asc">Dias: ascendente</string>
     <string name="home_sort_desc">Dias: descendente</string>
     <string name="home_empty_state">Nenhuma planta encontrada com os filtros atuais.</string>
@@ -36,11 +36,14 @@
     <string name="settings_backup_export_error">Falha ao exportar backup.</string>
     <string name="settings_backup_imported">Backup importado com sucesso.</string>
     <string name="settings_backup_import_error">Falha ao importar backup.</string>
+    <string name="settings_dev_section">Desenvolvedor</string>
+    <string name="settings_mask_home_icon">Mascarar ícone “Plantas”</string>
+    <string name="settings_mask_store_catalog">Mascarar catálogo da loja</string>
 
     <string name="new_plant_title">Nova planta</string>
     <string name="new_plant_close">Fechar</string>
     <string name="new_plant_name">Nome</string>
-    <string name="new_plant_strain">Strain</string>
+    <string name="new_plant_strain">Espécie</string>
     <string name="new_plant_stage">Fase</string>
     <string name="new_plant_medium">Substrato</string>
     <string name="new_plant_days">Dias de cultivo</string>
@@ -56,7 +59,7 @@
     <string name="detail_loading">Carregando...</string>
     <string name="detail_phase">Fase: %1$s</string>
     <string name="detail_current_phase">Fase atual: %1$s</string>
-    <string name="detail_strain">Strain: %1$s</string>
+    <string name="detail_strain">Espécie: %1$s</string>
     <string name="detail_medium">Substrato: %1$s</string>
     <string name="detail_days">Dias de cultivo: %1$s</string>
     <string name="detail_watering">Rega</string>
@@ -112,4 +115,59 @@
     <string name="notification_nutrient_body">%1$s: revisar EC/pH e ajuste de nutrientes.</string>
 
     <string name="detail_action_harvest_long">Colher e Secar</string>
+    
+    <!-- Navegação -->
+    <string name="nav_plantas">Plantas</string>
+    <string name="nav_pos">Pós</string>
+    <string name="nav_mural">Mural</string>
+    <string name="nav_loja">Loja</string>
+    <string name="nav_avisos">Avisos</string>
+    <string name="nav_ajustes">Ajustes</string>
+    
+    <!-- Tela de detalhes -->
+    <string name="detail_harvest_button">Colher e Secar</string>
+    <string name="detail_no_events">Nenhum evento registrado ainda.</string>
+    <string name="detail_harvested_message">Planta colhida e enviada para secagem</string>
+    
+    <!-- Mural -->
+    <string name="mural_empty">Nenhuma postagem no mural ainda.</string>
+    <string name="mural_comment_hint">Adicionar comentário…</string>
+    <string name="mural_comment_send">Enviar</string>
+    <string name="mural_reply">Responder</string>
+    
+    <!-- Loja -->
+    <string name="store_empty">Catálogo da loja em breve.</string>
+    
+    <!-- Pós-colheita -->
+    <string name="pos_colheta_secagem">Secagem</string>
+    <string name="pos_colheta_cura">Cura</string>
+    <string name="pos_colheta_empty_secagem">Nenhuma planta em secagem no momento.</string>
+    <string name="pos_colheta_empty_cura">Nenhuma planta em cura no momento.</string>
+    <string name="pos_colheta_burp">Fazer respiro (Burp)</string>
+    <string name="pos_colheta_humidity">Umidade</string>
+    <string name="pos_colheta_next_burp">Próximo respiro</string>
+    <string name="pos_colheta_overdue">Atrasado!</string>
+    
+    <!-- Erros e mensagens -->
+    <string name="error_generic">Ocorreu um erro. Tente novamente.</string>
+    <string name="error_network">Erro de conexão. Verifique sua internet.</string>
+    <string name="error_permission_camera">Permissão de câmera necessária para tirar fotos.</string>
+    <string name="success_saved">Salvo com sucesso!</string>
+    <string name="success_deleted">Excluído com sucesso!</string>
+    
+    <!-- Acessibilidade -->
+    <string name="a11y_open_settings">Abrir configurações</string>
+    <string name="a11y_add_plant">Adicionar planta</string>
+    <string name="a11y_delete_plant">Excluir planta</string>
+    <string name="a11y_plant_photo">Foto da planta</string>
+    <string name="a11y_harvest">Colher planta</string>
+    <string name="a11y_notification">Notificação</string>
+    <string name="a11y_back">Voltar</string>
+    <string name="a11y_close">Fechar</string>
+    
+    <!-- Tema -->
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_system">Sistema (padrão)</string>
+    <string name="settings_theme_light">Sempre claro</string>
+    <string name="settings_theme_dark">Sempre escuro</string>
 </resources>

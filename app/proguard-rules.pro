@@ -1,15 +1,40 @@
-# Supabase & Serialization
--keepattributes *Annotation*, EnclosingMethod, Signature
--keepclassmembers class ** {
-    @kotlinx.serialization.Serializable *;
-}
--keep class kotlinx.serialization.json.** { *; }
--keep class io.github.jan.supabase.** { *; }
--keep class io.ktor.** { *; }
+# ============================
+# kotlinx.serialization rules
+# ============================
+-keepattributes *Annotation*, InnerClasses, EnclosingMethod, Signature
 
-# Ktor-Android specific dontwarn
+# Mantém classes anotadas com @Serializable e todos os seus membros
+-keep,includedescriptorclasses class com.daime.grow.data.remote.model.**$$serializer { *; }
+-keepclassmembers class com.daime.grow.data.remote.model.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.daime.grow.data.remote.model.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Mantém as classes DTO completas (não apenas nomes) para deserialização funcionar
+-keep class com.daime.grow.data.remote.model.** { *; }
+
+# Regras gerais do kotlinx.serialization
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+
+# ============================
+# Supabase
+# ============================
+-keep class io.github.jan.supabase.** { *; }
+-dontwarn io.github.jan.supabase.**
+
+# ============================
+# Ktor
+# ============================
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
 -dontwarn io.ktor.util.debug.IntellijIdeaDebugDetector
 -dontwarn java.lang.management.**
 
-# Mantém os nomes dos campos dos DTOs para o Supabase não se perder
--keepclassmembernames class com.daime.grow.data.remote.model.** { *; }
+# ============================
+# Kotlin
+# ============================
+-dontwarn kotlin.**
+-keep class kotlin.Metadata { *; }

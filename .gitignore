@@ -13,3 +13,30 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Keystore e propriedades de assinatura (NÃO COMMITAR)
+*.jks
+*.keystore
+keystore.properties
+
+# Logs
+*.log
+
+# Android Build artifacts
+/app/build/
+/build/
+*.apk
+*.aab
+
+# Local development files
+.gradle_user_home/
+.vscode/
+.idea/
+local.properties
+*.xml
+!app/src/main/res/**/*.xml
+!app/src/main/AndroidManifest.xml
+
+# Temporary files
+screen.png
+window_dump*.xml
