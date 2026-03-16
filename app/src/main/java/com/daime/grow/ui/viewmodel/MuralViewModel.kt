@@ -55,47 +55,7 @@ class MuralViewModel(
     private val _currentUserId = MutableStateFlow<Long?>(null)
     val currentUserId: StateFlow<Long?> = _currentUserId.asStateFlow()
 
-    private val supabase = SupabaseClient.client
-
-    // --- Placeholders para o Mural ---
-    private val placeholderPosts = listOf(
-        MuralPostWithPlant(
-            id = -10,
-            plantId = -1,
-            createdAt = System.currentTimeMillis() - 3600000,
-            name = "Gorilla Glue #4",
-            strain = "Hybrid",
-            stage = PlantStage.FLOWER,
-            days = 55,
-            photoUri = null,
-            sharedOnMural = true,
-            plantCreatedAt = 0,
-            medium = "Solo"
-        ),
-        MuralPostWithPlant(
-            id = -11,
-            plantId = -2,
-            createdAt = System.currentTimeMillis() - 7200000,
-            name = "Purple Haze",
-            strain = "Sativa",
-            stage = PlantStage.VEGETATIVE,
-            days = 30,
-            photoUri = null,
-            sharedOnMural = true,
-            plantCreatedAt = 0,
-            medium = "Coco"
-        )
-    )
-
-    private val placeholderComments = mapOf(
-        -10L to listOf(
-            CommentWithUser(id = -100, postId = -10, userId = -1, content = "Essa genética é incrível! Parabéns pelo cultivo.", createdAt = System.currentTimeMillis() - 1800000, username = "Jardineiro01"),
-            CommentWithUser(id = -101, postId = -10, userId = -2, content = "Valeu! Tá quase na hora da colheita.", createdAt = System.currentTimeMillis() - 900000, username = "GrowMaster")
-        ),
-        -11L to listOf(
-            CommentWithUser(id = -102, postId = -11, userId = -3, content = "Qual fert você está usando?", createdAt = System.currentTimeMillis() - 500000, username = "BioGrower")
-        )
-    )
+    private val supabase = SupabaseClient.clientOrNull
 
     init {
         loadPosts()
@@ -114,7 +74,7 @@ class MuralViewModel(
         viewModelScope.launch {
             muralDao.observeMuralPostsWithPlants().collect { posts ->
                 _uiState.value = _uiState.value.copy(
-                    posts = if (posts.isEmpty()) placeholderPosts else posts,
+                    posts = posts,
                     isLoading = false
                 )
             }
@@ -124,20 +84,14 @@ class MuralViewModel(
     fun loadPost(postId: Long) {
         viewModelScope.launch {
             muralDao.observeMuralPostsWithPlants().collect { posts ->
-                val allPosts = if (posts.isEmpty()) placeholderPosts else posts
-                val post = allPosts.find { it.id == postId }
+                val post = posts.find { it.id == postId }
                 
                 _postUiState.value = _postUiState.value.copy(
                     post = post,
                     isLoading = false
                 )
                 
-                // Carregar comentários específicos (incluindo placeholders)
-                if (postId < 0) {
-                    _postUiState.value = _postUiState.value.copy(
-                        comments = placeholderComments[postId] ?: emptyList()
-                    )
-                } else {
+                if (post != null) {
                     loadComments(postId)
                 }
             }
@@ -174,8 +128,6 @@ class MuralViewModel(
         
         _postUiState.value = currentState.copy(isLiked = newIsLiked, likeCount = newCount)
         
-        if (postId < 0) return // Não sincroniza likes de placeholders
-
         viewModelScope.launch {
             try {
                 // Lógica remota
@@ -187,6 +139,7 @@ class MuralViewModel(
 
     private fun subscribeToCommentsRealtime(postId: Long) {
         viewModelScope.launch {
+            val supabase = supabase ?: return@launch
             val channel = supabase.realtime.channel("comments_$postId")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "mural_comments"
@@ -208,6 +161,7 @@ class MuralViewModel(
 
     private fun subscribeToLikesRealtime(postId: Long) {
         viewModelScope.launch {
+            val supabase = supabase ?: return@launch
             val channel = supabase.realtime.channel("likes_$postId")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "mural_likes"
@@ -256,7 +210,6 @@ class MuralViewModel(
     }
 
     fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null) {
-        if (postId < 0) return // Não permite comentar em placeholders
         viewModelScope.launch {
             muralDao.insertComment(
                 MuralCommentEntity(
@@ -271,14 +224,12 @@ class MuralViewModel(
     }
 
     fun deleteComment(commentId: Long) {
-        if (commentId < 0) return
         viewModelScope.launch {
             muralDao.deleteComment(commentId)
         }
     }
 
     fun editComment(commentId: Long, newContent: String) {
-        if (commentId < 0) return
         viewModelScope.launch {
             val comment = muralDao.getComment(commentId)
             if (comment != null) {

@@ -1,3 +1,29 @@
+import java.util.Properties
+import java.io.FileInputStream
+import java.io.File
+
+fun readProperty(name: String): String? {
+    val fromEnv = System.getenv(name)?.trim().orEmpty()
+    if (fromEnv.isNotBlank()) return fromEnv
+
+    val propsFile = rootProject.file("local.properties")
+    if (!propsFile.exists()) return null
+    val props = Properties()
+    propsFile.inputStream().use { props.load(it) }
+    return props.getProperty(name)?.trim()?.takeIf { it.isNotBlank() }
+}
+
+fun String.escapeForKotlinStringLiteral(): String = this
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+
+// Carregar propriedades do keystore
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,14 +39,29 @@ android {
         applicationId = "com.daime.grow"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 5
+        versionName = "0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val supabaseUrl = readProperty("SUPABASE_URL").orEmpty().escapeForKotlinStringLiteral()
+        val supabaseAnonKey = readProperty("SUPABASE_ANON_KEY").orEmpty().escapeForKotlinStringLiteral()
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+            storeFile = keystoreProperties["storeFile"]?.let { File(it.toString()) }
+            storePassword = keystoreProperties["storePassword"] as String?
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             // Adiciona o suporte para gerar e enviar os símbolos de debug nativos
@@ -39,6 +80,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {

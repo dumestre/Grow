@@ -20,7 +20,7 @@ class MuralNotificationWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val supabase = SupabaseClient.client
+        val supabase = SupabaseClient.clientOrNull ?: return Result.success()
         val sharedPrefs = applicationContext.getSharedPreferences("mural_prefs", Context.MODE_PRIVATE)
         val lastCheck = sharedPrefs.getLong("last_mural_check", 0L)
         val userId = sharedPrefs.getString("remote_user_id", null) ?: return Result.success()

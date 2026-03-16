@@ -4,20 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.daime.grow.data.local.dao.ChecklistDao
-import com.daime.grow.data.local.dao.MuralDao
-import com.daime.grow.data.local.dao.NutrientLogDao
-import com.daime.grow.data.local.dao.PlantDao
-import com.daime.grow.data.local.dao.PlantEventDao
-import com.daime.grow.data.local.dao.WateringLogDao
-import com.daime.grow.data.local.entity.ChecklistItemEntity
-import com.daime.grow.data.local.entity.MuralCommentEntity
-import com.daime.grow.data.local.entity.MuralPostEntity
-import com.daime.grow.data.local.entity.MuralUserEntity
-import com.daime.grow.data.local.entity.NutrientLogEntity
-import com.daime.grow.data.local.entity.PlantEntity
-import com.daime.grow.data.local.entity.PlantEventEntity
-import com.daime.grow.data.local.entity.WateringLogEntity
+import com.daime.grow.data.local.dao.*
+import com.daime.grow.data.local.entity.*
 import com.daime.grow.data.local.migration.MIGRATION_1_2
 import com.daime.grow.data.local.migration.MIGRATION_2_3
 import com.daime.grow.data.local.migration.MIGRATION_3_4
@@ -31,9 +19,11 @@ import com.daime.grow.data.local.migration.MIGRATION_3_4
         ChecklistItemEntity::class,
         MuralPostEntity::class,
         MuralUserEntity::class,
-        MuralCommentEntity::class
+        MuralCommentEntity::class,
+        NotificationEntity::class,
+        HarvestBatchEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class GrowDatabase : RoomDatabase() {
@@ -43,6 +33,8 @@ abstract class GrowDatabase : RoomDatabase() {
     abstract fun nutrientLogDao(): NutrientLogDao
     abstract fun checklistDao(): ChecklistDao
     abstract fun muralDao(): MuralDao
+    abstract fun notificationDao(): NotificationDao
+    abstract fun harvestDao(): HarvestDao
 
     companion object {
         @Volatile

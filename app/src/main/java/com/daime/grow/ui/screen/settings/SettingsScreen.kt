@@ -14,11 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -45,6 +51,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
+import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 
@@ -66,9 +73,9 @@ fun SettingsScreen(
     val backupExportErrorMessage = stringResource(R.string.settings_backup_export_error)
     val backupImportedMessage = stringResource(R.string.settings_backup_imported)
     val backupImportErrorMessage = stringResource(R.string.settings_backup_import_error)
-    
+
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    
+
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
@@ -102,6 +109,40 @@ fun SettingsScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                },
+                actions = {
+                    // Theme Toggle Button
+                    IconButton(
+                        onClick = {
+                            val newTheme = when (security.darkTheme) {
+                                DarkThemeMode.DARK -> DarkThemeMode.LIGHT
+                                else -> DarkThemeMode.DARK
+                            }
+                            viewModel.setDarkThemeMode(newTheme)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (security.darkTheme == DarkThemeMode.DARK) {
+                                Icons.Filled.LightMode
+                            } else {
+                                Icons.Filled.DarkMode
+                            },
+                            contentDescription = if (security.darkTheme == DarkThemeMode.DARK) {
+                                "Mudar para tema claro"
+                            } else {
+                                "Mudar para tema escuro"
+                            },
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
                 scrollBehavior = scrollBehavior
             )
         },
@@ -204,6 +245,7 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SecuritySettingsContent(
     security: SecurityPreferences,

@@ -4,5 +4,13 @@ data class SecurityPreferences(
     val lockEnabled: Boolean = false,
     val biometricEnabled: Boolean = false,
     val pinHash: String = "",
-    val useAlternativeIcons: Boolean = true // Flag para mascaramento (Default true para a Play Store)
+    val maskHomeIcon: Boolean = true,
+    val maskStoreCatalog: Boolean = true,
+    val darkTheme: DarkThemeMode = DarkThemeMode.SYSTEM
 )
+
+enum class DarkThemeMode {
+    SYSTEM,  // Segue o sistema
+    LIGHT,   // Sempre claro
+    DARK     // Sempre escuro
+}

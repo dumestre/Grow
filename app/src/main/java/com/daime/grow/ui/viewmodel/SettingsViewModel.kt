@@ -54,6 +54,18 @@ class SettingsViewModel(
         }
     }
 
+    fun setMaskHomeIcon(enabled: Boolean) {
+        viewModelScope.launch { repository.setMaskHomeIcon(enabled) }
+    }
+
+    fun setMaskStoreCatalog(enabled: Boolean) {
+        viewModelScope.launch { repository.setMaskStoreCatalog(enabled) }
+    }
+
+    fun setDarkThemeMode(mode: com.daime.grow.domain.model.DarkThemeMode) {
+        viewModelScope.launch { repository.setDarkThemeMode(mode) }
+    }
+
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
             runCatching { repository.exportBackup(uri) }
@@ -70,4 +82,3 @@ class SettingsViewModel(
         }
     }
 }
-

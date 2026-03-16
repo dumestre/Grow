@@ -15,6 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,23 +27,31 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
+import com.daime.grow.data.local.entity.NotificationEntity
+import com.daime.grow.ui.viewmodel.NotificationViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSheet(
+    viewModel: NotificationViewModel,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val notifications by viewModel.notifications.collectAsStateWithLifecycle()
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -54,7 +65,7 @@ fun NotificationSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Notificações",
+                text = "Avisos",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -65,41 +76,44 @@ fun NotificationSheet(
             
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             
-            // Mock data for notifications
-            val notifications = listOf(
-                NotificationItemData(1, "mariagreen", "curtiu sua planta 'Skunk #1'", "há 2 min", icon = Icons.Default.Favorite, iconColor = Color.Red),
-                NotificationItemData(2, "bob_grower", "respondeu seu comentário: 'Ficou top!'", "há 15 min", icon = Icons.AutoMirrored.Filled.Reply, iconColor = Color(0xFF1976D2)),
-                NotificationItemData(3, "alice_weed", "compartilhou uma nova planta: 'Northern Lights'", "há 1h", iconRes = R.drawable.planta, iconColor = Color(0xFF388E3C)),
-                NotificationItemData(4, "cannabis_king", "comentou no seu post: 'Quanto tempo de vega?'", "há 3h", icon = Icons.AutoMirrored.Filled.Comment, iconColor = Color(0xFFF57C00)),
-                NotificationItemData(5, "grower_master", "curtiu seu comentário no mural", "há 5h", icon = Icons.Default.Favorite, iconColor = Color.Red),
-                NotificationItemData(6, "nature_lover", "compartilhou 'Lemon Haze'", "há 1d", iconRes = R.drawable.planta, iconColor = Color(0xFF388E3C))
-            )
-            
-            LazyColumn {
-                items(notifications) { item ->
-                    NotificationRow(item)
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            if (notifications.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Nenhum aviso no momento",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else {
+                LazyColumn {
+                    items(notifications, key = { it.id }) { item ->
+                        NotificationRow(item)
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-data class NotificationItemData(
-    val id: Long,
-    val username: String,
-    val action: String,
-    val time: String,
-    val icon: ImageVector? = null,
-    val iconRes: Int? = null,
-    val iconColor: Color
-)
-
 @Composable
-fun NotificationRow(item: NotificationItemData) {
+fun NotificationRow(item: NotificationEntity) {
+    val iconInfo = when (item.type) {
+        "LIKE" -> IconInfo(Icons.Default.Favorite, Color.Red)
+        "COMMENT" -> IconInfo(Icons.AutoMirrored.Filled.Comment, Color(0xFFF57C00))
+        "REPLY" -> IconInfo(Icons.AutoMirrored.Filled.Reply, Color(0xFF1976D2))
+        "WATER" -> IconInfo(Icons.Default.Opacity, Color(0xFF2196F3))
+        "LIGHT" -> IconInfo(Icons.Default.WbSunny, Color(0xFFFFC107))
+        "HARVEST" -> IconInfo(null, Color(0xFF388E3C), R.drawable.planta)
+        else -> IconInfo(Icons.Default.Notifications, Color.Gray)
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,22 +122,22 @@ fun NotificationRow(item: NotificationItemData) {
     ) {
         Surface(
             shape = androidx.compose.foundation.shape.CircleShape,
-            color = item.iconColor.copy(alpha = 0.1f),
+            color = iconInfo.color.copy(alpha = 0.1f),
             modifier = Modifier.size(40.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                if (item.iconRes != null) {
+                if (iconInfo.iconRes != null) {
                     Icon(
-                        painter = painterResource(id = item.iconRes),
+                        painter = painterResource(id = iconInfo.iconRes),
                         contentDescription = null,
-                        tint = item.iconColor,
+                        tint = iconInfo.color,
                         modifier = Modifier.size(20.dp)
                     )
-                } else if (item.icon != null) {
+                } else if (iconInfo.icon != null) {
                     Icon(
-                        imageVector = item.icon,
+                        imageVector = iconInfo.icon,
                         contentDescription = null,
-                        tint = item.iconColor,
+                        tint = iconInfo.color,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -134,22 +148,42 @@ fun NotificationRow(item: NotificationItemData) {
         
         Column(modifier = Modifier.weight(1f)) {
             Row {
-                Text(
-                    text = "@${item.username}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+                if (!item.username.isNullOrEmpty()) {
+                    Text(
+                        text = "@${item.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
                 Text(
                     text = item.action,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             Text(
-                text = item.time,
+                text = formatTime(item.time),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
+    }
+}
+
+private data class IconInfo(
+    val icon: ImageVector?,
+    val color: Color,
+    val iconRes: Int? = null
+)
+
+private fun formatTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60000 -> "agora mesmo"
+        diff < 3600000 -> "há ${diff / 60000} min"
+        diff < 86400000 -> "há ${diff / 3600000}h"
+        else -> SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(timestamp))
     }
 }

@@ -2,10 +2,12 @@
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.room.withTransaction
 import com.daime.grow.data.backup.BackupManager
 import com.daime.grow.data.local.GrowDatabase
 import com.daime.grow.data.local.entity.ChecklistItemEntity
+import com.daime.grow.data.local.entity.HarvestBatchEntity
 import com.daime.grow.data.local.entity.NutrientLogEntity
 import com.daime.grow.data.local.entity.PlantEntity
 import com.daime.grow.data.local.entity.PlantEventEntity
@@ -35,6 +37,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 
+private const val TAG = "GrowRepository"
+
 class GrowRepositoryImpl(
     private val appContext: Context,
     private val database: GrowDatabase,
@@ -49,7 +53,7 @@ class GrowRepositoryImpl(
     private val nutrientDao = database.nutrientLogDao()
     private val checklistDao = database.checklistDao()
     private val muralDao = database.muralDao()
-    private val supabase = SupabaseClient.client
+    private val supabase = SupabaseClient.clientOrNull
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
         return plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0)
@@ -152,6 +156,7 @@ class GrowRepositoryImpl(
         days: Int,
         photoUri: String?
     ) {
+        val supabase = supabase ?: return
         try {
             val userId = getCurrentUserId() ?: return
             var remotePhotoUrl: String? = null
@@ -185,7 +190,7 @@ class GrowRepositoryImpl(
                 )
             )
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Erro ao sincronizar com Supabase: ${e.message}")
         }
     }
 
@@ -250,11 +255,11 @@ class GrowRepositoryImpl(
         val now = System.currentTimeMillis()
         database.withTransaction {
             plantDao.updateStage(plantId, stage)
-            
+
             // Verifica se já existem itens de checklist para esta nova fase
             val currentChecklist = checklistDao.getByPlantId(plantId)
             val hasPhaseItems = currentChecklist.any { it.phase == stage }
-            
+
             if (!hasPhaseItems) {
                 val newTasks = ChecklistFactory.defaultChecklist(plantId, stage, now)
                     .map { item ->
@@ -281,6 +286,35 @@ class GrowRepositoryImpl(
         plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
     }
 
+    override suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long) {
+        database.withTransaction {
+            val batchId = database.harvestDao().insertBatch(
+                HarvestBatchEntity(
+                    id = 0L,
+                    plantId = plantId,
+                    plantName = plantName,
+                    strain = strain,
+                    harvestDate = harvestDate,
+                    status = "DRYING",
+                    currentHumidity = 60f,
+                    currentTemperature = null,
+                    lastBurpDate = null,
+                    nextBurpDate = null,
+                    weightGrams = null
+                )
+            )
+
+            plantEventDao.insert(
+                PlantEventEntity(
+                    plantId = plantId,
+                    type = "Colheita",
+                    note = "Colhida e enviada para secagem (lote #$batchId)",
+                    createdAt = harvestDate
+                )
+            )
+        }
+    }
+
     override suspend fun deletePlant(plantId: Long) {
         val photoUri = plantDao.observePlant(plantId).first()?.photoUri
         database.withTransaction {
@@ -300,7 +334,7 @@ class GrowRepositoryImpl(
     }
 
     override suspend fun seedDataIfNeeded() {
-        // Aproveitar o seed para sincronizar a config remota
+        // Sincroniza a configuração remota do Supabase que controla o mascaramento
         syncRemoteConfig()
 
         if (plantDao.count() > 0) return
@@ -365,6 +399,7 @@ class GrowRepositoryImpl(
     }
 
     override fun observeSecurityPreferences(): Flow<SecurityPreferences> {
+        // Agora retorna diretamente o estado local, que é atualizado via Supabase
         return requireNotNull(securityRepository) { "Security repository is required" }.observe()
     }
 
@@ -384,21 +419,36 @@ class GrowRepositoryImpl(
         return requireNotNull(securityRepository).verifyPin(pin)
     }
 
-    override suspend fun setAlternativeIcons(enabled: Boolean) {
-        requireNotNull(securityRepository).setAlternativeIcons(enabled)
+    override suspend fun setMaskHomeIcon(enabled: Boolean) {
+        requireNotNull(securityRepository).setMaskHomeIcon(enabled)
+    }
+
+    override suspend fun setMaskStoreCatalog(enabled: Boolean) {
+        requireNotNull(securityRepository).setMaskStoreCatalog(enabled)
+    }
+
+    override suspend fun setDarkThemeMode(mode: com.daime.grow.domain.model.DarkThemeMode) {
+        requireNotNull(securityRepository).setDarkThemeMode(mode)
     }
 
     private suspend fun syncRemoteConfig() {
+        val supabase = supabase ?: return
         try {
+            Log.d(TAG, "Sincronizando Remote Config do Supabase...")
+            // Busca a chave 'use_alternative_icons' que controla o mascaramento global
             val config = supabase.from("app_config")
                 .select { filter { eq("key", "use_alternative_icons") } }
                 .decodeSingleOrNull<AppConfigDto>()
             
+            Log.d(TAG, "Config recebida: $config")
+            
             config?.let {
-                securityRepository?.setAlternativeIcons(it.value_bool)
+                Log.d(TAG, "Atualizando mascaramento para: ${it.value_bool}")
+                // Atualiza ambos os mascaramentos baseados na flag do Supabase
+                securityRepository?.setAllMasking(it.value_bool)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Falha ao sincronizar config remota: ${e.message}")
         }
     }
 
@@ -448,11 +498,9 @@ class GrowRepositoryImpl(
             )
             // Sincronizar usuário com Supabase
             try {
-                supabase.from("mural_users").insert(
-                    MuralUserDto(username = username)
-                )
+                supabase?.from("mural_users")?.insert(MuralUserDto(username = username))
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Erro ao criar usuário remoto: ${e.message}")
             }
             return localId
         }

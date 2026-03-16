@@ -27,17 +27,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.rounded.Delete
 import com.daime.grow.ui.navigation.NavRoute
 
 enum class BottomNavItem(
     val route: String,
-    val title: String,
+    val titleRes: Int,
     val iconRes: Int?,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
@@ -46,35 +48,35 @@ enum class BottomNavItem(
 ) {
     Home(
         route = NavRoute.Home.route,
-        title = "Plantas",
-        iconRes = com.daime.grow.R.drawable.planta,
+        titleRes = com.daime.grow.R.string.nav_plantas,
+        iconRes = null,
         selectedIcon = Icons.Outlined.Spa,
         unselectedIcon = Icons.Outlined.Spa
     ),
     PosColheta(
         route = NavRoute.PosColheta.route,
-        title = "Pós",
+        titleRes = com.daime.grow.R.string.nav_pos,
         iconRes = null,
         selectedIcon = Icons.Outlined.Inventory2,
         unselectedIcon = Icons.Outlined.Inventory2
     ),
     Mural(
         route = NavRoute.Mural.route,
-        title = "Mural",
+        titleRes = com.daime.grow.R.string.nav_mural,
         iconRes = null,
         selectedIcon = Icons.Outlined.Public,
         unselectedIcon = Icons.Outlined.Public
     ),
     Store(
         route = NavRoute.Store.route,
-        title = "Loja",
+        titleRes = com.daime.grow.R.string.nav_loja,
         iconRes = null,
         selectedIcon = Icons.Filled.ShoppingCart,
         unselectedIcon = Icons.Outlined.ShoppingCart
     ),
     Notifications(
         route = NavRoute.Notifications.route,
-        title = "Avisos",
+        titleRes = com.daime.grow.R.string.nav_avisos,
         iconRes = null,
         selectedIcon = Icons.Filled.Notifications,
         unselectedIcon = Icons.Outlined.Notifications,
@@ -82,7 +84,7 @@ enum class BottomNavItem(
     ),
     Settings(
         route = NavRoute.Settings.route,
-        title = "Ajustes",
+        titleRes = com.daime.grow.R.string.nav_ajustes,
         iconRes = null,
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
@@ -96,11 +98,12 @@ fun GrowBottomNavigationBar(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
     isDeleting: Boolean = false,
-    useAlternativeIcons: Boolean = true, // Flag de mascaramento
-    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
+    maskHomeIcon: Boolean = true,
+    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
     Surface(
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
         modifier = modifier
     ) {
@@ -109,6 +112,31 @@ fun GrowBottomNavigationBar(
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
         ) {
+            // Floating Delete Button (aparece apenas quando está deletando)
+            if (isDeleting) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    FloatingActionButton(
+                        onClick = onDeleteClick,
+                        containerColor = MaterialTheme.colorScheme.error,
+                        shape = CircleShape,
+                        modifier = Modifier.size(56.dp),
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "Excluir plantas selecionadas",
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onError
+                        )
+                    }
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +148,7 @@ fun GrowBottomNavigationBar(
                 val secondGroup = items.drop(3)
 
                 firstGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, useAlternativeIcons, Modifier.weight(1f))
+                    NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
                 }
 
                 Box(
@@ -131,10 +159,10 @@ fun GrowBottomNavigationBar(
                 ) {
                     FloatingActionButton(
                         onClick = { if (!isDeleting) onAddClick() },
-                        containerColor = if (isDeleting) Color(0xFFC62828) else MaterialTheme.colorScheme.tertiary,
+                        containerColor = if (isDeleting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
                         shape = CircleShape,
                         modifier = Modifier
-                            .size(42.dp) 
+                            .size(42.dp)
                             .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
                         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
                     ) {
@@ -142,13 +170,13 @@ fun GrowBottomNavigationBar(
                             imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
                             contentDescription = null,
                             modifier = Modifier.size(22.dp),
-                            tint = if (isDeleting) Color.White else Color(0xFF1B5E20)
+                            tint = if (isDeleting) MaterialTheme.colorScheme.onError else Color(0xFF1B5E20)
                         )
                     }
                 }
 
                 secondGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, useAlternativeIcons, Modifier.weight(1f))
+                    NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
                 }
             }
         }
@@ -160,12 +188,14 @@ private fun NavIconItem(
     item: BottomNavItem,
     currentRoute: String?,
     onNavigate: (String) -> Unit,
-    useAlternativeIcons: Boolean,
+    maskHomeIcon: Boolean,
     modifier: Modifier = Modifier
 ) {
     val selected = currentRoute == item.route
     val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    
+    val useAlternativeForItem = maskHomeIcon && item == BottomNavItem.Home
+    val title = getStringResource(item.titleRes)
+
     Box(
         modifier = modifier
             .fillMaxHeight()
@@ -190,24 +220,31 @@ private fun NavIconItem(
                     }
                 }
             ) {
-                if (!useAlternativeIcons && item.iconRes != null) {
-                    Icon(
+                when {
+                    item.iconRes != null && !useAlternativeForItem -> Icon(
                         painter = painterResource(id = item.iconRes),
-                        contentDescription = item.title,
+                        contentDescription = title,
                         modifier = Modifier.size(24.dp),
                         tint = color
                     )
-                } else {
-                    Icon(
-                        imageVector = if (useAlternativeIcons) item.alternativeIcon else if (selected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.title,
+
+                    item.iconRes != null && useAlternativeForItem -> Icon(
+                        imageVector = item.alternativeIcon,
+                        contentDescription = title,
+                        modifier = Modifier.size(24.dp),
+                        tint = color
+                    )
+
+                    else -> Icon(
+                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = title,
                         modifier = Modifier.size(24.dp),
                         tint = color
                     )
                 }
             }
             Text(
-                text = item.title,
+                text = title,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 10.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
@@ -219,4 +256,9 @@ private fun NavIconItem(
             )
         }
     }
+}
+
+@Composable
+private fun getStringResource(@StringRes resId: Int): String {
+    return stringResource(resId)
 }

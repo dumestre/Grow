@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -37,7 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,24 +77,55 @@ fun PlantCard(
         label = "card-wobble-angle"
     )
 
+    // Animação de escala quando está sobre a área de delete
+    val scale by animateFloatAsState(
+        targetValue = if (isDropTarget) 1.05f else 1f,
+        animationSpec = tween(200),
+        label = "card-scale-factor"
+    )
+
     val borderColor = when {
         isDropTarget -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
         isSelected -> MaterialTheme.colorScheme.primary
         else -> androidx.compose.ui.graphics.Color.Transparent
     }
 
+    val cardElevation = when {
+        isDropTarget -> 8.dp
+        isEditing -> 5.dp
+        else -> 3.dp
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .rotate(if (isShaking) wobble else 0f)
-            .border(
-                width = if (borderColor == androidx.compose.ui.graphics.Color.Transparent) 0.dp else 2.dp,
-                color = borderColor,
-                shape = cardShape
+            .then(
+                if (isDropTarget) {
+                    Modifier
+                        .scale(scale)
+                        .border(
+                            width = 3.dp,
+                            color = Color(0xFFD32F2F),
+                            shape = cardShape
+                        )
+                } else {
+                    Modifier.border(
+                        width = if (borderColor == androidx.compose.ui.graphics.Color.Transparent) 0.dp else 2.dp,
+                        color = borderColor,
+                        shape = cardShape
+                    )
+                }
             ),
         shape = cardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDropTarget) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
         Column(
             modifier = Modifier
@@ -185,14 +219,14 @@ fun PlantCard(
                 text = plant.name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = androidx.compose.ui.graphics.Color(0xFFF01264)
+                color = MaterialTheme.colorScheme.primary
             )
             MetaLine("Dias", "${plant.days} dias de cultivo")
             Spacer(modifier = Modifier.height(6.dp))
-            MetaLine("Strain", plant.strain)
+            MetaLine("Espécie", plant.strain)
             MetaLine("Substrato", plant.medium)
             MetaLine(
-                "Proxima rega",
+                "Próxima rega",
                 plant.nextWateringDate?.toDateLabel() ?: stringResource(R.string.plant_not_defined)
             )
         }
@@ -219,13 +253,13 @@ private fun MetaLine(label: String, value: String) {
             text = "$label:",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
-            color = androidx.compose.ui.graphics.Color(0xFF1B5E20)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = androidx.compose.ui.graphics.Color(0xFF3A3A3A)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

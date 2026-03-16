@@ -1,6 +1,8 @@
 ﻿package com.daime.grow.ui.screen.home
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -31,6 +33,7 @@ import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PlantCard
 import com.daime.grow.ui.viewmodel.HomeViewModel
+import com.daime.grow.ui.viewmodel.SettingsViewModel
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -38,6 +41,7 @@ import kotlin.math.roundToInt
 fun HomeScreen(
     innerPadding: PaddingValues,
     viewModel: HomeViewModel,
+    settingsViewModel: SettingsViewModel,
     onOpenDetails: (Long) -> Unit,
     onOpenSettings: () -> Unit,
     onAddPlant: () -> Unit,

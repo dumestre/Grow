@@ -30,13 +30,16 @@ interface GrowRepository {
     suspend fun deletePlant(plantId: Long)
     suspend fun updatePlantsOrder(orderedIds: List<Long>)
     suspend fun seedDataIfNeeded()
+    suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long)
 
     fun observeSecurityPreferences(): Flow<SecurityPreferences>
     suspend fun setLockEnabled(enabled: Boolean)
     suspend fun setBiometricEnabled(enabled: Boolean)
     suspend fun updatePin(pin: String)
     suspend fun verifyPin(pin: String): Boolean
-    suspend fun setAlternativeIcons(enabled: Boolean)
+    suspend fun setMaskHomeIcon(enabled: Boolean)
+    suspend fun setMaskStoreCatalog(enabled: Boolean)
+    suspend fun setDarkThemeMode(mode: com.daime.grow.domain.model.DarkThemeMode)
 
     suspend fun exportBackup(uri: Uri)
     suspend fun importBackup(uri: Uri)

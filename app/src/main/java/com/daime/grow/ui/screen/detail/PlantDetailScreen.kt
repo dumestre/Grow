@@ -8,19 +8,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
@@ -43,7 +47,7 @@ fun PlantDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val details = state.details
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
@@ -70,6 +74,53 @@ fun PlantDetailScreen(
                 navigationIcon = { RoundedBackButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
+        },
+        floatingActionButton = {
+            Box(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .height(48.dp)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFF4081), // Rosa
+                                    Color(0xFF9C27B0)  // Roxo
+                                )
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .clickable {
+                            viewModel.harvestPlant()
+                            onNavigateToPosColheta()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.detail_harvest_button),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
@@ -108,7 +159,7 @@ fun PlantDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     InfoSection(details, viewModel)
-                    QuickActionsSection(viewModel, onNavigateToPosColheta)
+                    QuickActionsSection(viewModel)
                     WateringSection(state, viewModel, expandedWatering) { expandedWatering = it }
                     NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it }
                 }
@@ -135,7 +186,7 @@ fun PlantDetailScreen(
                 )
             ) {
                 item { InfoSection(details, viewModel) }
-                item { QuickActionsSection(viewModel, onNavigateToPosColheta) }
+                item { QuickActionsSection(viewModel) }
                 item { WateringSection(state, viewModel, expandedWatering) { expandedWatering = it } }
                 item { NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it } }
                 item { 
@@ -186,7 +237,7 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuickActionsSection(viewModel: PlantDetailViewModel, onHarvestClick: () -> Unit) {
+private fun QuickActionsSection(viewModel: PlantDetailViewModel) {
     DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.detail_quick_actions_title), style = MaterialTheme.typography.titleMedium)
@@ -208,16 +259,6 @@ private fun QuickActionsSection(viewModel: PlantDetailViewModel, onHarvestClick:
                         onClick = { viewModel.addQuickAction(eventType, "Ação rápida: $label") },
                         label = { Text(label) }
                     )
-                }
-                
-                // Botão especial de Colheita que navega para Pós-Colheita
-                Button(
-                    onClick = onHarvestClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text(stringResource(R.string.detail_action_harvest_long), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -306,7 +347,7 @@ private fun TimelineSection(events: List<com.daime.grow.domain.model.PlantEvent>
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.detail_timeline), style = MaterialTheme.typography.titleMedium)
         if (events.isEmpty()) {
-            Text("Nenhum evento registrado ainda.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+            Text(stringResource(R.string.detail_no_events), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
         } else {
             events.forEach { TimelineItem(it) }
         }

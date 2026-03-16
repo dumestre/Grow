@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -26,6 +27,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.daime.grow.core.AppContainer
+import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.components.GrowBottomNavigationBar
 import com.daime.grow.ui.components.GrowNavigationRail
 import com.daime.grow.ui.components.NotificationSheet
@@ -39,13 +41,7 @@ import com.daime.grow.ui.screen.mural.MuralScreen
 import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
 import com.daime.grow.ui.screen.store.StoreScreen
-import com.daime.grow.ui.viewmodel.AddPlantViewModel
-import com.daime.grow.ui.viewmodel.HomeViewModel
-import com.daime.grow.ui.viewmodel.LockViewModel
-import com.daime.grow.ui.viewmodel.MuralViewModel
-import com.daime.grow.ui.viewmodel.PlantDetailViewModel
-import com.daime.grow.ui.viewmodel.SettingsViewModel
-import com.daime.grow.ui.viewmodel.ViewModelFactories
+import com.daime.grow.ui.viewmodel.*
 
 @Composable
 fun GrowRoot(container: AppContainer) {
@@ -55,6 +51,8 @@ fun GrowRoot(container: AppContainer) {
     val addPlantViewModel: AddPlantViewModel = viewModel(factory = factories.addPlant)
     val settingsViewModel: SettingsViewModel = viewModel(factory = factories.settings)
     val muralViewModel: MuralViewModel = viewModel(factory = factories.mural)
+    val notificationViewModel: NotificationViewModel = viewModel(factory = factories.notifications)
+    val posColhetaViewModel: PosColhetaViewModel = viewModel(factory = factories.posColheta)
 
     val lockState by lockViewModel.uiState.collectAsStateWithLifecycle()
     val securityPrefs by settingsViewModel.security.collectAsStateWithLifecycle()
@@ -110,7 +108,8 @@ fun GrowRoot(container: AppContainer) {
     )
 
     val configuration = LocalConfiguration.current
-    val isTablet = configuration.screenWidthDp >= 600
+    // Detectar tablet de forma mais precisa (não apenas pela largura em landscape)
+    val isTablet = configuration.smallestScreenWidthDp >= 600
 
     Row(modifier = Modifier.fillMaxSize()) {
         if (isTablet && showNavElements) {
@@ -128,7 +127,8 @@ fun GrowRoot(container: AppContainer) {
                     }
                 },
                 onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                isDeleting = isDraggingPlant
+                isDeleting = isDraggingPlant,
+                onDeleteClick = { /* Trigger delete - handled by HomeScreen */ }
             )
         }
 
@@ -156,8 +156,9 @@ fun GrowRoot(container: AppContainer) {
                             },
                             onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
                             isDeleting = isDraggingPlant,
-                            useAlternativeIcons = securityPrefs.useAlternativeIcons,
-                            onFabBounds = { trashBounds = it }
+                            maskHomeIcon = securityPrefs.maskHomeIcon,
+                            onFabBounds = { trashBounds = it },
+                            onDeleteClick = { /* Trigger delete - handled by HomeScreen */ }
                         )
                     }
                 }
@@ -177,6 +178,7 @@ fun GrowRoot(container: AppContainer) {
                         HomeScreen(
                             innerPadding = innerPadding,
                             viewModel = homeViewModel,
+                            settingsViewModel = settingsViewModel,
                             onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
                             onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
                             onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
@@ -187,7 +189,10 @@ fun GrowRoot(container: AppContainer) {
                     }
 
                     composable(NavRoute.PosColheta.route) {
-                        PosColhetaScreen(innerPadding = innerPadding)
+                        PosColhetaScreen(
+                            innerPadding = innerPadding,
+                            viewModel = posColhetaViewModel
+                        )
                     }
 
                     composable(NavRoute.Mural.route) {
@@ -201,7 +206,7 @@ fun GrowRoot(container: AppContainer) {
                     composable(NavRoute.Store.route) {
                         StoreScreen(
                             innerPadding = innerPadding,
-                            useAlternativeIcons = securityPrefs.useAlternativeIcons
+                            maskStoreCatalog = securityPrefs.maskStoreCatalog
                         )
                     }
 
@@ -220,8 +225,7 @@ fun GrowRoot(container: AppContainer) {
                         )
                     }
 
-                    composable(
-                        route = NavRoute.Detail.route,
+                    composable(NavRoute.Detail.route,
                         arguments = listOf(navArgument("plantId") { type = NavType.LongType })
                     ) { entry ->
                         val plantId = entry.arguments?.getLong("plantId") ?: return@composable
@@ -232,7 +236,8 @@ fun GrowRoot(container: AppContainer) {
                         PlantDetailScreen(
                             innerPadding = PaddingValues(),
                             viewModel = detailViewModel,
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.popBackStack() },
+                            onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
                         )
                     }
 
@@ -264,6 +269,7 @@ fun GrowRoot(container: AppContainer) {
 
                 if (showNotificationSheet) {
                     NotificationSheet(
+                        viewModel = notificationViewModel,
                         onDismiss = { showNotificationSheet = false }
                     )
                 }

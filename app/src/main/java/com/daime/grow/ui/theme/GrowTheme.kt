@@ -1,5 +1,6 @@
 ﻿package com.daime.grow.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,9 +8,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun GrowTheme(content: @Composable () -> Unit) {
+fun GrowTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) {
+        GrowDarkColorScheme
+    } else {
+        GrowLightColorScheme
+    }
+    
     MaterialTheme(
-        colorScheme = GrowColorScheme,
+        colorScheme = colorScheme,
         typography = GrowTypography,
         shapes = Shapes(
             extraSmall = RoundedCornerShape(8.dp),
@@ -20,4 +30,3 @@ fun GrowTheme(content: @Composable () -> Unit) {
         content = content
     )
 }
-
