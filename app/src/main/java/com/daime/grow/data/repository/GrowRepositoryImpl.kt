@@ -341,66 +341,7 @@ class GrowRepositoryImpl @Inject constructor(
     override suspend fun seedDataIfNeeded() {
         // Sincroniza a configuração remota do Supabase que controla o mascaramento
         syncRemoteConfig()
-
-        if (plantDao.count() > 0) return
-        val now = System.currentTimeMillis()
-        val ids = mutableListOf<Long>()
-
-        database.withTransaction {
-            ids += plantDao.insert(
-                PlantEntity(
-                    name = "Green Apple",
-                    strain = "Hybrid",
-                    stage = PlantStage.VEGETATIVE,
-                    medium = "Solo orgânico",
-                    days = 24,
-                    photoUri = null,
-                    nextWateringDate = now + 2 * 24L * 60L * 60L * 1_000L,
-                    sortOrder = 0,
-                    createdAt = now
-                )
-            )
-            ids += plantDao.insert(
-                PlantEntity(
-                    name = "Sunrise",
-                    strain = "Sativa",
-                    stage = PlantStage.FLOWER,
-                    medium = "Coco + perlita",
-                    days = 52,
-                    photoUri = null,
-                    nextWateringDate = now + 1 * 24L * 60L * 60L * 1_000L,
-                    sortOrder = 1,
-                    createdAt = now
-                )
-            )
-
-            ids.forEachIndexed { index, id ->
-                val stage = if (index == 0) PlantStage.VEGETATIVE else PlantStage.FLOWER
-                checklistDao.insertAll(
-                    ChecklistFactory.defaultChecklist(id, stage, now).map {
-                        ChecklistItemEntity(
-                            plantId = it.plantId,
-                            phase = it.phase,
-                            task = it.task,
-                            done = false,
-                            createdAt = now
-                        )
-                    }
-                )
-                plantEventDao.insert(
-                    PlantEventEntity(
-                        plantId = id,
-                        type = "Seed",
-                        note = "Seed data inicial",
-                        createdAt = now
-                    )
-                )
-            }
-        }
-
-        ids.forEach { id ->
-            plantDao.observePlant(id).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
-        }
+        // Não cria mais plantas placeholder - o usuário deve adicionar suas próprias plantas
     }
 
     override fun observeSecurityPreferences(): Flow<SecurityPreferences> {

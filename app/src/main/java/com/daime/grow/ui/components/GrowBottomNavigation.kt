@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.rounded.Delete
 import com.daime.grow.ui.navigation.NavRoute
 
 enum class BottomNavItem(
@@ -97,87 +96,55 @@ fun GrowBottomNavigationBar(
     onNavigate: (String) -> Unit,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isDeleting: Boolean = false,
     maskHomeIcon: Boolean = true,
-    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
         modifier = modifier
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                .height(80.dp)
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Floating Delete Button (aparece apenas quando está deletando)
-            if (isDeleting) {
-                Box(
+            val items = BottomNavItem.entries
+            val firstGroup = items.take(3)
+            val secondGroup = items.drop(3)
+
+            firstGroup.forEach { item ->
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1.1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                FloatingActionButton(
+                    onClick = onAddClick,
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    shape = CircleShape,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    contentAlignment = Alignment.Center
+                        .size(42.dp)
+                        .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
                 ) {
-                    FloatingActionButton(
-                        onClick = onDeleteClick,
-                        containerColor = MaterialTheme.colorScheme.error,
-                        shape = CircleShape,
-                        modifier = Modifier.size(56.dp),
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Delete,
-                            contentDescription = "Excluir plantas selecionadas",
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onError
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = Color(0xFF1B5E20)
+                    )
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val items = BottomNavItem.entries
-                val firstGroup = items.take(3)
-                val secondGroup = items.drop(3)
-
-                firstGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1.1f)
-                        .fillMaxHeight(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    FloatingActionButton(
-                        onClick = { if (!isDeleting) onAddClick() },
-                        containerColor = if (isDeleting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .size(42.dp)
-                            .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp),
-                            tint = if (isDeleting) MaterialTheme.colorScheme.onError else Color(0xFF1B5E20)
-                        )
-                    }
-                }
-
-                secondGroup.forEach { item ->
-                    NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
-                }
+            secondGroup.forEach { item ->
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
             }
         }
     }
@@ -201,7 +168,7 @@ private fun NavIconItem(
             .fillMaxHeight()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = false, radius = 26.dp),
+                indication = ripple(bounded = false, radius = 20.dp),
                 onClick = { onNavigate(item.route) }
             ),
         contentAlignment = Alignment.Center
@@ -224,21 +191,21 @@ private fun NavIconItem(
                     item.iconRes != null && !useAlternativeForItem -> Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(28.dp),
                         tint = color
                     )
 
                     item.iconRes != null && useAlternativeForItem -> Icon(
                         imageVector = item.alternativeIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(28.dp),
                         tint = color
                     )
 
                     else -> Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(28.dp),
                         tint = color
                     )
                 }
@@ -246,7 +213,7 @@ private fun NavIconItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                 ),
                 color = color,

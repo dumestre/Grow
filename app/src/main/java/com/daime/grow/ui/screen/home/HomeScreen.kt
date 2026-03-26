@@ -86,7 +86,7 @@ fun HomeScreen(
                 bottom = externalTrashBounds.bottom + 24f
             )
         ) == true
-    val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.68f else 1f, label = "dragged-scale")
+    val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.5f else 1f, label = "dragged-scale")
 
     LaunchedEffect(state.plants) {
         val currentIds = state.plants.map { it.id }.toSet()

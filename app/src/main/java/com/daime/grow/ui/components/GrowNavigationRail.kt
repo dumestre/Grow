@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.rounded.Delete
 
 @Composable
 fun GrowNavigationRail(
@@ -20,8 +19,7 @@ fun GrowNavigationRail(
     onNavigate: (String) -> Unit,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isDeleting: Boolean = false,
-    onDeleteClick: () -> Unit = {}
+    isDeleting: Boolean = false
 ) {
     NavigationRail(
         modifier = modifier
@@ -29,41 +27,17 @@ fun GrowNavigationRail(
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         containerColor = MaterialTheme.colorScheme.surface,
         header = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            FloatingActionButton(
+                onClick = onAddClick,
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
             ) {
-                // Floating Delete Button (aparece apenas quando está deletando)
-                if (isDeleting) {
-                    FloatingActionButton(
-                        onClick = onDeleteClick,
-                        containerColor = MaterialTheme.colorScheme.error,
-                        shape = CircleShape,
-                        modifier = Modifier.size(56.dp),
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Delete,
-                            contentDescription = "Excluir plantas selecionadas",
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onError
-                        )
-                    }
-                }
-
-                FloatingActionButton(
-                    onClick = { if (!isDeleting) onAddClick() },
-                    containerColor = if (isDeleting) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-                    modifier = Modifier.padding(top = if (isDeleting) 0.dp else 8.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isDeleting) Icons.Rounded.Delete else Icons.Default.Add,
-                        contentDescription = null,
-                        tint = if (isDeleting) MaterialTheme.colorScheme.onError else Color(0xFF1B5E20)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color(0xFF1B5E20)
+                )
             }
         }
     ) {

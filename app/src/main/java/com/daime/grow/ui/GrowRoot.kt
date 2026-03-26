@@ -6,9 +6,14 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -112,158 +117,180 @@ fun GrowRoot(container: AppContainer) {
     // Detectar tablet de forma mais precisa (não apenas pela largura em landscape)
     val isTablet = configuration.smallestScreenWidthDp >= 600
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        if (isTablet && showNavElements) {
-            GrowNavigationRail(
-                currentRoute = currentRoute,
-                onNavigate = { route ->
-                    if (route == NavRoute.Notifications.route) {
-                        showNotificationSheet = true
-                    } else if (route != currentRoute) {
-                        navController.navigate(route) {
-                            popUpTo(NavRoute.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+    Box(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (isTablet && showNavElements) {
+                GrowNavigationRail(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        if (route == NavRoute.Notifications.route) {
+                            showNotificationSheet = true
+                        } else if (route != currentRoute) {
+                            navController.navigate(route) {
+                                popUpTo(NavRoute.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                    onAddClick = { navController.navigate(NavRoute.NewPlant.route) }
+                )
+            }
+
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                bottomBar = {
+                    if (!isTablet && showNavElements) {
+                        AnimatedVisibility(
+                            visible = isBottomBarVisible,
+                            enter = slideInVertically(initialOffsetY = { it }),
+                            exit = slideOutVertically(targetOffsetY = { it })
+                        ) {
+                            GrowBottomNavigationBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { route ->
+                                    if (route == NavRoute.Notifications.route) {
+                                        showNotificationSheet = true
+                                    } else if (route != currentRoute) {
+                                        navController.navigate(route) {
+                                            popUpTo(NavRoute.Home.route) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
+                                onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
+                                maskHomeIcon = securityPrefs.maskHomeIcon,
+                                onFabBounds = { trashBounds = it }
+                            )
                         }
                     }
-                },
-                onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                isDeleting = isDraggingPlant,
-                onDeleteClick = { /* Trigger delete - handled by HomeScreen */ }
-            )
-        }
-
-        Scaffold(
-            modifier = Modifier.weight(1f),
-            bottomBar = {
-                if (!isTablet && showNavElements) {
-                    AnimatedVisibility(
-                        visible = isBottomBarVisible,
-                        enter = slideInVertically(initialOffsetY = { it }),
-                        exit = slideOutVertically(targetOffsetY = { it })
+                }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(nestedScrollConnection)
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = NavRoute.Home.route,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        GrowBottomNavigationBar(
-                            currentRoute = currentRoute,
-                            onNavigate = { route ->
-                                if (route == NavRoute.Notifications.route) {
-                                    showNotificationSheet = true
-                                } else if (route != currentRoute) {
-                                    navController.navigate(route) {
-                                        popUpTo(NavRoute.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                        composable(NavRoute.Home.route) {
+                            HomeScreen(
+                                innerPadding = innerPadding,
+                                viewModel = homeViewModel,
+                                settingsViewModel = settingsViewModel,
+                                onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
+                                onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
+                                onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
+                                externalIsDragging = isDraggingPlant,
+                                onDraggingChanged = { isDraggingPlant = it },
+                                externalTrashBounds = trashBounds
+                            )
+                        }
+
+                        composable(NavRoute.PosColheta.route) {
+                            PosColhetaScreen(
+                                innerPadding = innerPadding,
+                                viewModel = posColhetaViewModel
+                            )
+                        }
+
+                        composable(NavRoute.Mural.route) {
+                            MuralScreen(
+                                innerPadding = innerPadding,
+                                viewModel = muralViewModel,
+                                onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
+                            )
+                        }
+
+                        composable(NavRoute.Store.route) {
+                            StoreScreen(
+                                innerPadding = innerPadding,
+                                maskStoreCatalog = securityPrefs.maskStoreCatalog
+                            )
+                        }
+
+                        composable(NavRoute.NewPlant.route) {
+                            NewPlantScreen(
+                                innerPadding = PaddingValues(),
+                                viewModel = addPlantViewModel,
+                                onSaved = { id ->
+                                    navController.popBackStack()
+                                    navController.navigate(NavRoute.Detail.create(id))
+                                },
+                                onClose = { navController.popBackStack() },
+                                onCheckUser = { username, onComplete ->
+                                    muralViewModel.createOrGetUser(username, onComplete)
                                 }
-                            },
-                            onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                            isDeleting = isDraggingPlant,
-                            maskHomeIcon = securityPrefs.maskHomeIcon,
-                            onFabBounds = { trashBounds = it },
-                            onDeleteClick = { /* Trigger delete - handled by HomeScreen */ }
+                            )
+                        }
+
+                        composable(NavRoute.Detail.route,
+                            arguments = listOf(navArgument("plantId") { type = NavType.LongType })
+                        ) {
+                            val detailViewModel: PlantDetailViewModel = hiltViewModel()
+                            PlantDetailScreen(
+                                innerPadding = PaddingValues(),
+                                viewModel = detailViewModel,
+                                onBack = { navController.popBackStack() },
+                                onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
+                            )
+                        }
+
+                        composable(NavRoute.Settings.route) {
+                            SettingsScreen(
+                                innerPadding = innerPadding,
+                                viewModel = settingsViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = NavRoute.MuralPost.route,
+                            arguments = listOf(navArgument("postId") { type = NavType.LongType })
+                        ) {
+                            val currentMuralViewModel: MuralViewModel = hiltViewModel()
+                            MuralPostScreen(
+                                postId = checkNotNull(it.arguments?.getLong("postId")),
+                                innerPadding = PaddingValues(),
+                                viewModel = currentMuralViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+
+                    if (showNotificationSheet) {
+                        NotificationSheet(
+                            viewModel = notificationViewModel,
+                            onDismiss = { showNotificationSheet = false }
                         )
                     }
                 }
             }
-        ) { innerPadding ->
+        }
+
+        if (isDraggingPlant) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(nestedScrollConnection)
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = NavRoute.Home.route,
-                    modifier = Modifier.fillMaxSize()
+                FloatingActionButton(
+                    onClick = { /* Trigger delete - handled by HomeScreen */ },
+                    containerColor = MaterialTheme.colorScheme.error,
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .offset(y = (-96).dp)
+                        .size(56.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
                 ) {
-                    composable(NavRoute.Home.route) {
-                        HomeScreen(
-                            innerPadding = innerPadding,
-                            viewModel = homeViewModel,
-                            settingsViewModel = settingsViewModel,
-                            onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
-                            onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
-                            onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
-                            externalIsDragging = isDraggingPlant,
-                            onDraggingChanged = { isDraggingPlant = it },
-                            externalTrashBounds = trashBounds
-                        )
-                    }
-
-                    composable(NavRoute.PosColheta.route) {
-                        PosColhetaScreen(
-                            innerPadding = innerPadding,
-                            viewModel = posColhetaViewModel
-                        )
-                    }
-
-                    composable(NavRoute.Mural.route) {
-                        MuralScreen(
-                            innerPadding = innerPadding,
-                            viewModel = muralViewModel,
-                            onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
-                        )
-                    }
-
-                    composable(NavRoute.Store.route) {
-                        StoreScreen(
-                            innerPadding = innerPadding,
-                            maskStoreCatalog = securityPrefs.maskStoreCatalog
-                        )
-                    }
-
-                    composable(NavRoute.NewPlant.route) {
-                        NewPlantScreen(
-                            innerPadding = PaddingValues(),
-                            viewModel = addPlantViewModel,
-                            onSaved = { id ->
-                                navController.popBackStack()
-                                navController.navigate(NavRoute.Detail.create(id))
-                            },
-                            onClose = { navController.popBackStack() },
-                            onCheckUser = { username, onComplete ->
-                                muralViewModel.createOrGetUser(username, onComplete)
-                            }
-                        )
-                    }
-
-                    composable(NavRoute.Detail.route,
-                        arguments = listOf(navArgument("plantId") { type = NavType.LongType })
-                    ) {
-                        val detailViewModel: PlantDetailViewModel = hiltViewModel()
-                        PlantDetailScreen(
-                            innerPadding = PaddingValues(),
-                            viewModel = detailViewModel,
-                            onBack = { navController.popBackStack() },
-                            onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
-                        )
-                    }
-
-                    composable(NavRoute.Settings.route) {
-                        SettingsScreen(
-                            innerPadding = innerPadding,
-                            viewModel = settingsViewModel,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(
-                        route = NavRoute.MuralPost.route,
-                        arguments = listOf(navArgument("postId") { type = NavType.LongType })
-                    ) {
-                        val currentMuralViewModel: MuralViewModel = hiltViewModel()
-                        MuralPostScreen(
-                            postId = checkNotNull(it.arguments?.getLong("postId")),
-                            innerPadding = PaddingValues(),
-                            viewModel = currentMuralViewModel,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-                }
-
-                if (showNotificationSheet) {
-                    NotificationSheet(
-                        viewModel = notificationViewModel,
-                        onDismiss = { showNotificationSheet = false }
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = "Excluir plantas",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onError
                     )
                 }
             }

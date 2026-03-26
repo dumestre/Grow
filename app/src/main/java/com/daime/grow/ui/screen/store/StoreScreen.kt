@@ -315,80 +315,74 @@ fun StoreScreen(
 
             // Banners promocionais
             item(span = { GridItemSpan(maxLineSpan) }) {
-                val displayBanners = if (state.banners.isNotEmpty()) {
-                    state.banners
+                if (state.banners.isEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
                 } else {
-                    listOf(
-                        com.daime.grow.data.remote.model.BannerDto(id = "-1", title = "Promoção 1", imageUrl = "https://picsum.photos/seed/growpromo1/800/400"),
-                        com.daime.grow.data.remote.model.BannerDto(id = "-2", title = "Promoção 2", imageUrl = "https://picsum.photos/seed/growpromo2/800/400"),
-                        com.daime.grow.data.remote.model.BannerDto(id = "-3", title = "Promoção 3", imageUrl = "https://picsum.photos/seed/growpromo3/800/400"),
-                        com.daime.grow.data.remote.model.BannerDto(id = "-4", title = "Promoção 4", imageUrl = "https://picsum.photos/seed/growpromo4/800/400"),
-                        com.daime.grow.data.remote.model.BannerDto(id = "-5", title = "Promoção 5", imageUrl = "https://picsum.photos/seed/growpromo5/800/400")
-                    )
-                }
-                
-                val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { displayBanners.size })
-                
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                ) {
-                    Text(
-                        text = "Promoções",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    val displayBanners = state.banners
                     
-                    androidx.compose.foundation.pager.HorizontalPager(
-                        state = pagerState,
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { displayBanners.size })
+                    
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp),
-                        pageSpacing = 16.dp,
-                    ) { page ->
-                        val banner = displayBanners[page]
-                        Card(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            if (banner.imageUrl != null) {
-                                AsyncImage(
-                                    model = banner.imageUrl,
-                                    contentDescription = banner.title ?: "Banner Promocional ${page + 1}",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(banner.title ?: "Promoção", style = MaterialTheme.typography.titleMedium)
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = "Promoções",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        androidx.compose.foundation.pager.HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp),
+                            pageSpacing = 16.dp,
+                        ) { page ->
+                            val banner = displayBanners[page]
+                            Card(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                if (banner.imageUrl != null) {
+                                    AsyncImage(
+                                        model = banner.imageUrl,
+                                        contentDescription = banner.title ?: "Banner Promocional ${page + 1}",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(banner.title ?: "Promoção", style = MaterialTheme.typography.titleMedium)
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        repeat(displayBanners.size) { iteration ->
-                            val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                            Box(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .size(8.dp)
-                            )
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            repeat(displayBanners.size) { iteration ->
+                                val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .size(8.dp)
+                                )
+                            }
                         }
                     }
                 }
