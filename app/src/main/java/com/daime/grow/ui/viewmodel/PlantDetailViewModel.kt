@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.SavedStateHandle
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class PlantDetailUiState(
     val details: PlantDetails? = null,
@@ -41,10 +44,13 @@ sealed interface PlantDetailUiEvent {
     data object StageUpdated : PlantDetailUiEvent
 }
 
-class PlantDetailViewModel(
-    private val plantId: Long,
+@HiltViewModel
+class PlantDetailViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val repository: GrowRepository
 ) : ViewModel() {
+    private val plantId: Long = checkNotNull(savedStateHandle["plantId"])
+
     private val formState = MutableStateFlow(PlantDetailUiState())
     private val _events = MutableSharedFlow<PlantDetailUiEvent>()
     val events = _events.asSharedFlow()

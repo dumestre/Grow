@@ -32,8 +32,17 @@ class ViewModelFactories(container: AppContainer) {
     val detail = DetailFactory(repository)
 
     class DetailFactory(private val repository: com.daime.grow.domain.repository.GrowRepository) {
-        fun create(plantId: Long): ViewModelProvider.Factory = singleFactory {
-            PlantDetailViewModel(plantId = plantId, repository = repository)
+        fun create(plantId: Long): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(PlantDetailViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return PlantDetailViewModel(
+                        savedStateHandle = androidx.lifecycle.SavedStateHandle(mapOf("plantId" to plantId)),
+                        repository = repository
+                    ) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel ${modelClass.name}")
+            }
         }
     }
 }

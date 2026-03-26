@@ -24,9 +24,11 @@ import com.daime.grow.data.worker.MuralNotificationWorker
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.GrowRoot
 import com.daime.grow.ui.theme.GrowTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(

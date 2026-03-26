@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class LockUiState(
     val isReady: Boolean = false,
@@ -26,7 +28,8 @@ data class LockUiState(
     val error: String? = null
 )
 
-class LockViewModel(private val repository: GrowRepository) : ViewModel() {
+@HiltViewModel
+class LockViewModel @Inject constructor(private val repository: GrowRepository) : ViewModel() {
     private val input = MutableStateFlow("")
     private val error = MutableStateFlow<String?>(null)
     private val authenticated = MutableStateFlow(false)

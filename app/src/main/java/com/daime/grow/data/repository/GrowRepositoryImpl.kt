@@ -37,14 +37,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 
+import javax.inject.Inject
+import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 private const val TAG = "GrowRepository"
 
-class GrowRepositoryImpl(
-    private val appContext: Context,
+@Singleton
+class GrowRepositoryImpl @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val database: GrowDatabase,
     private val scheduler: ReminderScheduler,
     private val backupManager: BackupManager,
-    private val securityRepository: SecurityPreferencesRepository? = null
+    private val securityRepository: SecurityPreferencesRepository
 ) : GrowRepository {
 
     private val plantDao = database.plantDao()
@@ -400,35 +405,35 @@ class GrowRepositoryImpl(
 
     override fun observeSecurityPreferences(): Flow<SecurityPreferences> {
         // Agora retorna diretamente o estado local, que é atualizado via Supabase
-        return requireNotNull(securityRepository) { "Security repository is required" }.observe()
+        return securityRepository.observe()
     }
 
     override suspend fun setLockEnabled(enabled: Boolean) {
-        requireNotNull(securityRepository).setLockEnabled(enabled)
+        securityRepository.setLockEnabled(enabled)
     }
 
     override suspend fun setBiometricEnabled(enabled: Boolean) {
-        requireNotNull(securityRepository).setBiometricEnabled(enabled)
+        securityRepository.setBiometricEnabled(enabled)
     }
 
     override suspend fun updatePin(pin: String) {
-        requireNotNull(securityRepository).updatePin(pin)
+        securityRepository.updatePin(pin)
     }
 
     override suspend fun verifyPin(pin: String): Boolean {
-        return requireNotNull(securityRepository).verifyPin(pin)
+        return securityRepository.verifyPin(pin)
     }
 
     override suspend fun setMaskHomeIcon(enabled: Boolean) {
-        requireNotNull(securityRepository).setMaskHomeIcon(enabled)
+        securityRepository.setMaskHomeIcon(enabled)
     }
 
     override suspend fun setMaskStoreCatalog(enabled: Boolean) {
-        requireNotNull(securityRepository).setMaskStoreCatalog(enabled)
+        securityRepository.setMaskStoreCatalog(enabled)
     }
 
     override suspend fun setDarkThemeMode(mode: com.daime.grow.domain.model.DarkThemeMode) {
-        requireNotNull(securityRepository).setDarkThemeMode(mode)
+        securityRepository.setDarkThemeMode(mode)
     }
 
     private suspend fun syncRemoteConfig() {
@@ -445,7 +450,7 @@ class GrowRepositoryImpl(
             config?.let {
                 Log.d(TAG, "Atualizando mascaramento para: ${it.value_bool}")
                 // Atualiza ambos os mascaramentos baseados na flag do Supabase
-                securityRepository?.setAllMasking(it.value_bool)
+                securityRepository.setAllMasking(it.value_bool)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao sincronizar config remota: ${e.message}")

@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class AddPlantUiState(
     val name: String = "",
@@ -28,7 +30,8 @@ sealed interface AddPlantUiEvent {
     data object Saved : AddPlantUiEvent
 }
 
-class AddPlantViewModel(
+@HiltViewModel
+class AddPlantViewModel @Inject constructor(
     private val repository: GrowRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AddPlantUiState())

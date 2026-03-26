@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class HomeUiState(
     val query: String = "",
@@ -39,8 +41,9 @@ sealed interface HomeUiEvent {
     data class ShowDeleteUndo(val plantName: String) : HomeUiEvent
 }
 
+@HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
-class HomeViewModel(
+class HomeViewModel @Inject constructor(
     private val repository: GrowRepository
 ) : ViewModel() {
 

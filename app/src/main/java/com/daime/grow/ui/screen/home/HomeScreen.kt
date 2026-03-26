@@ -78,14 +78,14 @@ fun HomeScreen(
     val isOverTrash = isDragging &&
         draggedCardBounds != null &&
         externalTrashBounds != null &&
-        draggedCardBounds!!.overlaps(
+        draggedCardBounds?.overlaps(
             Rect(
                 left = externalTrashBounds.left - 24f,
                 top = externalTrashBounds.top - 24f,
                 right = externalTrashBounds.right + 24f,
                 bottom = externalTrashBounds.bottom + 24f
             )
-        )
+        ) == true
     val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.68f else 1f, label = "dragged-scale")
 
     LaunchedEffect(state.plants) {
@@ -208,10 +208,14 @@ fun HomeScreen(
             }
             
             val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
-                orderedPlants.toMutableList().apply {
-                    val dragged = removeAt(draggedIndex!!)
-                    add(dropIndex!!, dragged)
-                }
+                val from = draggedIndex ?: -1
+                val to = dropIndex ?: -1
+                if (from != -1 && to != -1) {
+                    orderedPlants.toMutableList().apply {
+                        val dragged = removeAt(from)
+                        add(to, dragged)
+                    }
+                } else orderedPlants
             } else {
                 orderedPlants
             }
@@ -285,13 +289,15 @@ fun HomeScreen(
                                     },
                                     onDragEnd = {
                                         val draggedId = draggedPlantId
+                                        val from = draggedIndex
+                                        val to = dropIndex
                                         if (isOverTrash && draggedId != null) {
                                             viewModel.deletePlantImmediately(draggedId)
                                             orderedPlants = orderedPlants.filterNot { it.id == draggedId }
-                                        } else if (draggedIndex != null && dropIndex != null && draggedIndex != dropIndex) {
+                                        } else if (from != null && to != null && from != to) {
                                             orderedPlants = orderedPlants.toMutableList().apply {
-                                                val moved = removeAt(draggedIndex!!)
-                                                add(dropIndex!!, moved)
+                                                val moved = removeAt(from)
+                                                add(to, moved)
                                             }
                                         }
                                         if (orderedPlants.isNotEmpty()) {

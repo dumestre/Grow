@@ -8,6 +8,7 @@ import com.daime.grow.data.repository.GrowRepositoryImpl
 import com.daime.grow.data.reminder.ReminderScheduler
 import com.daime.grow.data.backup.BackupManager
 import com.daime.grow.domain.repository.GrowRepository
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,68 +18,65 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object DataModule {
+abstract class DataModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): GrowDatabase {
-        return GrowDatabase.getInstance(context)
-    }
+    abstract fun bindGrowRepository(impl: GrowRepositoryImpl): GrowRepository
 
-    @Provides
-    fun providePlantDao(database: GrowDatabase) = database.plantDao()
+    companion object {
+        @Provides
+        @Singleton
+        fun provideDatabase(@ApplicationContext context: Context): GrowDatabase {
+            return GrowDatabase.getInstance(context)
+        }
 
-    @Provides
-    fun providePlantEventDao(database: GrowDatabase) = database.plantEventDao()
+        @Provides
+        fun providePlantDao(database: GrowDatabase) = database.plantDao()
 
-    @Provides
-    fun provideWateringLogDao(database: GrowDatabase) = database.wateringLogDao()
+        @Provides
+        fun providePlantEventDao(database: GrowDatabase) = database.plantEventDao()
 
-    @Provides
-    fun provideNutrientLogDao(database: GrowDatabase) = database.nutrientLogDao()
+        @Provides
+        fun provideWateringLogDao(database: GrowDatabase) = database.wateringLogDao()
 
-    @Provides
-    fun provideChecklistDao(database: GrowDatabase) = database.checklistDao()
+        @Provides
+        fun provideNutrientLogDao(database: GrowDatabase) = database.nutrientLogDao()
 
-    @Provides
-    fun provideMuralDao(database: GrowDatabase) = database.muralDao()
+        @Provides
+        fun provideChecklistDao(database: GrowDatabase) = database.checklistDao()
 
-    @Provides
-    fun provideHarvestDao(database: GrowDatabase) = database.harvestDao()
+        @Provides
+        fun provideMuralDao(database: GrowDatabase) = database.muralDao()
 
-    @Provides
-    @Singleton
-    fun provideSecurityPreferencesRepository(@ApplicationContext context: Context): SecurityPreferencesRepository {
-        return SecurityPreferencesRepository(context)
-    }
+        @Provides
+        fun provideNotificationDao(database: GrowDatabase) = database.notificationDao()
 
-    @Provides
-    @Singleton
-    fun provideMuralPreferencesRepository(@ApplicationContext context: Context): MuralPreferencesRepository {
-        return MuralPreferencesRepository(context)
-    }
+        @Provides
+        fun provideHarvestDao(database: GrowDatabase) = database.harvestDao()
 
-    @Provides
-    @Singleton
-    fun provideReminderScheduler(@ApplicationContext context: Context): ReminderScheduler {
-        return ReminderScheduler(context)
-    }
+        @Provides
+        @Singleton
+        fun provideSecurityPreferencesRepository(@ApplicationContext context: Context): SecurityPreferencesRepository {
+            return SecurityPreferencesRepository(context)
+        }
 
-    @Provides
-    @Singleton
-    fun provideBackupManager(@ApplicationContext context: Context, database: GrowDatabase): BackupManager {
-        return BackupManager(context, database)
-    }
+        @Provides
+        @Singleton
+        fun provideMuralPreferencesRepository(@ApplicationContext context: Context): MuralPreferencesRepository {
+            return MuralPreferencesRepository(context)
+        }
 
-    @Provides
-    @Singleton
-    fun provideGrowRepository(
-        @ApplicationContext context: Context,
-        database: GrowDatabase,
-        scheduler: ReminderScheduler,
-        backupManager: BackupManager,
-        securityRepository: SecurityPreferencesRepository
-    ): GrowRepository {
-        return GrowRepositoryImpl(context, database, scheduler, backupManager, securityRepository)
+        @Provides
+        @Singleton
+        fun provideReminderScheduler(@ApplicationContext context: Context): ReminderScheduler {
+            return ReminderScheduler(context)
+        }
+
+        @Provides
+        @Singleton
+        fun provideBackupManager(@ApplicationContext context: Context, database: GrowDatabase): BackupManager {
+            return BackupManager(context, database)
+        }
     }
 }

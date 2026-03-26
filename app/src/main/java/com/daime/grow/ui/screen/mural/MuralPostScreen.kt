@@ -121,108 +121,112 @@ fun MuralPostScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                Column(modifier = Modifier.weight(1f)) {
-                    PostHeader(post = state.post!!)
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = "Conversa",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val tree = remember(state.comments) { buildCommentTree(state.comments) }
-
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 16.dp + innerPadding.calculateBottomPadding())
-                    ) {
-                        if (tree.isEmpty()) {
-                            item {
-                                Text(
-                                    text = "Seja o primeiro a comentar!",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        } else {
-                            items(tree, key = { it.first.id }) { (comment, depth) ->
-                                MuralCommentItem(
-                                    comment = comment,
-                                    currentUserId = currentUserId,
-                                    onReplyClick = { 
-                                        replyToComment = it
-                                        editingComment = null
-                                    },
-                                    onDeleteClick = { viewModel.deleteComment(it.id) },
-                                    onEditClick = { 
-                                        editingComment = it
-                                        replyToComment = null
-                                    },
-                                    depth = depth
-                                )
-                            }
-                        }
-                    }
-
-                    // Reply Feedback Area
-                    AnimatedVisibility(
-                        visible = replyToComment != null,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(modifier = Modifier.weight(1f)) {
-                                Icon(Icons.AutoMirrored.Filled.Reply, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Respondendo a @${replyToComment?.username}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            IconButton(onClick = { replyToComment = null }, modifier = Modifier.size(20.dp)) {
-                                Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
-                            }
-                        }
-                    }
-
-                    Surface(
-                        tonalElevation = 2.dp,
-                        shadowElevation = 8.dp,
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        CommentInput(
-                            currentUserId = currentUserId,
-                            editingComment = editingComment,
-                            onCancelEdit = { editingComment = null },
-                            onSendComment = { content ->
-                                if (editingComment != null) {
-                                    viewModel.editComment(editingComment!!.id, content)
-                                    editingComment = null
-                                } else {
-                                    viewModel.addComment(postId, currentUserId!!, content, replyToComment?.id)
-                                    replyToComment = null
-                                }
-                            },
-                            onRequestUsername = { content ->
-                                pendingComment = content
-                                pendingReplyToId = replyToComment?.id
-                                showUsernameDialog = true
-                            }
+                state.post?.let { post ->
+                    Column(modifier = Modifier.weight(1f)) {
+                        PostHeader(post = post)
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "Conversa",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val tree = remember(state.comments) { buildCommentTree(state.comments) }
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(bottom = 16.dp + innerPadding.calculateBottomPadding())
+                        ) {
+                            if (tree.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "Seja o primeiro a comentar!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            } else {
+                                items(tree, key = { it.first.id }) { (comment, depth) ->
+                                    MuralCommentItem(
+                                        comment = comment,
+                                        currentUserId = currentUserId,
+                                        onReplyClick = { 
+                                            replyToComment = it
+                                            editingComment = null
+                                        },
+                                        onDeleteClick = { viewModel.deleteComment(it.id) },
+                                        onEditClick = { 
+                                            editingComment = it
+                                            replyToComment = null
+                                        },
+                                        depth = depth
+                                    )
+                                }
+                            }
+                        }
+
+                        // Reply Feedback Area
+                        AnimatedVisibility(
+                            visible = replyToComment != null,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(modifier = Modifier.weight(1f)) {
+                                    Icon(Icons.AutoMirrored.Filled.Reply, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Respondendo a @${replyToComment?.username}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(onClick = { replyToComment = null }, modifier = Modifier.size(20.dp)) {
+                                    Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+
+                        Surface(
+                            tonalElevation = 2.dp,
+                            shadowElevation = 8.dp,
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            CommentInput(
+                                currentUserId = currentUserId,
+                                editingComment = editingComment,
+                                onCancelEdit = { editingComment = null },
+                                onSendComment = { content ->
+                                    editingComment?.let {
+                                        viewModel.editComment(it.id, content)
+                                        editingComment = null
+                                    } ?: run {
+                                        currentUserId?.let { id ->
+                                            viewModel.addComment(postId, id, content, replyToComment?.id)
+                                            replyToComment = null
+                                        }
+                                    }
+                                },
+                                onRequestUsername = { content ->
+                                    pendingComment = content
+                                    pendingReplyToId = replyToComment?.id
+                                    showUsernameDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }

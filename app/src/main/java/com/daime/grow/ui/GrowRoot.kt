@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -227,12 +228,8 @@ fun GrowRoot(container: AppContainer) {
 
                     composable(NavRoute.Detail.route,
                         arguments = listOf(navArgument("plantId") { type = NavType.LongType })
-                    ) { entry ->
-                        val plantId = entry.arguments?.getLong("plantId") ?: return@composable
-                        val detailViewModel: PlantDetailViewModel = viewModel(
-                            key = "detail-$plantId",
-                            factory = factories.detail.create(plantId)
-                        )
+                    ) {
+                        val detailViewModel: PlantDetailViewModel = hiltViewModel()
                         PlantDetailScreen(
                             innerPadding = PaddingValues(),
                             viewModel = detailViewModel,
@@ -252,14 +249,10 @@ fun GrowRoot(container: AppContainer) {
                     composable(
                         route = NavRoute.MuralPost.route,
                         arguments = listOf(navArgument("postId") { type = NavType.LongType })
-                    ) { entry ->
-                        val postId = entry.arguments?.getLong("postId") ?: return@composable
-                        val currentMuralViewModel: MuralViewModel = viewModel(
-                            key = "mural-post-$postId",
-                            factory = factories.mural
-                        )
+                    ) {
+                        val currentMuralViewModel: MuralViewModel = hiltViewModel()
                         MuralPostScreen(
-                            postId = postId,
+                            postId = checkNotNull(it.arguments?.getLong("postId")),
                             innerPadding = PaddingValues(),
                             viewModel = currentMuralViewModel,
                             onBack = { navController.popBackStack() }

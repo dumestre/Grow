@@ -50,7 +50,7 @@ object ImageUtils {
 
             outputStream.toByteArray()
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("ImageUtils", "Erro ao comprimir imagem", e)
             null
         }
     }

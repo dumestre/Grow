@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
+
 data class MuralUiState(
     val posts: List<MuralPostWithPlant> = emptyList(),
     val isLoading: Boolean = true
@@ -42,7 +45,8 @@ data class MuralPostUiState(
     val isLoading: Boolean = true
 )
 
-class MuralViewModel(
+@HiltViewModel
+class MuralViewModel @Inject constructor(
     private val muralDao: MuralDao,
     private val preferencesRepository: MuralPreferencesRepository
 ) : ViewModel() {
@@ -116,7 +120,7 @@ class MuralViewModel(
             try {
                 // Implementação futura
             } catch (e: Exception) {
-                e.printStackTrace()
+                android.util.Log.e("MuralViewModel", "Erro ao carregar curtidas", e)
             }
         }
     }

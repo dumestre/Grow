@@ -293,12 +293,14 @@ fun MuralPostItem(
                         editingComment = editingComment,
                         onCancelEdit = { editingComment = null },
                         onSendComment = { content -> 
-                            if (editingComment != null) {
-                                viewModel.editComment(editingComment!!.id, content)
+                            editingComment?.let { 
+                                viewModel.editComment(it.id, content)
                                 editingComment = null
-                            } else {
-                                viewModel.addComment(post.id, currentUserId!!, content, replyToComment?.id)
-                                replyToComment = null
+                            } ?: run {
+                                currentUserId?.let { id ->
+                                    viewModel.addComment(post.id, id, content, replyToComment?.id)
+                                    replyToComment = null
+                                }
                             }
                         },
                         onRequestUsername = { content -> onRequestUsername(content, replyToComment?.id) }
