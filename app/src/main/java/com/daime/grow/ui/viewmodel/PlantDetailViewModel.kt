@@ -42,6 +42,7 @@ sealed interface PlantDetailUiEvent {
     data object NutrientsInvalid : PlantDetailUiEvent
     data object NutrientsSaved : PlantDetailUiEvent
     data object StageUpdated : PlantDetailUiEvent
+    data object PhotoUpdated : PlantDetailUiEvent
 }
 
 @HiltViewModel
@@ -187,6 +188,13 @@ class PlantDetailViewModel @Inject constructor(
             )
             
             _events.emit(PlantDetailUiEvent.StageUpdated)
+        }
+    }
+
+    fun updatePhoto(photoUri: String?) {
+        viewModelScope.launch {
+            repository.updatePlantPhoto(plantId, photoUri)
+            _events.emit(PlantDetailUiEvent.PhotoUpdated)
         }
     }
 }

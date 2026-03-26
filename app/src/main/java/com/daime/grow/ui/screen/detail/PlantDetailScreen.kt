@@ -1,8 +1,12 @@
 ﻿package com.daime.grow.ui.screen.detail
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,20 +17,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.RoundedBackButton
@@ -53,6 +62,56 @@ fun PlantDetailScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.updatePhoto(it.toString()) }
+    }
+
+    var showHarvestDialog by remember { mutableStateOf(false) }
+
+    if (showHarvestDialog && details != null) {
+        AlertDialog(
+            onDismissRequest = { showHarvestDialog = false },
+            title = {
+                Text(
+                    text = "Confirmar Colheita",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Deseja marcar \"${details.plant.name}\" como colhida?")
+                    Text(
+                        text = "A planta será enviada para a tela de secagem/ Cura.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.harvestPlant()
+                        showHarvestDialog = false
+                        onNavigateToPosColheta()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHarvestDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             val message = when (event) {
@@ -61,6 +120,7 @@ fun PlantDetailScreen(
                 PlantDetailUiEvent.NutrientsInvalid -> "Dados de nutrientes inválidos"
                 PlantDetailUiEvent.NutrientsSaved -> "Nutrientes salvos com sucesso!"
                 PlantDetailUiEvent.StageUpdated -> "Fase da planta atualizada"
+                PlantDetailUiEvent.PhotoUpdated -> "Foto atualizada com sucesso!"
             }
             snackbarHostState.showSnackbar(message)
         }
@@ -96,8 +156,7 @@ fun PlantDetailScreen(
                             shape = RoundedCornerShape(24.dp)
                         )
                         .clickable {
-                            viewModel.harvestPlant()
-                            onNavigateToPosColheta()
+                            showHarvestDialog = true
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -158,6 +217,7 @@ fun PlantDetailScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    PhotoSection(details, onUpdatePhoto = { imagePickerLauncher.launch("image/*") })
                     InfoSection(details, viewModel)
                     QuickActionsSection(viewModel)
                     WateringSection(state, viewModel, expandedWatering) { expandedWatering = it }
@@ -185,6 +245,7 @@ fun PlantDetailScreen(
                     end = 16.dp
                 )
             ) {
+                item { PhotoSection(details, onUpdatePhoto = { imagePickerLauncher.launch("image/*") }) }
                 item { InfoSection(details, viewModel) }
                 item { QuickActionsSection(viewModel) }
                 item { WateringSection(state, viewModel, expandedWatering) { expandedWatering = it } }
@@ -368,6 +429,75 @@ private fun TimelineItem(event: com.daime.grow.domain.model.PlantEvent) {
                 SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(event.createdAt)),
                 style = MaterialTheme.typography.bodySmall
             )
+        }
+    }
+}
+
+@Composable
+private fun PhotoSection(
+    details: com.daime.grow.domain.model.PlantDetails,
+    onUpdatePhoto: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clickable { onUpdatePhoto() }
+        ) {
+            if (details.plant.photoUri != null) {
+                AsyncImage(
+                    model = details.plant.photoUri,
+                    contentDescription = "Foto da planta",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Toque para adicionar foto",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            FloatingActionButton(
+                onClick = onUpdatePhoto,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp)
+                    .size(40.dp),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Atualizar foto",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

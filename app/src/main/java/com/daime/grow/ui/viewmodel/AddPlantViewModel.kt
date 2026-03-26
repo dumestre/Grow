@@ -22,7 +22,8 @@ data class AddPlantUiState(
     val photoUri: String? = null,
     val isSaving: Boolean = false,
     val error: String? = null,
-    val shareOnMural: Boolean = false
+    val shareOnMural: Boolean = false,
+    val isHydroponic: Boolean = false
 )
 
 sealed interface AddPlantUiEvent {
@@ -46,6 +47,7 @@ class AddPlantViewModel @Inject constructor(
     fun onDaysChange(value: String) = update { copy(days = value.filter { c -> c.isDigit() }, error = null) }
     fun onPhotoSelected(uri: String?) = update { copy(photoUri = uri) }
     fun onShareOnMuralChange(value: Boolean) = update { copy(shareOnMural = value) }
+    fun onHydroponicChange(value: Boolean) = update { copy(isHydroponic = value) }
 
     fun save(onSaved: (Long) -> Unit) {
         val state = _uiState.value
@@ -65,7 +67,8 @@ class AddPlantViewModel @Inject constructor(
                 medium = state.medium.trim(),
                 days = days,
                 photoUri = state.photoUri,
-                shareOnMural = state.shareOnMural
+                shareOnMural = state.shareOnMural,
+                isHydroponic = state.isHydroponic
             )
             _events.emit(AddPlantUiEvent.Saved)
             update { AddPlantUiState() }

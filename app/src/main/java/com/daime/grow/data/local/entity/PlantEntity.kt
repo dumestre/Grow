@@ -15,6 +15,7 @@ data class PlantEntity(
     val nextWateringDate: Long?,
     val sortOrder: Int = 0,
     val createdAt: Long,
-    val sharedOnMural: Boolean = false
+    val sharedOnMural: Boolean = false,
+    val isHydroponic: Boolean = false
 )
 

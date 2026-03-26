@@ -42,8 +42,8 @@ enum class BottomNavItem(
     val iconRes: Int?,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    val alternativeIcon: ImageVector = Icons.Outlined.Yard, // Ícone neutro (Horta/Jardim)
-    val hasBadge: Boolean = false
+    val alternativeIcon: ImageVector = Icons.Outlined.Yard,
+    val showBadge: Boolean = false
 ) {
     Home(
         route = NavRoute.Home.route,
@@ -79,7 +79,7 @@ enum class BottomNavItem(
         iconRes = null,
         selectedIcon = Icons.Filled.Notifications,
         unselectedIcon = Icons.Outlined.Notifications,
-        hasBadge = true
+        showBadge = true
     ),
     Settings(
         route = NavRoute.Settings.route,
@@ -97,7 +97,8 @@ fun GrowBottomNavigationBar(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
     maskHomeIcon: Boolean = true,
-    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {}
+    onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
+    notificationBadgeCount: Int = 0
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -144,7 +145,8 @@ fun GrowBottomNavigationBar(
             }
 
             secondGroup.forEach { item ->
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
+                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f), badgeCount)
             }
         }
     }
@@ -156,7 +158,8 @@ private fun NavIconItem(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     maskHomeIcon: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    badgeCount: Int = 0
 ) {
     val selected = currentRoute == item.route
     val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -179,9 +182,9 @@ private fun NavIconItem(
         ) {
             BadgedBox(
                 badge = {
-                    if (item.hasBadge) {
+                    if (item.showBadge && badgeCount > 0) {
                         Badge(
-                            modifier = Modifier.size(6.dp),
+                            modifier = Modifier.size(10.dp),
                             containerColor = Color.Red
                         )
                     }

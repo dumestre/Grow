@@ -29,11 +29,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -41,6 +43,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -86,7 +89,7 @@ fun NewPlantScreen(
     viewModel: AddPlantViewModel,
     onSaved: (Long) -> Unit,
     onClose: () -> Unit,
-    onCheckUser: (String, (Long) -> Unit) -> Unit
+    onCheckUser: (String, (Long) -> Unit, () -> Unit) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -234,7 +237,10 @@ fun NewPlantScreen(
                             .focusRequester(daysRequester),
                         label = { Text(stringResource(R.string.new_plant_days)) },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
                         keyboardActions = KeyboardActions(
                             onDone = { focusManager.clearFocus() }
                         )
@@ -277,6 +283,45 @@ fun NewPlantScreen(
                         Switch(
                             checked = state.shareOnMural,
                             onCheckedChange = null,
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .scale(0.7f)
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { viewModel.onHydroponicChange(!state.isHydroponic) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = Icons.Rounded.WaterDrop,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(modifier = Modifier.padding(start = 12.dp)) {
+                                Text(
+                                    text = "Método Hidropônico",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = "Notificações de troca de solução",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = state.isHydroponic,
+                            onCheckedChange = { viewModel.onHydroponicChange(it) },
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .scale(0.7f)
@@ -394,14 +439,19 @@ fun NewPlantScreen(
     }
 
     if (showUsernameDialog) {
+        var usernameError by remember { mutableStateOf<String?>(null) }
         UsernameDialog(
             reason = "Para compartilhar plantas no mural, escolha um nome de usuário:",
+            initialError = usernameError,
             onDismiss = { showUsernameDialog = false },
             onConfirm = { username ->
-                onCheckUser(username) { _ ->
+                usernameError = null
+                onCheckUser(username, { _ ->
                     viewModel.onShareOnMuralChange(true)
                     showUsernameDialog = false
-                }
+                }, {
+                    usernameError = "Nome de usuário já está em uso"
+                })
             }
         )
     }

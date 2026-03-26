@@ -19,7 +19,8 @@ fun GrowNavigationRail(
     onNavigate: (String) -> Unit,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
-    isDeleting: Boolean = false
+    isDeleting: Boolean = false,
+    notificationBadgeCount: Int = 0
 ) {
     NavigationRail(
         modifier = modifier
@@ -52,9 +53,9 @@ fun GrowNavigationRail(
                 icon = {
                     BadgedBox(
                         badge = {
-                            if (item.hasBadge) {
+                            if (item.showBadge && notificationBadgeCount > 0) {
                                 Badge(
-                                    modifier = Modifier.size(6.dp),
+                                    modifier = Modifier.size(10.dp),
                                     containerColor = Color.Red
                                 )
                             }

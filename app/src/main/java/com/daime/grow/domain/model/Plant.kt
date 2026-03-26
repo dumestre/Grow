@@ -1,4 +1,4 @@
-﻿package com.daime.grow.domain.model
+package com.daime.grow.domain.model
 
 data class Plant(
     val id: Long = 0,
@@ -10,6 +10,7 @@ data class Plant(
     val photoUri: String?,
     val nextWateringDate: Long?,
     val createdAt: Long,
-    val sharedOnMural: Boolean = false
+    val sharedOnMural: Boolean = false,
+    val isHydroponic: Boolean = false
 )
 

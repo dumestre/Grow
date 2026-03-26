@@ -9,6 +9,7 @@ import com.daime.grow.data.local.entity.*
 import com.daime.grow.data.local.migration.MIGRATION_1_2
 import com.daime.grow.data.local.migration.MIGRATION_2_3
 import com.daime.grow.data.local.migration.MIGRATION_3_4
+import com.daime.grow.data.local.migration.MIGRATION_4_5
 
 @Database(
     entities = [
@@ -23,7 +24,7 @@ import com.daime.grow.data.local.migration.MIGRATION_3_4
         NotificationEntity::class,
         HarvestBatchEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class GrowDatabase : RoomDatabase() {
@@ -46,7 +47,7 @@ abstract class GrowDatabase : RoomDatabase() {
                     context,
                     GrowDatabase::class.java,
                     "grow.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration(true)
                     .build()
                     .also { INSTANCE = it }

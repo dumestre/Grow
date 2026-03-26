@@ -6,8 +6,9 @@ import com.daime.grow.core.AppContainer
 import com.daime.grow.data.repository.GrowRepositoryImpl
 
 class ViewModelFactories(container: AppContainer) {
+    private val appContext = container.appContext
     private val repository = GrowRepositoryImpl(
-        appContext = container.appContext,
+        appContext = appContext,
         database = container.database,
         scheduler = container.reminderScheduler,
         backupManager = container.backupManager,
@@ -20,13 +21,13 @@ class ViewModelFactories(container: AppContainer) {
     val settings: ViewModelProvider.Factory = singleFactory { SettingsViewModel(repository) }
     val store: ViewModelProvider.Factory = singleFactory { StoreViewModel() }
     val mural: ViewModelProvider.Factory = singleFactory { 
-        MuralViewModel(container.muralDao, container.muralPreferencesRepository) 
+        MuralViewModel(container.muralDao, container.muralPreferencesRepository, container.database.notificationDao()) 
     }
     val notifications: ViewModelProvider.Factory = singleFactory {
         NotificationViewModel(container.database.notificationDao())
     }
     val posColheta: ViewModelProvider.Factory = singleFactory {
-        PosColhetaViewModel(container.database.harvestDao())
+        PosColhetaViewModel(container.application, container.database.harvestDao(), container.database.plantDao())
     }
 
     val detail = DetailFactory(repository)

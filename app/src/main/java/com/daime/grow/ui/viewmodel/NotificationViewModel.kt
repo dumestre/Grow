@@ -23,9 +23,22 @@ class NotificationViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    val unreadCount: StateFlow<Int> = notificationDao.observeUnreadCount()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     fun markAsRead(id: Long) {
         viewModelScope.launch {
             notificationDao.markAsRead(id)
+        }
+    }
+
+    fun markAllAsRead() {
+        viewModelScope.launch {
+            notificationDao.markAllAsRead()
         }
     }
 
@@ -39,5 +52,24 @@ class NotificationViewModel @Inject constructor(
         viewModelScope.launch {
             notificationDao.clearAll()
         }
+    }
+
+    suspend fun addNotification(
+        type: String,
+        username: String,
+        message: String,
+        relatedId: Long? = null,
+        userId: Long? = null
+    ) {
+        notificationDao.insertNotification(
+            NotificationEntity(
+                type = type,
+                username = username,
+                message = message,
+                time = System.currentTimeMillis(),
+                relatedId = relatedId,
+                userId = userId
+            )
+        )
     }
 }

@@ -30,6 +30,9 @@ interface PlantDao {
     @Query("SELECT * FROM plants")
     suspend fun getAllNow(): List<PlantEntity>
 
+    @Query("SELECT * FROM plants WHERE id = :plantId LIMIT 1")
+    suspend fun getPlantById(plantId: Long): PlantEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(plant: PlantEntity): Long
 
@@ -44,6 +47,9 @@ interface PlantDao {
 
     @Query("UPDATE plants SET stage = :stage WHERE id = :plantId")
     suspend fun updateStage(plantId: Long, stage: String)
+
+    @Query("UPDATE plants SET photoUri = :photoUri WHERE id = :plantId")
+    suspend fun updatePhoto(plantId: Long, photoUri: String?)
 
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM plants")
     suspend fun maxSortOrder(): Int

@@ -46,6 +46,7 @@ import com.daime.grow.ui.screen.mural.MuralPostScreen
 import com.daime.grow.ui.screen.mural.MuralScreen
 import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
+import com.daime.grow.ui.screen.store.StoreComingSoonScreen
 import com.daime.grow.ui.screen.store.StoreScreen
 import com.daime.grow.ui.viewmodel.*
 
@@ -62,6 +63,7 @@ fun GrowRoot(container: AppContainer) {
 
     val lockState by lockViewModel.uiState.collectAsStateWithLifecycle()
     val securityPrefs by settingsViewModel.security.collectAsStateWithLifecycle()
+    val unreadNotificationCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
     
     val context = LocalContext.current
 
@@ -133,7 +135,8 @@ fun GrowRoot(container: AppContainer) {
                             }
                         }
                     },
-                    onAddClick = { navController.navigate(NavRoute.NewPlant.route) }
+                    onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
+                    notificationBadgeCount = unreadNotificationCount
                 )
             }
 
@@ -161,7 +164,8 @@ fun GrowRoot(container: AppContainer) {
                                 },
                                 onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
                                 maskHomeIcon = securityPrefs.maskHomeIcon,
-                                onFabBounds = { trashBounds = it }
+                                onFabBounds = { trashBounds = it },
+                                notificationBadgeCount = unreadNotificationCount
                             )
                         }
                     }
@@ -207,7 +211,7 @@ fun GrowRoot(container: AppContainer) {
                         }
 
                         composable(NavRoute.Store.route) {
-                            StoreScreen(
+                            StoreComingSoonScreen(
                                 innerPadding = innerPadding,
                                 maskStoreCatalog = securityPrefs.maskStoreCatalog
                             )
@@ -222,8 +226,8 @@ fun GrowRoot(container: AppContainer) {
                                     navController.navigate(NavRoute.Detail.create(id))
                                 },
                                 onClose = { navController.popBackStack() },
-                                onCheckUser = { username, onComplete ->
-                                    muralViewModel.createOrGetUser(username, onComplete)
+                                onCheckUser = { username, onComplete, onUsernameTaken ->
+                                    muralViewModel.createOrGetUser(username, onComplete, onUsernameTaken)
                                 }
                             )
                         }

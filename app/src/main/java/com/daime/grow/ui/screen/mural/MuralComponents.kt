@@ -275,11 +275,16 @@ fun CommentInput(
 @Composable
 fun UsernameDialog(
     reason: String,
+    initialError: String? = null,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf(initialError) }
+
+    LaunchedEffect(initialError) {
+        error = initialError
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -290,7 +295,10 @@ fun UsernameDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it.replace(" ", "") },
+                    onValueChange = { 
+                        username = it.replace(" ", "")
+                        if (error != null) error = null
+                    },
                     label = { Text("Nome") },
                     prefix = { Text("@") },
                     singleLine = true,

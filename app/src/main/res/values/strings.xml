@@ -108,11 +108,19 @@
     <string name="notification_channel_watering_description">Alertas para regar no horário planejado</string>
     <string name="notification_channel_nutrient_name">Lembretes de nutrientes</string>
     <string name="notification_channel_nutrient_description">Alertas de revisão de EC, pH e nutrientes</string>
+    <string name="notification_channel_burp_drying_name">Respiro - Secagem</string>
+    <string name="notification_channel_burp_drying_description">Lembretes para abrir os frascos durante a secagem</string>
+    <string name="notification_channel_burp_curing_name">Respiro - Cura</string>
+    <string name="notification_channel_burp_curing_description">Lembretes para abrir os frascos durante a cura</string>
+    <string name="notification_channel_hydroponic_name">Troca de solução</string>
+    <string name="notification_channel_hydroponic_description">Alertas para trocar solução nutritiva</string>
     <string name="notification_action_open">Abrir app</string>
-    <string name="notification_watering_title">Hora da rega</string>
+    <string name="notification_watering_title">Hora da rega 🌱</string>
     <string name="notification_watering_body">%1$s: chegou o horário da rega planejada.</string>
-    <string name="notification_nutrient_title">Revisar nutrientes</string>
-    <string name="notification_nutrient_body">%1$s: revisar EC/pH e ajuste de nutrientes.</string>
+    <string name="notification_nutrient_title">Revisar nutrientes ⚗️</string>
+    <string name="notification_nutrient_body">%1$s: chegou a hora de verificar EC, pH e nutrientes.</string>
+    <string name="notification_hydroponic_title">Trocar solução 💧</string>
+    <string name="notification_hydroponic_body">%1$s: chegou a hora de trocar a solução nutritiva.</string>
 
     <string name="detail_action_harvest_long">Colher e Secar</string>
     

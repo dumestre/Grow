@@ -31,6 +31,7 @@ import com.daime.grow.R
 import com.daime.grow.data.local.dao.CommentWithUser
 import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.ui.components.RoundedBackButton
+import com.daime.grow.ui.viewmodel.MuralEvent
 import com.daime.grow.ui.viewmodel.MuralViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -234,19 +235,39 @@ fun MuralPostScreen(
     }
 
     if (showUsernameDialog) {
+        var usernameError by remember { mutableStateOf<String?>(null) }
+        
+        LaunchedEffect(Unit) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    is MuralEvent.UsernameTaken -> {
+                        usernameError = "Nome de usuário já está em uso"
+                    }
+                }
+            }
+        }
+        
         UsernameDialog(
             reason = "Escolha um nome para comentar:",
+            initialError = usernameError,
             onDismiss = { showUsernameDialog = false },
             onConfirm = { username ->
-                viewModel.createOrGetUser(username) { userId ->
-                    if (pendingComment.isNotBlank()) {
-                        viewModel.addComment(postId, userId, pendingComment, pendingReplyToId)
-                        pendingComment = ""
-                        pendingReplyToId = null
+                usernameError = null
+                viewModel.createOrGetUser(
+                    username = username,
+                    onComplete = { userId ->
+                        if (pendingComment.isNotBlank()) {
+                            viewModel.addComment(postId, userId, pendingComment, pendingReplyToId)
+                            pendingComment = ""
+                            pendingReplyToId = null
+                        }
+                        showUsernameDialog = false
+                        replyToComment = null
+                    },
+                    onUsernameTaken = {
+                        usernameError = "Nome de usuário já está em uso"
                     }
-                    showUsernameDialog = false
-                    replyToComment = null
-                }
+                )
             }
         )
     }

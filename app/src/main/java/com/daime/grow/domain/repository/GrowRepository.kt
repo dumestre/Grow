@@ -19,7 +19,8 @@ interface GrowRepository {
         medium: String,
         days: Int,
         photoUri: String?,
-        shareOnMural: Boolean = false
+        shareOnMural: Boolean = false,
+        isHydroponic: Boolean = false
     ): Long
 
     suspend fun addQuickEvent(plantId: Long, type: String, note: String = "")
@@ -27,6 +28,7 @@ interface GrowRepository {
     suspend fun addNutrient(log: NutrientLog)
     suspend fun toggleChecklist(itemId: Long, done: Boolean)
     suspend fun updatePlantStage(plantId: Long, stage: String)
+    suspend fun updatePlantPhoto(plantId: Long, photoUri: String?)
     suspend fun deletePlant(plantId: Long)
     suspend fun updatePlantsOrder(orderedIds: List<Long>)
     suspend fun seedDataIfNeeded()

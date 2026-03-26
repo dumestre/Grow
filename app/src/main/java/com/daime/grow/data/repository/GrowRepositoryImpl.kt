@@ -58,6 +58,7 @@ class GrowRepositoryImpl @Inject constructor(
     private val nutrientDao = database.nutrientLogDao()
     private val checklistDao = database.checklistDao()
     private val muralDao = database.muralDao()
+    private val harvestDao = database.harvestDao()
     private val supabase = SupabaseClient.clientOrNull
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
@@ -91,7 +92,8 @@ class GrowRepositoryImpl @Inject constructor(
         medium: String,
         days: Int,
         photoUri: String?,
-        shareOnMural: Boolean
+        shareOnMural: Boolean,
+        isHydroponic: Boolean
     ): Long {
         val now = System.currentTimeMillis()
         var createdId = 0L
@@ -108,7 +110,8 @@ class GrowRepositoryImpl @Inject constructor(
                     nextWateringDate = null,
                     sortOrder = nextSortOrder,
                     createdAt = now,
-                    sharedOnMural = shareOnMural
+                    sharedOnMural = shareOnMural,
+                    isHydroponic = isHydroponic
                 )
             )
 
@@ -257,66 +260,19 @@ class GrowRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updatePlantStage(plantId: Long, stage: String) {
-        val now = System.currentTimeMillis()
         database.withTransaction {
             plantDao.updateStage(plantId, stage)
-
-            // Verifica se já existem itens de checklist para esta nova fase
-            val currentChecklist = checklistDao.getByPlantId(plantId)
-            val hasPhaseItems = currentChecklist.any { it.phase == stage }
-
-            if (!hasPhaseItems) {
-                val newTasks = ChecklistFactory.defaultChecklist(plantId, stage, now)
-                    .map { item ->
-                        ChecklistItemEntity(
-                            plantId = item.plantId,
-                            phase = item.phase,
-                            task = item.task,
-                            done = item.done,
-                            createdAt = item.createdAt
-                        )
-                    }
-                checklistDao.insertAll(newTasks)
-            }
-
-            plantEventDao.insert(
-                PlantEventEntity(
-                    plantId = plantId,
-                    type = "Fase",
-                    note = "Fase alterada para $stage",
-                    createdAt = now
-                )
-            )
         }
         plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
     }
 
-    override suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long) {
+    override suspend fun updatePlantPhoto(plantId: Long, photoUri: String?) {
+        val currentPhoto = plantDao.observePlant(plantId).first()?.photoUri
         database.withTransaction {
-            val batchId = database.harvestDao().insertBatch(
-                HarvestBatchEntity(
-                    id = 0L,
-                    plantId = plantId,
-                    plantName = plantName,
-                    strain = strain,
-                    harvestDate = harvestDate,
-                    status = "DRYING",
-                    currentHumidity = 60f,
-                    currentTemperature = null,
-                    lastBurpDate = null,
-                    nextBurpDate = null,
-                    weightGrams = null
-                )
-            )
-
-            plantEventDao.insert(
-                PlantEventEntity(
-                    plantId = plantId,
-                    type = "Colheita",
-                    note = "Colhida e enviada para secagem (lote #$batchId)",
-                    createdAt = harvestDate
-                )
-            )
+            plantDao.updatePhoto(plantId, photoUri)
+        }
+        if (currentPhoto != null && currentPhoto != photoUri) {
+            deletePhotoIfOwned(appContext, currentPhoto)
         }
     }
 
@@ -336,6 +292,22 @@ class GrowRepositoryImpl @Inject constructor(
                 plantDao.updateSortOrder(id, index)
             }
         }
+    }
+
+    override suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long) {
+        harvestDao.insertBatch(
+            com.daime.grow.data.local.entity.HarvestBatchEntity(
+                plantId = plantId,
+                plantName = plantName,
+                strain = strain,
+                harvestDate = harvestDate,
+                status = "DRYING",
+                currentHumidity = null,
+                currentTemperature = null,
+                lastBurpDate = null,
+                nextBurpDate = null
+            )
+        )
     }
 
     override suspend fun seedDataIfNeeded() {
@@ -485,7 +457,8 @@ private fun PlantEntity.toDomain() = Plant(
     photoUri = photoUri,
     nextWateringDate = nextWateringDate,
     createdAt = createdAt,
-    sharedOnMural = sharedOnMural
+    sharedOnMural = sharedOnMural,
+    isHydroponic = isHydroponic
 )
 
 private fun PlantEventEntity.toDomain() = PlantEvent(
