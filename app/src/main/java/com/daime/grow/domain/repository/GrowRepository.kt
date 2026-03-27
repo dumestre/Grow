@@ -53,4 +53,8 @@ interface GrowRepository {
     suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null)
     suspend fun createOrGetUser(username: String): Long
     suspend fun getCurrentUserId(): Long?
+
+    // Sync
+    suspend fun syncPlantsToRemote()
+    suspend fun syncPlantsFromRemote()
 }

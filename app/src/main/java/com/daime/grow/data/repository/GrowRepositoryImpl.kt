@@ -18,6 +18,7 @@ import com.daime.grow.data.reminder.ReminderScheduler
 import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralPostDto
 import com.daime.grow.data.remote.model.MuralUserDto
+import com.daime.grow.data.remote.model.PlantDto
 import com.daime.grow.domain.model.ChecklistItem
 import com.daime.grow.domain.model.NutrientLog
 import com.daime.grow.domain.model.Plant
@@ -146,7 +147,10 @@ class GrowRepositoryImpl @Inject constructor(
             }
         }
 
-        // Sincronização com Supabase se compartilhado
+        // Sincronização com Supabase
+        syncPlantsToRemote()
+
+        // Sincronização com Supabase se compartilhado no Mural
         if (shareOnMural) {
             syncToSupabase(name, strain, stage, medium, days, photoUri)
         }
@@ -257,6 +261,7 @@ class GrowRepositoryImpl @Inject constructor(
 
     override suspend fun toggleChecklist(itemId: Long, done: Boolean) {
         checklistDao.toggle(itemId, done)
+        syncPlantsToRemote()
     }
 
     override suspend fun updatePlantStage(plantId: Long, stage: String) {
@@ -264,6 +269,7 @@ class GrowRepositoryImpl @Inject constructor(
             plantDao.updateStage(plantId, stage)
         }
         plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
+        syncPlantsToRemote()
     }
 
     override suspend fun updatePlantPhoto(plantId: Long, photoUri: String?) {
@@ -274,6 +280,7 @@ class GrowRepositoryImpl @Inject constructor(
         if (currentPhoto != null && currentPhoto != photoUri) {
             deletePhotoIfOwned(appContext, currentPhoto)
         }
+        syncPlantsToRemote()
     }
 
     override suspend fun deletePlant(plantId: Long) {
@@ -283,6 +290,7 @@ class GrowRepositoryImpl @Inject constructor(
         }
         scheduler.cancelForPlant(plantId)
         deletePhotoIfOwned(appContext, photoUri)
+        syncPlantsToRemote()
     }
 
     override suspend fun updatePlantsOrder(orderedIds: List<Long>) {
@@ -292,6 +300,7 @@ class GrowRepositoryImpl @Inject constructor(
                 plantDao.updateSortOrder(id, index)
             }
         }
+        syncPlantsToRemote()
     }
 
     override suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long) {
@@ -431,6 +440,119 @@ class GrowRepositoryImpl @Inject constructor(
 
     fun setCurrentUserId(userId: Long) {
         currentUserId = userId
+    }
+
+    override suspend fun syncPlantsToRemote() {
+        val supabase = supabase ?: return
+        val userId = currentUserId ?: return
+
+        try {
+            val localUser = muralDao.getUser(userId) ?: return
+            val remoteUser = supabase.from("mural_users")
+                .select { filter { eq("username", localUser.username) } }
+                .decodeSingleOrNull<MuralUserDto>() ?: return
+
+            val plants = plantDao.getAllNow()
+            val now = System.currentTimeMillis()
+
+            for (plant in plants) {
+                try {
+                    var remotePhotoUrl: String? = null
+
+                    if (plant.photoUri != null && !plant.photoUri!!.startsWith("http")) {
+                        val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
+                        if (bytes != null) {
+                            val fileName = "plant_${UUID.randomUUID()}.webp"
+                            val bucket = supabase.storage.from("plant-photos")
+                            bucket.upload(fileName, bytes)
+                            remotePhotoUrl = bucket.publicUrl(fileName)
+                        }
+                    } else if (plant.photoUri?.startsWith("http") == true) {
+                        remotePhotoUrl = plant.photoUri
+                    }
+
+                    supabase.from("plants").upsert(
+                        PlantDto(
+                            user_id = remoteUser.id,
+                            name = plant.name,
+                            strain = plant.strain,
+                            stage = plant.stage,
+                            medium = plant.medium,
+                            days = plant.days,
+                            photo_url = remotePhotoUrl,
+                            next_watering_date = plant.nextWateringDate,
+                            sort_order = plant.sortOrder,
+                            created_at = plant.createdAt,
+                            updated_at = now,
+                            is_hydroponic = plant.isHydroponic
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao sincronizar planta ${plant.name}: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao sincronizar plantas: ${e.message}")
+        }
+    }
+
+    override suspend fun syncPlantsFromRemote() {
+        val supabase = supabase ?: return
+        val userId = currentUserId ?: return
+
+        try {
+            val localUser = muralDao.getUser(userId) ?: return
+            val remoteUser = supabase.from("mural_users")
+                .select { filter { eq("username", localUser.username) } }
+                .decodeSingleOrNull<MuralUserDto>() ?: return
+
+            val remotePlants = supabase.from("plants")
+                .select { filter { eq("user_id", remoteUser.id!!) } }
+                .decodeList<PlantDto>()
+
+            val now = System.currentTimeMillis()
+
+            for (dto in remotePlants) {
+                try {
+                    val existingPlant = plantDao.getPlantById(dto.id?.toLongOrNull() ?: 0)
+
+                    if (existingPlant != null) {
+                        plantDao.update(
+                            existingPlant.copy(
+                                name = dto.name,
+                                strain = dto.strain ?: "",
+                                stage = dto.stage,
+                                medium = dto.medium ?: "",
+                                days = dto.days,
+                                photoUri = dto.photo_url,
+                                nextWateringDate = dto.next_watering_date,
+                                sortOrder = dto.sort_order,
+                                isHydroponic = dto.is_hydroponic
+                            )
+                        )
+                    } else {
+                        plantDao.insert(
+                            PlantEntity(
+                                name = dto.name,
+                                strain = dto.strain ?: "",
+                                stage = dto.stage,
+                                medium = dto.medium ?: "",
+                                days = dto.days,
+                                photoUri = dto.photo_url,
+                                nextWateringDate = dto.next_watering_date,
+                                sortOrder = dto.sort_order,
+                                createdAt = dto.created_at ?: now,
+                                isHydroponic = dto.is_hydroponic
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao importar planta ${dto.name}: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao buscar plantas remotas: ${e.message}")
+        }
     }
 }
 

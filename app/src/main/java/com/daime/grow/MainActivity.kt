@@ -21,6 +21,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
 import com.daime.grow.data.worker.MuralNotificationWorker
+import com.daime.grow.data.worker.PlantSyncWorker
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.GrowRoot
 import com.daime.grow.ui.theme.GrowTheme
@@ -75,6 +76,7 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     setupMuralWorker()
+                    setupPlantSyncWorker()
                 }
                 else -> {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -82,6 +84,7 @@ class MainActivity : ComponentActivity() {
             }
         } else {
             setupMuralWorker()
+            setupPlantSyncWorker()
         }
     }
 
@@ -97,6 +100,23 @@ class MainActivity : ComponentActivity() {
 
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
             "mural_notifications_work",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
+    private fun setupPlantSyncWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<PlantSyncWorker>(
+            6, TimeUnit.HOURS
+        ).setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "plant_sync_work",
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )

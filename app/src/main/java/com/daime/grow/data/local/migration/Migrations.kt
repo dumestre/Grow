@@ -1,4 +1,4 @@
-﻿package com.daime.grow.data.local.migration
+package com.daime.grow.data.local.migration
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -136,7 +136,49 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL("ALTER TABLE plants ADD COLUMN isHydroponic INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS harvest_batches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                plantId INTEGER NOT NULL,
+                plantName TEXT NOT NULL,
+                strain TEXT NOT NULL,
+                harvestDate INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                FOREIGN KEY(plantId) REFERENCES plants(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
     }
 }
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                type TEXT NOT NULL,
+                username TEXT NOT NULL,
+                message TEXT NOT NULL,
+                time INTEGER NOT NULL,
+                relatedId INTEGER,
+                isRead INTEGER NOT NULL DEFAULT 0,
+                userId INTEGER
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE mural_comments ADD COLUMN parentId INTEGER")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE plants ADD COLUMN isHydroponic INTEGER NOT NULL DEFAULT 0")
+    }
+}

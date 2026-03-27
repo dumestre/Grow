@@ -10,6 +10,9 @@ import com.daime.grow.data.local.migration.MIGRATION_1_2
 import com.daime.grow.data.local.migration.MIGRATION_2_3
 import com.daime.grow.data.local.migration.MIGRATION_3_4
 import com.daime.grow.data.local.migration.MIGRATION_4_5
+import com.daime.grow.data.local.migration.MIGRATION_5_6
+import com.daime.grow.data.local.migration.MIGRATION_6_7
+import com.daime.grow.data.local.migration.MIGRATION_7_8
 
 @Database(
     entities = [
@@ -47,7 +50,7 @@ abstract class GrowDatabase : RoomDatabase() {
                     context,
                     GrowDatabase::class.java,
                     "grow.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration(true)
                     .build()
                     .also { INSTANCE = it }
