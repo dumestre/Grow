@@ -140,7 +140,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
-                bottom = innerPadding.calculateBottomPadding() + 80.dp // Uso o innerPadding do Root + margem extra
+                bottom = innerPadding.calculateBottomPadding() + 52.dp
             )
         ) {
             item(span = { GridItemSpan(columnsCount) }) {

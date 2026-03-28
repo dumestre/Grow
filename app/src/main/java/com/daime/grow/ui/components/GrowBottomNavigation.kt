@@ -108,7 +108,6 @@ fun GrowBottomNavigationBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -117,13 +116,13 @@ fun GrowBottomNavigationBar(
             val secondGroup = items.drop(3)
 
             firstGroup.forEach { item ->
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f))
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f).height(52.dp))
             }
 
             Box(
                 modifier = Modifier
                     .weight(1.1f)
-                    .fillMaxHeight(),
+                    .height(52.dp),
                 contentAlignment = Alignment.Center
             ) {
                 FloatingActionButton(
@@ -146,7 +145,7 @@ fun GrowBottomNavigationBar(
 
             secondGroup.forEach { item ->
                 val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f), badgeCount)
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f).height(52.dp), badgeCount)
             }
         }
     }
@@ -168,7 +167,6 @@ private fun NavIconItem(
 
     Box(
         modifier = modifier
-            .fillMaxHeight()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = false, radius = 20.dp),

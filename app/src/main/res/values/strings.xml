@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">Grow</string>
+    <string name="app_name">Grino</string>
     <string name="fab_add_plant">Nova planta</string>
     <string name="home_title">Grow</string>
     <string name="home_settings">Configurações</string>
@@ -20,7 +20,7 @@
     <string name="back">Voltar</string>
     <string name="settings_lock_pin_biometric">Bloqueio por PIN/biometria</string>
     <string name="settings_biometric">Biometria</string>
-    <string name="settings_pin_label">PIN (4-6 dígitos)</string>
+    <string name="settings_pin_label">PIN (4–6 dígitos)</string>
     <string name="settings_pin_confirm_label">Confirmar PIN</string>
     <string name="settings_reveal_pin">Mostrar PIN</string>
     <string name="settings_pin_length_error">O PIN precisa ter entre 4 e 6 dígitos.</string>
