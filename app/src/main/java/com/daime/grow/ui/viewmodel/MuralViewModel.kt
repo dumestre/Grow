@@ -107,11 +107,17 @@ class MuralViewModel @Inject constructor(
                 )
             }
         }
+        // Sincronizar dados remotos em background
+        viewModelScope.launch {
+            syncWithRemote()
+        }
     }
 
     private suspend fun syncWithRemote() {
         val supabase = this.supabase ?: return
         try {
+            android.util.Log.d("MuralViewModel", "Iniciando sincronização com remote...")
+            
             val remoteUsers = supabase.from("mural_users")
                 .select()
                 .decodeList<MuralUserDto>()
@@ -124,17 +130,20 @@ class MuralViewModel @Inject constructor(
                 .select()
                 .decodeList<MuralCommentDto>()
 
+            android.util.Log.d("MuralViewModel", "Remote: ${remoteUsers.size} usuários, ${remotePosts.size} posts, ${remoteComments.size} comentários")
+
             remoteUsers.forEach { userDto ->
                 if (userDto.id != null && userDto.username.isNotEmpty()) {
                     val existingUser = muralDao.getUserByRemoteId(userDto.id)
                     if (existingUser == null) {
-                        muralDao.insertUser(
+                        val localId = muralDao.insertUser(
                             MuralUserEntity(
                                 remoteId = userDto.id,
                                 username = userDto.username,
                                 createdAt = System.currentTimeMillis()
                             )
                         )
+                        android.util.Log.d("MuralViewModel", "Usuário criado localmente: ${userDto.username}")
                     }
                 }
             }
@@ -147,9 +156,16 @@ class MuralViewModel @Inject constructor(
                             MuralPostEntity(
                                 remoteId = postDto.id,
                                 plantId = 0,
-                                createdAt = System.currentTimeMillis()
+                                createdAt = System.currentTimeMillis(),
+                                plantName = postDto.plant_name,
+                                strain = postDto.strain ?: "",
+                                stage = postDto.stage ?: "Germinação",
+                                medium = postDto.medium ?: "",
+                                days = postDto.days ?: 0,
+                                photoUrl = postDto.photo_url
                             )
                         )
+                        android.util.Log.d("MuralViewModel", "Post criado localmente: ${postDto.plant_name}")
                     }
                 }
             }
@@ -160,6 +176,7 @@ class MuralViewModel @Inject constructor(
                     if (existingComment == null) {
                         val user = muralDao.getUserByRemoteId(commentDto.user_id)
                         val post = muralDao.getPostByRemoteId(commentDto.post_id)
+                        android.util.Log.d("MuralViewModel", "Tentando sync comentário - user: ${user?.username}, post: ${post?.id}")
                         if (user != null && post != null) {
                             muralDao.insertComment(
                                 MuralCommentEntity(
@@ -171,12 +188,14 @@ class MuralViewModel @Inject constructor(
                                     parentId = commentDto.parent_id
                                 )
                             )
+                            android.util.Log.d("MuralViewModel", "Comentário criado localmente: ${commentDto.content}")
                         }
                     }
                 }
             }
+            android.util.Log.d("MuralViewModel", "Sincronização concluída!")
         } catch (e: Exception) {
-            android.util.Log.e("MuralViewModel", "Erro ao sincronizar com remote: ${e.message}")
+            android.util.Log.e("MuralViewModel", "Erro ao sincronizar com remote: ${e.message}", e)
         }
     }
 
@@ -260,10 +279,16 @@ class MuralViewModel @Inject constructor(
         viewModelScope.launch {
             muralDao.updatePlantSharedStatus(plantId, true)
             
-            val localPostId = muralDao.insertPost(
+            muralDao.insertPost(
                 MuralPostEntity(
                     plantId = plantId,
-                    createdAt = System.currentTimeMillis()
+                    createdAt = System.currentTimeMillis(),
+                    plantName = plantName,
+                    strain = strain,
+                    stage = stage,
+                    medium = medium,
+                    days = days,
+                    photoUrl = photoUrl
                 )
             )
             
@@ -326,7 +351,7 @@ class MuralViewModel @Inject constructor(
                 
                 viewModelScope.launch {
                     var user = muralDao.getUserByUsername(username)
-                    var userUuid: String
+                    var userUuid: String = user?.remoteId ?: ""
                     
                     if (user == null) {
                         val localId = muralDao.insertUser(
@@ -337,39 +362,41 @@ class MuralViewModel @Inject constructor(
                         )
                         user = muralDao.getUserByUsername(username)
                         userUuid = user?.remoteId ?: ""
-                    } else {
-                        userUuid = user.remoteId ?: ""
                     }
                     
                     val supabase = this@MuralViewModel.supabase
-                    if (supabase != null && userUuid.isEmpty()) {
+                    if (supabase != null) {
                         try {
-                            supabase.from("mural_users").insert(
-                                MuralUserDto(
-                                    username = username
+                            if (userUuid.isEmpty()) {
+                                supabase.from("mural_users").insert(
+                                    MuralUserDto(
+                                        username = username
+                                    )
                                 )
-                            )
-                            val newUsers = supabase.from("mural_users")
-                                .select { filter { eq("username", username) } }
-                                .decodeList<MuralUserDto>()
-                            if (newUsers.isNotEmpty() && newUsers.first().id != null) {
-                                userUuid = newUsers.first().id!!
-                                if (user != null) {
-                                    muralDao.updateUserRemoteId(user.id, userUuid)
+                                val newUsers = supabase.from("mural_users")
+                                    .select { filter { eq("username", username) } }
+                                    .decodeList<MuralUserDto>()
+                                if (newUsers.isNotEmpty() && newUsers.first().id != null) {
+                                    userUuid = newUsers.first().id!!
+                                    if (user != null) {
+                                        muralDao.updateUserRemoteId(user.id, userUuid)
+                                    }
                                 }
-                                preferencesRepository.saveUserUuid(userUuid)
                             }
                         } catch (e: Exception) {
                             android.util.Log.e("MuralViewModel", "Erro ao sincronizar usuário: ${e.message}")
                         }
                     }
                     
-                    if (userUuid.isNotEmpty()) {
-                        preferencesRepository.saveUserUuid(userUuid)
-                        _currentUserUuid.value = userUuid
-                        _currentUsername.value = username
-                        onComplete(userUuid)
+                    // Sempre salvar e chamar callback, mesmo se UUID vazio
+                    if (userUuid.isEmpty()) {
+                        // Se não tem UUID remoto, usar username como identificador
+                        userUuid = username
                     }
+                    preferencesRepository.saveUserUuid(userUuid)
+                    _currentUserUuid.value = userUuid
+                    _currentUsername.value = username
+                    onComplete(userUuid)
                 }
             }
         }
@@ -377,8 +404,30 @@ class MuralViewModel @Inject constructor(
 
     fun addComment(postId: String, content: String, parentId: String? = null) {
         viewModelScope.launch {
-            val post = muralDao.getPostByRemoteId(postId) ?: return@launch
-            val user = muralDao.getUserByRemoteId(_currentUserUuid.value ?: return@launch) ?: return@launch
+            android.util.Log.d("MuralViewModel", "addComment: postId=$postId, content=$content")
+            
+            val post = muralDao.getPostByRemoteId(postId)
+            if (post == null) {
+                android.util.Log.e("MuralViewModel", "Post não encontrado: $postId")
+                return@launch
+            }
+            
+            val userUuid = _currentUserUuid.value ?: _currentUsername.value
+            if (userUuid == null) {
+                android.util.Log.e("MuralViewModel", "Usuário não definido")
+                return@launch
+            }
+            
+            // Buscar usuário por remoteId ou username
+            var user = muralDao.getUserByRemoteId(userUuid)
+            if (user == null) {
+                user = muralDao.getUserByUsername(userUuid)
+            }
+            
+            if (user == null) {
+                android.util.Log.e("MuralViewModel", "Usuário não encontrado: $userUuid")
+                return@launch
+            }
             
             val localCommentId = muralDao.insertComment(
                 MuralCommentEntity(
@@ -389,6 +438,21 @@ class MuralViewModel @Inject constructor(
                     parentId = parentId
                 )
             )
+            android.util.Log.d("MuralViewModel", "Comentário salvo localmente: id=$localCommentId")
+            
+            // Atualizar UI imediatamente com o comentário local
+            _postUiState.value = _postUiState.value.copy(
+                comments = _postUiState.value.comments + CommentWithUser(
+                    id = localCommentId,
+                    remoteId = null,
+                    localPostId = post.id,
+                    localUserId = user.id,
+                    content = content,
+                    createdAt = System.currentTimeMillis(),
+                    username = user.username,
+                    parentId = parentId
+                )
+            )
             
             val supabase = this@MuralViewModel.supabase
             if (supabase != null) {
@@ -396,11 +460,12 @@ class MuralViewModel @Inject constructor(
                     supabase.from("mural_comments").insert(
                         MuralCommentDto(
                             post_id = postId,
-                            user_id = _currentUserUuid.value ?: "",
+                            user_id = _currentUserUuid.value ?: userUuid,
                             content = content,
                             parent_id = parentId
                         )
                     )
+                    android.util.Log.d("MuralViewModel", "Comentário sincronizado com Supabase")
                 } catch (e: Exception) {
                     android.util.Log.e("MuralViewModel", "Erro ao sincronizar comentário: ${e.message}")
                 }
@@ -492,7 +557,7 @@ class MuralViewModel @Inject constructor(
     }
 
     private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
-        if (dto.id == null || dto.user_id == null) return
+        if (dto.id == null) return
         try {
             val existingComment = muralDao.getCommentByRemoteId(dto.id)
             if (existingComment != null) return

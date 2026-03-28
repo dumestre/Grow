@@ -46,7 +46,7 @@ private const val TAG = "GrowRepository"
 
 @Singleton
 class GrowRepositoryImpl @Inject constructor(
-    @ApplicationContext private val appContext: Context,
+    @param:ApplicationContext private val appContext: Context,
     private val database: GrowDatabase,
     private val scheduler: ReminderScheduler,
     private val backupManager: BackupManager,
@@ -455,7 +455,7 @@ class GrowRepositoryImpl @Inject constructor(
                 try {
                     var remotePhotoUrl: String? = null
 
-                    if (plant.photoUri != null && !plant.photoUri!!.startsWith("http")) {
+                    if (plant.photoUri != null && !plant.photoUri.startsWith("http")) {
                         val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
                         if (bytes != null) {
                             val fileName = "plant_${UUID.randomUUID()}.webp"
@@ -588,7 +588,7 @@ private fun WateringLogEntity.toDomain() = WateringLog(
     volumeMl = volumeMl,
     intervalDays = intervalDays,
     substrate = substrate,
-    nextWateringDate = nextWateringDate ?: 0L,
+    nextWateringDate = nextWateringDate,
     createdAt = createdAt
 )
 

@@ -80,7 +80,7 @@ fun LockScreen(
                 }
 
                 if (!state.error.isNullOrBlank()) {
-                    Text(state.error ?: "", color = MaterialTheme.colorScheme.error)
+                    Text(state.error, color = MaterialTheme.colorScheme.error)
                 }
             }
         }

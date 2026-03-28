@@ -16,10 +16,19 @@ interface MuralDao {
     fun observeMuralPosts(): Flow<List<MuralPostEntity>>
 
     @Query("""
-        SELECT mp.*, p.name, p.strain, p.stage, p.days, p.photoUri, p.sharedOnMural, p.createdAt as plantCreatedAt, p.medium
+        SELECT 
+            mp.id, mp.remoteId, mp.plantId, mp.createdAt,
+            COALESCE(p.name, mp.plantName, 'Planta') as name,
+            COALESCE(p.strain, mp.strain, '') as strain,
+            COALESCE(p.stage, mp.stage, 'Germinação') as stage,
+            COALESCE(p.days, mp.days, 0) as days,
+            COALESCE(p.photoUri, mp.photoUrl) as photoUri,
+            p.sharedOnMural,
+            p.createdAt as plantCreatedAt,
+            COALESCE(p.medium, mp.medium, '') as medium
         FROM mural_posts mp
-        INNER JOIN plants p ON mp.plantId = p.id
-        WHERE p.sharedOnMural = 1
+        LEFT JOIN plants p ON mp.plantId = p.id
+        WHERE mp.remoteId IS NOT NULL OR p.sharedOnMural = 1
         ORDER BY mp.createdAt DESC
     """)
     fun observeMuralPostsWithPlants(): Flow<List<MuralPostWithPlant>>
@@ -75,6 +84,12 @@ interface MuralDao {
     """)
     fun observeCommentsWithUsers(postId: Long): Flow<List<CommentWithUser>>
 
+    @Query("SELECT * FROM mural_comments ORDER BY createdAt ASC")
+    fun observeAllComments(): Flow<List<MuralCommentEntity>>
+
+    @Query("SELECT * FROM mural_posts WHERE remoteId IS NOT NULL AND plantId = 0")
+    fun observeRemoteOnlyPosts(): Flow<List<MuralPostEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComment(comment: MuralCommentEntity): Long
 
@@ -104,6 +119,18 @@ data class MuralPostWithPlant(
     val sharedOnMural: Boolean,
     val plantCreatedAt: Long,
     val medium: String
+)
+
+data class MuralRemotePost(
+    val id: String,
+    val userId: String,
+    val plantName: String,
+    val strain: String?,
+    val stage: String?,
+    val medium: String?,
+    val days: Int?,
+    val photoUrl: String?,
+    val createdAt: String?
 )
 
 data class CommentWithUser(

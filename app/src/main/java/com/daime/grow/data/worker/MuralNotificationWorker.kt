@@ -12,7 +12,8 @@ import com.daime.grow.data.remote.SupabaseClient
 import com.daime.grow.data.remote.model.MuralCommentDto
 import com.daime.grow.data.remote.model.MuralPostDto
 import io.github.jan.supabase.postgrest.from
-import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 
 class MuralNotificationWorker(
     context: Context,
@@ -26,7 +27,6 @@ class MuralNotificationWorker(
         val userId = sharedPrefs.getString("remote_user_id", null) ?: return Result.success()
 
         try {
-            // 1. Verificar novos comentários em seus posts
             val myPosts = supabase.from("mural_posts")
                 .select { 
                     filter { 
@@ -37,12 +37,15 @@ class MuralNotificationWorker(
 
             val postIds = myPosts.mapNotNull { it.id }
             if (postIds.isNotEmpty()) {
+                val lastCheckInstant = java.time.Instant.ofEpochMilli(lastCheck)
+                val isoDate = java.time.format.DateTimeFormatter.ISO_INSTANT.format(lastCheckInstant)
+                
                 val newComments = supabase.from("mural_comments")
                     .select {
                         filter {
                             isIn("post_id", postIds)
-                            gt("created_at", Instant.fromEpochMilliseconds(lastCheck))
-                            neq("user_id", userId) // Não notificar meus próprios comentários
+                            gt("created_at", isoDate)
+                            neq("user_id", userId)
                         }
                     }
                     .decodeList<MuralCommentDto>()
