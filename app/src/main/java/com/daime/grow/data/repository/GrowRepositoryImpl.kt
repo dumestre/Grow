@@ -98,66 +98,80 @@ class GrowRepositoryImpl @Inject constructor(
     ): Long {
         val now = System.currentTimeMillis()
         var createdId = 0L
-        database.withTransaction {
-            val nextSortOrder = plantDao.maxSortOrder() + 1
-            createdId = plantDao.insert(
-                PlantEntity(
-                    name = name,
-                    strain = strain,
-                    stage = stage,
-                    medium = medium,
-                    days = days,
-                    photoUri = photoUri,
-                    nextWateringDate = null,
-                    sortOrder = nextSortOrder,
-                    createdAt = now,
-                    sharedOnMural = shareOnMural,
-                    isHydroponic = isHydroponic
-                )
-            )
-
-            val checklist = ChecklistFactory.defaultChecklist(createdId, stage, now)
-                .map { item ->
-                    ChecklistItemEntity(
-                        plantId = item.plantId,
-                        phase = item.phase,
-                        task = item.task,
-                        done = item.done,
-                        createdAt = item.createdAt
+        Log.d(TAG, "addPlant: Iniciando criação da planta: $name")
+        
+        try {
+            database.withTransaction {
+                val nextSortOrder = plantDao.maxSortOrder() + 1
+                Log.d(TAG, "addPlant: SortOrder=$nextSortOrder")
+                
+                createdId = plantDao.insert(
+                    PlantEntity(
+                        name = name,
+                        strain = strain,
+                        stage = stage,
+                        medium = medium,
+                        days = days,
+                        photoUri = photoUri,
+                        nextWateringDate = null,
+                        sortOrder = nextSortOrder,
+                        createdAt = now,
+                        sharedOnMural = shareOnMural,
+                        isHydroponic = isHydroponic
                     )
-                }
-            checklistDao.insertAll(checklist)
-
-            plantEventDao.insert(
-                PlantEventEntity(
-                    plantId = createdId,
-                    type = "Cadastro",
-                    note = "Planta criada",
-                    createdAt = now
                 )
-            )
+                Log.d(TAG, "addPlant: Planta inserida com ID=$createdId")
 
-            if (shareOnMural) {
-                muralDao.insertPost(
-                    com.daime.grow.data.local.entity.MuralPostEntity(
+                val checklist = ChecklistFactory.defaultChecklist(createdId, stage, now)
+                    .map { item ->
+                        ChecklistItemEntity(
+                            plantId = item.plantId,
+                            phase = item.phase,
+                            task = item.task,
+                            done = item.done,
+                            createdAt = item.createdAt
+                        )
+                    }
+                checklistDao.insertAll(checklist)
+                Log.d(TAG, "addPlant: Checklist inserido (${checklist.size} itens)")
+
+                plantEventDao.insert(
+                    PlantEventEntity(
                         plantId = createdId,
+                        type = "Cadastro",
+                        note = "Planta criada",
                         createdAt = now
                     )
                 )
+                Log.d(TAG, "addPlant: Evento de cadastro inserido")
+
+                if (shareOnMural) {
+                    muralDao.insertPost(
+                        com.daime.grow.data.local.entity.MuralPostEntity(
+                            plantId = createdId,
+                            createdAt = now
+                        )
+                    )
+                    Log.d(TAG, "addPlant: Post do mural inserido")
+                }
             }
+            Log.d(TAG, "addPlant: Transação concluída com sucesso, ID=$createdId")
+
+            syncPlantsToRemote()
+
+            if (shareOnMural) {
+                syncToSupabase(name, strain, stage, medium, days, photoUri)
+            }
+
+            val createdPlant = plantDao.observePlant(createdId).first()
+            createdPlant?.toDomain()?.let { scheduler.scheduleForPlant(it) }
+            
+            Log.d(TAG, "addPlant: Planta finalizada com ID=$createdId")
+            return createdId
+        } catch (e: Exception) {
+            Log.e(TAG, "addPlant: ERRO ao criar planta: ${e.message}", e)
+            throw e
         }
-
-        // Sincronização com Supabase
-        syncPlantsToRemote()
-
-        // Sincronização com Supabase se compartilhado no Mural
-        if (shareOnMural) {
-            syncToSupabase(name, strain, stage, medium, days, photoUri)
-        }
-
-        val createdPlant = plantDao.observePlant(createdId).first()
-        createdPlant?.toDomain()?.let { scheduler.scheduleForPlant(it) }
-        return createdId
     }
 
     private suspend fun syncToSupabase(
@@ -170,10 +184,9 @@ class GrowRepositoryImpl @Inject constructor(
     ) {
         val supabase = supabase ?: return
         try {
-            val userId = getCurrentUserId() ?: return
+            val userUuid = getCurrentUserId() ?: return
             var remotePhotoUrl: String? = null
 
-            // 1. Upload da foto se existir
             if (photoUri != null) {
                 val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
                 if (bytes != null) {
@@ -184,15 +197,9 @@ class GrowRepositoryImpl @Inject constructor(
                 }
             }
 
-            // 2. Enviar Post para o Supabase
-            val localUser = muralDao.getUser(userId) ?: return
-            val remoteUser = supabase.from("mural_users")
-                .select { filter { eq("username", localUser.username) } }
-                .decodeSingle<MuralUserDto>()
-
             supabase.from("mural_posts").insert(
                 MuralPostDto(
-                    user_id = remoteUser.id!!,
+                    user_id = userUuid,
                     plant_name = name,
                     strain = strain,
                     stage = stage,
@@ -392,23 +399,18 @@ class GrowRepositoryImpl @Inject constructor(
         return muralDao.observeMuralPostsWithPlants()
     }
 
-    override fun observeMuralPost(postId: Long): Flow<com.daime.grow.data.local.dao.MuralPostWithPlant?> {
-        return muralDao.observeMuralPostsWithPlants().map { posts ->
-            posts.find { it.id == postId }
-        }
-    }
-
     override fun observeComments(postId: Long): Flow<List<com.daime.grow.data.local.dao.CommentWithUser>> {
         return muralDao.observeCommentsWithUsers(postId)
     }
 
-    override suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long?) {
+    override suspend fun addComment(postId: Long, userId: Long, content: String, parentId: String?) {
         muralDao.insertComment(
             com.daime.grow.data.local.entity.MuralCommentEntity(
-                postId = postId,
-                userId = userId,
+                localPostId = postId,
+                localUserId = userId,
                 content = content,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                parentId = parentId
             )
         )
     }
@@ -423,7 +425,6 @@ class GrowRepositoryImpl @Inject constructor(
                     createdAt = now
                 )
             )
-            // Sincronizar usuário com Supabase
             try {
                 supabase?.from("mural_users")?.insert(MuralUserDto(username = username))
             } catch (e: Exception) {
@@ -434,24 +435,19 @@ class GrowRepositoryImpl @Inject constructor(
         return user.id
     }
 
-    private var currentUserId: Long? = null
+    private var currentUserUuid: String? = null
 
-    override suspend fun getCurrentUserId(): Long? = currentUserId
+    override suspend fun getCurrentUserId(): String? = currentUserUuid
 
-    fun setCurrentUserId(userId: Long) {
-        currentUserId = userId
+    fun setCurrentUserUuid(userUuid: String) {
+        currentUserUuid = userUuid
     }
 
     override suspend fun syncPlantsToRemote() {
         val supabase = supabase ?: return
-        val userId = currentUserId ?: return
+        val userUuid = currentUserUuid ?: return
 
         try {
-            val localUser = muralDao.getUser(userId) ?: return
-            val remoteUser = supabase.from("mural_users")
-                .select { filter { eq("username", localUser.username) } }
-                .decodeSingleOrNull<MuralUserDto>() ?: return
-
             val plants = plantDao.getAllNow()
             val now = System.currentTimeMillis()
 
@@ -473,7 +469,7 @@ class GrowRepositoryImpl @Inject constructor(
 
                     supabase.from("plants").upsert(
                         PlantDto(
-                            user_id = remoteUser.id,
+                            user_id = userUuid,
                             name = plant.name,
                             strain = plant.strain,
                             stage = plant.stage,
@@ -498,16 +494,11 @@ class GrowRepositoryImpl @Inject constructor(
 
     override suspend fun syncPlantsFromRemote() {
         val supabase = supabase ?: return
-        val userId = currentUserId ?: return
+        val userUuid = currentUserUuid ?: return
 
         try {
-            val localUser = muralDao.getUser(userId) ?: return
-            val remoteUser = supabase.from("mural_users")
-                .select { filter { eq("username", localUser.username) } }
-                .decodeSingleOrNull<MuralUserDto>() ?: return
-
             val remotePlants = supabase.from("plants")
-                .select { filter { eq("user_id", remoteUser.id!!) } }
+                .select { filter { eq("user_id", userUuid) } }
                 .decodeList<PlantDto>()
 
             val now = System.currentTimeMillis()

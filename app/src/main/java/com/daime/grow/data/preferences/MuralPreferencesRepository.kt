@@ -2,7 +2,7 @@ package com.daime.grow.data.preferences
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,16 +11,16 @@ private val Context.muralDataStore by preferencesDataStore(name = "mural_setting
 
 class MuralPreferencesRepository(private val context: Context) {
     private object Keys {
-        val currentUserId = longPreferencesKey("current_user_id")
+        val currentUserUuid = stringPreferencesKey("current_user_uuid")
     }
 
-    val currentUserId: Flow<Long?> = context.muralDataStore.data.map { preferences ->
-        preferences[Keys.currentUserId]
+    val currentUserUuid: Flow<String?> = context.muralDataStore.data.map { preferences ->
+        preferences[Keys.currentUserUuid]
     }
 
-    suspend fun saveUserId(userId: Long) {
+    suspend fun saveUserUuid(userUuid: String) {
         context.muralDataStore.edit { preferences ->
-            preferences[Keys.currentUserId] = userId
+            preferences[Keys.currentUserUuid] = userUuid
         }
     }
 }

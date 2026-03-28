@@ -18,15 +18,12 @@ import com.daime.grow.data.remote.model.MuralCommentDto
 import com.daime.grow.data.remote.model.MuralLikeDto
 import com.daime.grow.data.remote.model.MuralPostDto
 import com.daime.grow.data.remote.model.MuralUserDto
-import com.daime.grow.domain.model.Plant
-import com.daime.grow.domain.model.PlantStage
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.realtime.PostgresAction
-import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
-import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.decodeRecord
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,10 +32,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.jan.supabase.realtime.realtime
 
 data class MuralUiState(
     val posts: List<MuralPostWithPlant> = emptyList(),
@@ -70,8 +67,8 @@ class MuralViewModel @Inject constructor(
     private val _postUiState = MutableStateFlow(MuralPostUiState())
     val postUiState: StateFlow<MuralPostUiState> = _postUiState.asStateFlow()
 
-    private val _currentUserId = MutableStateFlow<Long?>(null)
-    val currentUserId: StateFlow<Long?> = _currentUserId.asStateFlow()
+    private val _currentUserUuid = MutableStateFlow<String?>(null)
+    val currentUserUuid: StateFlow<String?> = _currentUserUuid.asStateFlow()
     
     private val _currentUsername = MutableStateFlow<String?>(null)
     val currentUsername: StateFlow<String?> = _currentUsername.asStateFlow()
@@ -91,10 +88,10 @@ class MuralViewModel @Inject constructor(
 
     private fun observeStoredUser() {
         viewModelScope.launch {
-            preferencesRepository.currentUserId.collect { id ->
-                _currentUserId.value = id
-                if (id != null) {
-                    val user = muralDao.getUser(id)
+            preferencesRepository.currentUserUuid.collect { uuid ->
+                _currentUserUuid.value = uuid
+                if (uuid != null) {
+                    val user = muralDao.getUserByRemoteId(uuid)
                     _currentUsername.value = user?.username
                 }
             }
@@ -115,58 +112,67 @@ class MuralViewModel @Inject constructor(
     private suspend fun syncWithRemote() {
         val supabase = this.supabase ?: return
         try {
+            val remoteUsers = supabase.from("mural_users")
+                .select()
+                .decodeList<MuralUserDto>()
+
             val remotePosts = supabase.from("mural_posts")
                 .select()
                 .decodeList<MuralPostDto>()
             
-            val remoteUsers = supabase.from("mural_users")
-                .select()
-                .decodeList<MuralUserDto>()
-            
             val remoteComments = supabase.from("mural_comments")
                 .select()
                 .decodeList<MuralCommentDto>()
-            
-            val remoteLikes = supabase.from("mural_likes")
-                .select()
-                .decodeList<MuralLikeDto>()
 
             remoteUsers.forEach { userDto ->
-                if (userDto.id != null) {
-                    muralDao.insertUser(
-                        MuralUserEntity(
-                            id = userDto.id.toLongOrNull() ?: 0,
-                            username = userDto.username,
-                            createdAt = System.currentTimeMillis()
+                if (userDto.id != null && userDto.username.isNotEmpty()) {
+                    val existingUser = muralDao.getUserByRemoteId(userDto.id)
+                    if (existingUser == null) {
+                        muralDao.insertUser(
+                            MuralUserEntity(
+                                remoteId = userDto.id,
+                                username = userDto.username,
+                                createdAt = System.currentTimeMillis()
+                            )
                         )
-                    )
+                    }
                 }
             }
 
             remotePosts.forEach { postDto ->
                 if (postDto.id != null) {
-                    muralDao.insertPost(
-                        MuralPostEntity(
-                            id = postDto.id.toLongOrNull() ?: 0,
-                            plantId = 0,
-                            createdAt = System.currentTimeMillis()
+                    val existingPost = muralDao.getPostByRemoteId(postDto.id)
+                    if (existingPost == null) {
+                        muralDao.insertPost(
+                            MuralPostEntity(
+                                remoteId = postDto.id,
+                                plantId = 0,
+                                createdAt = System.currentTimeMillis()
+                            )
                         )
-                    )
+                    }
                 }
             }
 
             remoteComments.forEach { commentDto ->
                 if (commentDto.id != null) {
-                    muralDao.insertComment(
-                        MuralCommentEntity(
-                            id = commentDto.id.toLongOrNull() ?: 0,
-                            postId = commentDto.post_id.toLongOrNull() ?: 0,
-                            userId = commentDto.user_id.toLongOrNull() ?: 0,
-                            content = commentDto.content,
-                            createdAt = System.currentTimeMillis(),
-                            parentId = commentDto.parent_id?.toLongOrNull()
-                        )
-                    )
+                    val existingComment = muralDao.getCommentByRemoteId(commentDto.id)
+                    if (existingComment == null) {
+                        val user = muralDao.getUserByRemoteId(commentDto.user_id)
+                        val post = muralDao.getPostByRemoteId(commentDto.post_id)
+                        if (user != null && post != null) {
+                            muralDao.insertComment(
+                                MuralCommentEntity(
+                                    remoteId = commentDto.id,
+                                    localPostId = post.id,
+                                    localUserId = user.id,
+                                    content = commentDto.content,
+                                    createdAt = System.currentTimeMillis(),
+                                    parentId = commentDto.parent_id
+                                )
+                            )
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -174,47 +180,45 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun loadPost(postId: Long) {
+    fun loadPost(postId: String) {
         viewModelScope.launch {
             muralDao.observeMuralPostsWithPlants().collect { posts ->
-                val post = posts.find { it.id == postId }
+                val post = posts.find { it.remoteId == postId }
                 
                 _postUiState.value = _postUiState.value.copy(
                     post = post,
                     isLoading = false
                 )
                 
-                if (post != null) {
-                    loadComments(postId)
+                if (post != null && post.remoteId != null) {
+                    loadComments(post.id)
+                    loadLikes(post.remoteId)
+                    subscribeToCommentsRealtime(post.remoteId)
+                    subscribeToLikesRealtime(post.remoteId)
                 }
             }
         }
-        if (postId >= 0) {
-            loadLikes(postId)
-            subscribeToCommentsRealtime(postId)
-            subscribeToLikesRealtime(postId)
-        }
     }
 
-    private fun loadComments(postId: Long) {
+    private fun loadComments(localPostId: Long) {
         viewModelScope.launch {
-            muralDao.observeCommentsWithUsers(postId).collect { comments ->
+            muralDao.observeCommentsWithUsers(localPostId).collect { comments ->
                 _postUiState.value = _postUiState.value.copy(comments = comments)
             }
         }
     }
 
-    private fun loadLikes(postId: Long) {
+    private fun loadLikes(postId: String) {
         viewModelScope.launch {
             try {
                 val supabase = this@MuralViewModel.supabase ?: return@launch
                 val likes = supabase.from("mural_likes")
-                    .select { filter { eq("post_id", postId.toString()) } }
+                    .select { filter { eq("post_id", postId) } }
                     .decodeList<MuralLikeDto>()
                 _postUiState.value = _postUiState.value.copy(likeCount = likes.size)
                 
-                val currentUserId = _currentUserId.value
-                val isLiked = currentUserId != null && likes.any { it.user_id == currentUserId.toString() }
+                val currentUserUuid = _currentUserUuid.value
+                val isLiked = currentUserUuid != null && likes.any { it.user_id == currentUserUuid }
                 _postUiState.value = _postUiState.value.copy(isLiked = isLiked)
             } catch (e: Exception) {
                 android.util.Log.e("MuralViewModel", "Erro ao carregar curtidas", e)
@@ -222,7 +226,7 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun toggleLike(postId: Long) {
+    fun toggleLike(postId: String) {
         val currentState = _postUiState.value
         val newIsLiked = !currentState.isLiked
         val newCount = if (newIsLiked) currentState.likeCount + 1 else (currentState.likeCount - 1).coerceAtLeast(0)
@@ -232,19 +236,18 @@ class MuralViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val supabase = this@MuralViewModel.supabase ?: return@launch
-                val currentUserId = _currentUserId.value
-                if (currentUserId != null) {
+                val currentUserUuid = _currentUserUuid.value
+                if (currentUserUuid != null) {
                     if (newIsLiked) {
                         supabase.from("mural_likes").insert(
                             MuralLikeDto(
-                                post_id = postId.toString(),
-                                user_id = currentUserId.toString()
+                                post_id = postId,
+                                user_id = currentUserUuid
                             )
                         )
-                        createNotification(NotificationType.NEW_LIKE, postId, "curtiu sua planta")
                     } else {
                         supabase.from("mural_likes")
-                            .delete { filter { eq("post_id", postId.toString()); eq("user_id", currentUserId.toString()) } }
+                            .delete { filter { eq("post_id", postId); eq("user_id", currentUserUuid) } }
                     }
                 }
             } catch (e: Exception) {
@@ -253,106 +256,10 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createNotification(type: String, postId: Long, message: String) {
-        val post = _postUiState.value.post ?: return
-        val username = _currentUsername.value ?: return
-        
-        notificationDao.insertNotification(
-            NotificationEntity(
-                type = type,
-                username = username,
-                message = message,
-                time = System.currentTimeMillis(),
-                relatedId = postId
-            )
-        )
-    }
-
-    private fun subscribeToCommentsRealtime(postId: Long) {
-        viewModelScope.launch {
-            val supabase = supabase ?: return@launch
-            val channel = supabase.realtime.channel("comments_$postId")
-            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                table = "mural_comments"
-            }
-            channel.subscribe()
-            changeFlow.collect { action ->
-                when (action) {
-                    is PostgresAction.Insert -> {
-                        val dto = action.decodeRecord<MuralCommentDto>()
-                        if (dto.post_id == postId.toString()) {
-                             syncRemoteCommentToLocal(dto)
-                             handleNewCommentNotification(dto)
-                        }
-                    }
-                    else -> {}
-                }
-            }
-        }
-    }
-
-    private suspend fun handleNewCommentNotification(dto: MuralCommentDto) {
-        val currentUserId = _currentUserId.value?.toString() ?: return
-        if (dto.user_id == currentUserId) return
-        
-        val post = _postUiState.value.post ?: return
-        val commenterUsername = muralDao.getUser(dto.user_id.toLongOrNull() ?: return)?.username ?: "Um usuário"
-        
-        val notificationType = if (dto.parent_id != null) NotificationType.NEW_REPLY else NotificationType.NEW_COMMENT
-        val message = if (dto.parent_id != null) "respondeu ao seu comentário" else "comentou na sua planta"
-        
-        notificationDao.insertNotification(
-            NotificationEntity(
-                type = notificationType,
-                username = commenterUsername,
-                message = message,
-                time = System.currentTimeMillis(),
-                relatedId = dto.post_id.toLongOrNull(),
-                userId = dto.user_id.toLongOrNull()
-            )
-        )
-    }
-
-    private fun subscribeToLikesRealtime(postId: Long) {
-        viewModelScope.launch {
-            val supabase = supabase ?: return@launch
-            val channel = supabase.realtime.channel("likes_$postId")
-            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                table = "mural_likes"
-            }
-            channel.subscribe()
-            changeFlow.collect {
-                loadLikes(postId)
-            }
-        }
-    }
-
-    private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
-        if (dto.id == null || dto.user_id == null) return
-        try {
-            val userId = dto.user_id.toLongOrNull() ?: return
-            muralDao.insertComment(
-                MuralCommentEntity(
-                    id = dto.id.toLongOrNull() ?: 0,
-                    postId = dto.post_id.toLongOrNull() ?: 0,
-                    userId = userId,
-                    content = dto.content,
-                    createdAt = System.currentTimeMillis(),
-                    parentId = dto.parent_id?.toLongOrNull()
-                )
-            )
-        } catch (e: Exception) {
-            android.util.Log.e("MuralViewModel", "Erro ao sincronizar comentário: ${e.message}")
-        }
-    }
-
-    fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {
-        return muralDao.observeCommentsWithUsers(postId)
-    }
-
     fun sharePlant(plantId: Long, plantName: String, strain: String, stage: String, medium: String, days: Int, photoUrl: String?) {
         viewModelScope.launch {
             muralDao.updatePlantSharedStatus(plantId, true)
+            
             val localPostId = muralDao.insertPost(
                 MuralPostEntity(
                     plantId = plantId,
@@ -361,12 +268,12 @@ class MuralViewModel @Inject constructor(
             )
             
             val supabase = this@MuralViewModel.supabase
-            if (supabase != null) {
+            val currentUserUuid = _currentUserUuid.value
+            if (supabase != null && currentUserUuid != null) {
                 try {
                     supabase.from("mural_posts").insert(
                         MuralPostDto(
-                            id = localPostId.toString(),
-                            user_id = _currentUserId.value?.toString() ?: "",
+                            user_id = currentUserUuid,
                             plant_name = plantName,
                             strain = strain,
                             stage = stage,
@@ -406,7 +313,7 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun createOrGetUser(username: String, onComplete: (Long) -> Unit, onUsernameTaken: () -> Unit) {
+    fun createOrGetUser(username: String, onComplete: (String) -> Unit, onUsernameTaken: () -> Unit) {
         viewModelScope.launch {
             checkUsernameAvailable(username) { available ->
                 if (!available) {
@@ -419,45 +326,64 @@ class MuralViewModel @Inject constructor(
                 
                 viewModelScope.launch {
                     var user = muralDao.getUserByUsername(username)
-                    val userId = if (user == null) {
-                        muralDao.insertUser(
+                    var userUuid: String
+                    
+                    if (user == null) {
+                        val localId = muralDao.insertUser(
                             MuralUserEntity(
                                 username = username,
                                 createdAt = System.currentTimeMillis()
                             )
                         )
+                        user = muralDao.getUserByUsername(username)
+                        userUuid = user?.remoteId ?: ""
                     } else {
-                        user.id
+                        userUuid = user.remoteId ?: ""
                     }
-                    preferencesRepository.saveUserId(userId)
-                    _currentUsername.value = username
                     
                     val supabase = this@MuralViewModel.supabase
-                    if (supabase != null) {
+                    if (supabase != null && userUuid.isEmpty()) {
                         try {
                             supabase.from("mural_users").insert(
                                 MuralUserDto(
-                                    id = userId.toString(),
                                     username = username
                                 )
                             )
+                            val newUsers = supabase.from("mural_users")
+                                .select { filter { eq("username", username) } }
+                                .decodeList<MuralUserDto>()
+                            if (newUsers.isNotEmpty() && newUsers.first().id != null) {
+                                userUuid = newUsers.first().id!!
+                                if (user != null) {
+                                    muralDao.updateUserRemoteId(user.id, userUuid)
+                                }
+                                preferencesRepository.saveUserUuid(userUuid)
+                            }
                         } catch (e: Exception) {
                             android.util.Log.e("MuralViewModel", "Erro ao sincronizar usuário: ${e.message}")
                         }
                     }
                     
-                    onComplete(userId)
+                    if (userUuid.isNotEmpty()) {
+                        preferencesRepository.saveUserUuid(userUuid)
+                        _currentUserUuid.value = userUuid
+                        _currentUsername.value = username
+                        onComplete(userUuid)
+                    }
                 }
             }
         }
     }
 
-    fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null) {
+    fun addComment(postId: String, content: String, parentId: String? = null) {
         viewModelScope.launch {
+            val post = muralDao.getPostByRemoteId(postId) ?: return@launch
+            val user = muralDao.getUserByRemoteId(_currentUserUuid.value ?: return@launch) ?: return@launch
+            
             val localCommentId = muralDao.insertComment(
                 MuralCommentEntity(
-                    postId = postId,
-                    userId = userId,
+                    localPostId = post.id,
+                    localUserId = user.id,
                     content = content,
                     createdAt = System.currentTimeMillis(),
                     parentId = parentId
@@ -469,11 +395,10 @@ class MuralViewModel @Inject constructor(
                 try {
                     supabase.from("mural_comments").insert(
                         MuralCommentDto(
-                            id = localCommentId.toString(),
-                            post_id = postId.toString(),
-                            user_id = userId.toString(),
+                            post_id = postId,
+                            user_id = _currentUserUuid.value ?: "",
                             content = content,
-                            parent_id = parentId?.toString()
+                            parent_id = parentId
                         )
                     )
                 } catch (e: Exception) {
@@ -483,15 +408,18 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun deleteComment(commentId: Long) {
+    fun deleteComment(commentId: String) {
         viewModelScope.launch {
-            muralDao.deleteComment(commentId)
+            val comment = muralDao.getCommentByRemoteId(commentId)
+            if (comment != null) {
+                muralDao.deleteCommentByRemoteId(commentId)
+            }
             
             val supabase = this@MuralViewModel.supabase
             if (supabase != null) {
                 try {
                     supabase.from("mural_comments")
-                        .delete { filter { eq("id", commentId.toString()) } }
+                        .delete { filter { eq("id", commentId) } }
                 } catch (e: Exception) {
                     android.util.Log.e("MuralViewModel", "Erro ao deletar comentário remoto: ${e.message}")
                 }
@@ -499,23 +427,96 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun editComment(commentId: Long, newContent: String) {
+    fun editComment(commentId: String, newContent: String) {
         viewModelScope.launch {
-            val comment = muralDao.getComment(commentId)
-            if (comment != null) {
-                muralDao.updateComment(comment.copy(content = newContent))
-                
-                val supabase = this@MuralViewModel.supabase
-                if (supabase != null) {
-                    try {
-                        supabase.from("mural_comments")
-                            .update({ set("content", newContent) }) { filter { eq("id", commentId.toString()) } }
-                    } catch (e: Exception) {
-                        android.util.Log.e("MuralViewModel", "Erro ao editar comentário remoto: ${e.message}")
-                    }
+            val comment = muralDao.getCommentByRemoteId(commentId) ?: return@launch
+            
+            muralDao.updateComment(comment.copy(content = newContent))
+            
+            val supabase = this@MuralViewModel.supabase
+            if (supabase != null) {
+                try {
+                    supabase.from("mural_comments")
+                        .update({ set("content", newContent) }) { filter { eq("id", commentId) } }
+                } catch (e: Exception) {
+                    android.util.Log.e("MuralViewModel", "Erro ao editar comentário remoto: ${e.message}")
                 }
             }
         }
+    }
+
+    private fun subscribeToCommentsRealtime(postId: String) {
+        viewModelScope.launch {
+            val supabase = supabase ?: return@launch
+            val channel = supabase.realtime.channel("comments_$postId")
+            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "mural_comments"
+            }
+            channel.subscribe()
+            changeFlow.collect { action ->
+                when (action) {
+                    is PostgresAction.Insert -> {
+                        val dto = action.decodeRecord<MuralCommentDto>()
+                        if (dto.post_id == postId) {
+                            syncRemoteCommentToLocal(dto)
+                        }
+                    }
+                    is PostgresAction.Delete -> {
+                        val oldRecord = action.oldRecord
+                        val commentId = oldRecord["id"]?.jsonPrimitive?.content
+                        val commentPostId = oldRecord["post_id"]?.jsonPrimitive?.content
+                        if (commentId != null && commentPostId == postId) {
+                            muralDao.getCommentByRemoteId(commentId)?.let {
+                                muralDao.deleteCommentByRemoteId(commentId)
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun subscribeToLikesRealtime(postId: String) {
+        viewModelScope.launch {
+            val supabase = supabase ?: return@launch
+            val channel = supabase.realtime.channel("likes_$postId")
+            val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "mural_likes"
+            }
+            channel.subscribe()
+            changeFlow.collect {
+                loadLikes(postId)
+            }
+        }
+    }
+
+    private suspend fun syncRemoteCommentToLocal(dto: MuralCommentDto) {
+        if (dto.id == null || dto.user_id == null) return
+        try {
+            val existingComment = muralDao.getCommentByRemoteId(dto.id)
+            if (existingComment != null) return
+            
+            val user = muralDao.getUserByRemoteId(dto.user_id) ?: return
+            val post = muralDao.getPostByRemoteId(dto.post_id) ?: return
+            
+            muralDao.insertComment(
+                MuralCommentEntity(
+                    remoteId = dto.id,
+                    localPostId = post.id,
+                    localUserId = user.id,
+                    content = dto.content,
+                    createdAt = System.currentTimeMillis(),
+                    parentId = dto.parent_id
+                )
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("MuralViewModel", "Erro ao sincronizar comentário: ${e.message}")
+        }
+    }
+
+    fun getCommentsFlow(postId: Long): Flow<List<CommentWithUser>> {
+        return muralDao.observeCommentsWithUsers(postId)
     }
 }
 

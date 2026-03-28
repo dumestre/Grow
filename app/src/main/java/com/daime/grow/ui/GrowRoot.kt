@@ -254,11 +254,11 @@ fun GrowRoot(container: AppContainer) {
 
                         composable(
                             route = NavRoute.MuralPost.route,
-                            arguments = listOf(navArgument("postId") { type = NavType.LongType })
+                            arguments = listOf(navArgument("postId") { type = NavType.StringType })
                         ) {
                             val currentMuralViewModel: MuralViewModel = hiltViewModel()
                             MuralPostScreen(
-                                postId = checkNotNull(it.arguments?.getLong("postId")),
+                                postId = checkNotNull(it.arguments?.getString("postId")),
                                 innerPadding = PaddingValues(),
                                 viewModel = currentMuralViewModel,
                                 onBack = { navController.popBackStack() }

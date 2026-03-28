@@ -89,7 +89,7 @@ fun NewPlantScreen(
     viewModel: AddPlantViewModel,
     onSaved: (Long) -> Unit,
     onClose: () -> Unit,
-    onCheckUser: (String, (Long) -> Unit, () -> Unit) -> Unit
+    onCheckUser: (String, (String) -> Unit, () -> Unit) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

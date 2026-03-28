@@ -13,6 +13,6 @@ sealed class NavRoute(val route: String) {
         fun create(plantId: Long) = "detail/$plantId"
     }
     data object MuralPost : NavRoute("mural_post/{postId}") {
-        fun create(postId: Long) = "mural_post/$postId"
+        fun create(postId: String) = "mural_post/$postId"
     }
 }

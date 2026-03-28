@@ -37,25 +37,30 @@ import com.daime.grow.ui.viewmodel.MuralViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuralPostScreen(
-    postId: Long,
+    postId: String,
     innerPadding: PaddingValues,
     viewModel: MuralViewModel,
     onBack: () -> Unit
 ) {
     val state by viewModel.postUiState.collectAsStateWithLifecycle()
-    val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
+    val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
+    val currentUsername by viewModel.currentUsername.collectAsStateWithLifecycle()
     var showUsernameDialog by remember { mutableStateOf(false) }
     var editingComment by remember { mutableStateOf<CommentWithUser?>(null) }
     var pendingComment by remember { mutableStateOf("") }
-    var pendingReplyToId by remember { mutableStateOf<Long?>(null) }
+    var pendingReplyToId by remember { mutableStateOf<String?>(null) }
     var replyToComment by remember { mutableStateOf<CommentWithUser?>(null) }
 
-    // Estado local para o like (para feedback instantâneo)
     var isLiked by remember { mutableStateOf(false) }
     var likeCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(postId) {
         viewModel.loadPost(postId)
+    }
+
+    LaunchedEffect(state.isLiked, state.likeCount) {
+        isLiked = state.isLiked
+        likeCount = state.likeCount
     }
 
     Scaffold(
@@ -79,9 +84,7 @@ fun MuralPostScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .clickable { 
-                                isLiked = !isLiked
-                                if (isLiked) likeCount++ else if (likeCount > 0) likeCount--
-                                // viewModel.toggleLike(postId) 
+                                viewModel.toggleLike(postId)
                             }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
@@ -156,12 +159,12 @@ fun MuralPostScreen(
                                 items(tree, key = { it.first.id }) { (comment, depth) ->
                                     MuralCommentItem(
                                         comment = comment,
-                                        currentUserId = currentUserId,
+                                        currentUsername = currentUsername,
                                         onReplyClick = { 
                                             replyToComment = it
                                             editingComment = null
                                         },
-                                        onDeleteClick = { viewModel.deleteComment(it.id) },
+                                        onDeleteClick = { viewModel.deleteComment(it.remoteId ?: "") },
                                         onEditClick = { 
                                             editingComment = it
                                             replyToComment = null
@@ -172,7 +175,6 @@ fun MuralPostScreen(
                             }
                         }
 
-                        // Reply Feedback Area
                         AnimatedVisibility(
                             visible = replyToComment != null,
                             enter = fadeIn() + expandVertically(),
@@ -207,23 +209,23 @@ fun MuralPostScreen(
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             CommentInput(
-                                currentUserId = currentUserId,
+                                currentUserUuid = currentUsername,
                                 editingComment = editingComment,
                                 onCancelEdit = { editingComment = null },
                                 onSendComment = { content ->
                                     editingComment?.let {
-                                        viewModel.editComment(it.id, content)
+                                        viewModel.editComment(it.remoteId ?: "", content)
                                         editingComment = null
                                     } ?: run {
-                                        currentUserId?.let { id ->
-                                            viewModel.addComment(postId, id, content, replyToComment?.id)
+                                        currentUsername?.let { _ ->
+                                            viewModel.addComment(postId, content, replyToComment?.remoteId)
                                             replyToComment = null
                                         }
                                     }
                                 },
                                 onRequestUsername = { content ->
                                     pendingComment = content
-                                    pendingReplyToId = replyToComment?.id
+                                    pendingReplyToId = replyToComment?.remoteId
                                     showUsernameDialog = true
                                 }
                             )
@@ -255,9 +257,9 @@ fun MuralPostScreen(
                 usernameError = null
                 viewModel.createOrGetUser(
                     username = username,
-                    onComplete = { userId ->
+                    onComplete = { userUuid ->
                         if (pendingComment.isNotBlank()) {
-                            viewModel.addComment(postId, userId, pendingComment, pendingReplyToId)
+                            viewModel.addComment(postId, pendingComment, pendingReplyToId)
                             pendingComment = ""
                             pendingReplyToId = null
                         }

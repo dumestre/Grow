@@ -182,3 +182,31 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         db.execSQL("ALTER TABLE plants ADD COLUMN isHydroponic INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE mural_posts ADD COLUMN remoteId TEXT")
+        db.execSQL("ALTER TABLE mural_users ADD COLUMN remoteId TEXT")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS mural_comments_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                remoteId TEXT,
+                localPostId INTEGER NOT NULL,
+                localUserId INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                parentId TEXT,
+                FOREIGN KEY(localPostId) REFERENCES mural_posts(id) ON DELETE CASCADE,
+                FOREIGN KEY(localUserId) REFERENCES mural_users(id) ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("""
+            INSERT INTO mural_comments_new (id, localPostId, localUserId, content, createdAt, parentId)
+            SELECT id, postId, userId, content, createdAt, parentId FROM mural_comments
+        """.trimIndent())
+        db.execSQL("DROP TABLE mural_comments")
+        db.execSQL("ALTER TABLE mural_comments_new RENAME TO mural_comments")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_localPostId ON mural_comments(localPostId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_localUserId ON mural_comments(localUserId)")
+    }
+}

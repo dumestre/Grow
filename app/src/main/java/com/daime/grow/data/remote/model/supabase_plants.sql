@@ -1,10 +1,11 @@
 -- SQL para criar tabela plants no Supabase
 -- Execute este SQL no Editor SQL do Supabase
+-- IMPORTANTE: Crie primeiro a tabela mural_users
 
 -- 1. Criar tabela plants
 CREATE TABLE IF NOT EXISTS public.plants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id),
+    user_id UUID NOT NULL REFERENCES public.mural_users(id),
     name TEXT NOT NULL,
     strain TEXT,
     stage TEXT NOT NULL DEFAULT 'Germinação',
@@ -22,18 +23,18 @@ CREATE TABLE IF NOT EXISTS public.plants (
 -- 2. Habilitar RLS
 ALTER TABLE public.plants ENABLE ROW LEVEL SECURITY;
 
--- 3. Políticas RLS
-CREATE POLICY "Users can insert their own plants" ON public.plants
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- 3. Políticas RLS (sem autenticação - usar mural_users)
+CREATE POLICY "plants_select" ON public.plants
+    FOR SELECT USING (true);
 
-CREATE POLICY "Users can update their own plants" ON public.plants
-    FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "plants_insert" ON public.plants
+    FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Users can delete their own plants" ON public.plants
-    FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "plants_update" ON public.plants
+    FOR UPDATE USING (true);
 
-CREATE POLICY "Users can read their own plants" ON public.plants
-    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "plants_delete" ON public.plants
+    FOR DELETE USING (true);
 
 -- 4. Criar índice para performance
 CREATE INDEX IF NOT EXISTS idx_plants_user_id ON public.plants(user_id);

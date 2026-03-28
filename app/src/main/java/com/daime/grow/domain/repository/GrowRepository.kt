@@ -48,11 +48,10 @@ interface GrowRepository {
 
     // Mural
     fun observeMuralPosts(): Flow<List<MuralPostWithPlant>>
-    fun observeMuralPost(postId: Long): Flow<MuralPostWithPlant?>
     fun observeComments(postId: Long): Flow<List<CommentWithUser>>
-    suspend fun addComment(postId: Long, userId: Long, content: String, parentId: Long? = null)
+    suspend fun addComment(postId: Long, userId: Long, content: String, parentId: String? = null)
     suspend fun createOrGetUser(username: String): Long
-    suspend fun getCurrentUserId(): Long?
+    suspend fun getCurrentUserId(): String?
 
     // Sync
     suspend fun syncPlantsToRemote()

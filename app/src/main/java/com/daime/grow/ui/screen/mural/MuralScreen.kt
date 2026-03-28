@@ -8,7 +8,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
@@ -47,19 +46,20 @@ import com.daime.grow.ui.viewmodel.MuralViewModel
 fun MuralScreen(
     innerPadding: PaddingValues,
     viewModel: MuralViewModel,
-    onPostClick: (Long) -> Unit
+    onPostClick: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle()
+    val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
+    val currentUsername by viewModel.currentUsername.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
-    var expandedPostId by remember { mutableLongStateOf(-1L) }
+    var expandedPostId by remember { mutableStateOf<String?>(null) }
     var showUsernameDialog by remember { mutableStateOf(false) }
     var pendingComment by remember { mutableStateOf("") }
-    var pendingReplyToId by remember { mutableStateOf<Long?>(null) }
+    var pendingReplyToId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         modifier = Modifier
@@ -115,15 +115,18 @@ fun MuralScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.posts, key = { it.id }) { post ->
-                        val isExpanded = expandedPostId == post.id
+                        val isExpanded = expandedPostId == post.remoteId
                         
                         MuralPostItem(
                             post = post,
                             isExpanded = isExpanded,
                             viewModel = viewModel,
-                            currentUserId = currentUserId,
+                            currentUsername = currentUsername,
                             onExpandToggle = {
-                                expandedPostId = if (isExpanded) -1L else post.id
+                                expandedPostId = if (isExpanded) null else post.remoteId
+                                if (!isExpanded && post.remoteId != null) {
+                                    viewModel.loadPost(post.remoteId)
+                                }
                             },
                             onRequestUsername = { text, replyId ->
                                 pendingComment = text
@@ -158,9 +161,9 @@ fun MuralScreen(
                 usernameError = null
                 viewModel.createOrGetUser(
                     username = username,
-                    onComplete = { userId ->
-                        if (pendingComment.isNotBlank() && expandedPostId != -1L) {
-                            viewModel.addComment(expandedPostId, userId, pendingComment, pendingReplyToId)
+                    onComplete = { userUuid ->
+                        if (pendingComment.isNotBlank() && expandedPostId != null) {
+                            viewModel.addComment(expandedPostId!!, pendingComment, pendingReplyToId)
                             pendingComment = ""
                             pendingReplyToId = null
                         }
@@ -180,9 +183,9 @@ fun MuralPostItem(
     post: MuralPostWithPlant,
     isExpanded: Boolean,
     viewModel: MuralViewModel,
-    currentUserId: Long?,
+    currentUsername: String?,
     onExpandToggle: () -> Unit,
-    onRequestUsername: (String, Long?) -> Unit
+    onRequestUsername: (String, String?) -> Unit
 ) {
     val commentsFlow = remember(post.id) { viewModel.getCommentsFlow(post.id) }
     val allComments by commentsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -201,7 +204,6 @@ fun MuralPostItem(
         )
     ) {
         Column {
-            // Header
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text(text = post.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFF01264))
                 Text(text = "Compartilhado em ${formatMuralDate(post.createdAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
@@ -212,7 +214,6 @@ fun MuralPostItem(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Detalhes do Cultivo
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "DADOS TÉCNICOS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
@@ -227,7 +228,6 @@ fun MuralPostItem(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Preview Section
             if (!isExpanded && allComments.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     allComments.take(2).forEach { comment ->
@@ -244,7 +244,6 @@ fun MuralPostItem(
                 }
             }
 
-            // Expanded Conversations Area
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = fadeIn() + expandVertically(),
@@ -266,12 +265,12 @@ fun MuralPostItem(
                         tree.forEach { (comment, depth) ->
                             MuralCommentItem(
                                 comment = comment,
-                                currentUserId = currentUserId,
+                                currentUsername = currentUsername,
                                 onReplyClick = { 
                                     replyToComment = it
                                     editingComment = null 
                                 },
-                                onDeleteClick = { viewModel.deleteComment(it.id) },
+                                onDeleteClick = { viewModel.deleteComment(it.remoteId ?: "") },
                                 onEditClick = { 
                                     editingComment = it
                                     replyToComment = null 
@@ -285,7 +284,6 @@ fun MuralPostItem(
                         }
                     }
 
-                    // Reply Feedback
                     if (replyToComment != null) {
                         Row(
                             modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -310,26 +308,27 @@ fun MuralPostItem(
                     }
 
                     CommentInput(
-                        currentUserId = currentUserId,
+                        currentUserUuid = currentUsername,
                         editingComment = editingComment,
                         onCancelEdit = { editingComment = null },
                         onSendComment = { content -> 
                             editingComment?.let { 
-                                viewModel.editComment(it.id, content)
+                                viewModel.editComment(it.remoteId ?: "", content)
                                 editingComment = null
                             } ?: run {
-                                currentUserId?.let { id ->
-                                    viewModel.addComment(post.id, id, content, replyToComment?.id)
-                                    replyToComment = null
+                                currentUsername?.let { _ ->
+                                    post.remoteId?.let { remoteId ->
+                                        viewModel.addComment(remoteId, content, replyToComment?.remoteId)
+                                        replyToComment = null
+                                    }
                                 }
                             }
                         },
-                        onRequestUsername = { content -> onRequestUsername(content, replyToComment?.id) }
+                        onRequestUsername = { content -> onRequestUsername(content, replyToComment?.remoteId) }
                     )
                 }
             }
 
-            // Expand/Collapse Button
             Box(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                 contentAlignment = Alignment.Center

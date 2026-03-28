@@ -24,11 +24,23 @@ interface MuralDao {
     """)
     fun observeMuralPostsWithPlants(): Flow<List<MuralPostWithPlant>>
 
+    @Query("SELECT * FROM mural_posts WHERE remoteId = :postId LIMIT 1")
+    fun observePost(postId: String): Flow<MuralPostEntity?>
+
+    @Query("SELECT * FROM mural_posts WHERE remoteId = :postId LIMIT 1")
+    suspend fun getPostByRemoteId(postId: String): MuralPostEntity?
+
     @Query("SELECT * FROM mural_posts WHERE id = :postId LIMIT 1")
-    fun observePost(postId: Long): Flow<MuralPostEntity?>
+    suspend fun getPostById(postId: Long): MuralPostEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPost(post: MuralPostEntity): Long
+
+    @Query("UPDATE mural_posts SET remoteId = :remoteId WHERE id = :localId")
+    suspend fun updatePostRemoteId(localId: Long, remoteId: String)
+
+    @Query("DELETE FROM mural_posts WHERE remoteId = :postId")
+    suspend fun deletePostByRemoteId(postId: String)
 
     @Query("DELETE FROM mural_posts WHERE id = :postId")
     suspend fun deletePost(postId: Long)
@@ -36,8 +48,8 @@ interface MuralDao {
     @Query("UPDATE plants SET sharedOnMural = :shared WHERE id = :plantId")
     suspend fun updatePlantSharedStatus(plantId: Long, shared: Boolean)
 
-    @Query("SELECT * FROM mural_users WHERE id = :userId LIMIT 1")
-    suspend fun getUser(userId: Long): MuralUserEntity?
+    @Query("SELECT * FROM mural_users WHERE remoteId = :userUuid LIMIT 1")
+    suspend fun getUserByRemoteId(userUuid: String): MuralUserEntity?
 
     @Query("SELECT * FROM mural_users WHERE username = :username LIMIT 1")
     suspend fun getUserByUsername(username: String): MuralUserEntity?
@@ -45,17 +57,20 @@ interface MuralDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: MuralUserEntity): Long
 
-    @Query("SELECT * FROM mural_comments WHERE id = :commentId LIMIT 1")
-    suspend fun getComment(commentId: Long): MuralCommentEntity?
+    @Query("UPDATE mural_users SET remoteId = :remoteId WHERE id = :localId")
+    suspend fun updateUserRemoteId(localId: Long, remoteId: String)
 
-    @Query("SELECT * FROM mural_comments WHERE postId = :postId ORDER BY createdAt ASC")
+    @Query("SELECT * FROM mural_comments WHERE remoteId = :commentId LIMIT 1")
+    suspend fun getCommentByRemoteId(commentId: String): MuralCommentEntity?
+
+    @Query("SELECT * FROM mural_comments WHERE localPostId = :postId ORDER BY createdAt ASC")
     fun observeComments(postId: Long): Flow<List<MuralCommentEntity>>
 
     @Query("""
         SELECT mc.*, mu.username
         FROM mural_comments mc
-        INNER JOIN mural_users mu ON mc.userId = mu.id
-        WHERE mc.postId = :postId
+        INNER JOIN mural_users mu ON mc.localUserId = mu.id
+        WHERE mc.localPostId = :postId
         ORDER BY mc.createdAt ASC
     """)
     fun observeCommentsWithUsers(postId: Long): Flow<List<CommentWithUser>>
@@ -63,8 +78,14 @@ interface MuralDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertComment(comment: MuralCommentEntity): Long
 
+    @Query("UPDATE mural_comments SET remoteId = :remoteId WHERE id = :localId")
+    suspend fun updateCommentRemoteId(localId: Long, remoteId: String)
+
     @Update
     suspend fun updateComment(comment: MuralCommentEntity)
+
+    @Query("DELETE FROM mural_comments WHERE remoteId = :commentId")
+    suspend fun deleteCommentByRemoteId(commentId: String)
 
     @Query("DELETE FROM mural_comments WHERE id = :commentId")
     suspend fun deleteComment(commentId: Long)
@@ -72,6 +93,7 @@ interface MuralDao {
 
 data class MuralPostWithPlant(
     val id: Long,
+    val remoteId: String?,
     val plantId: Long,
     val createdAt: Long,
     val name: String,
@@ -86,10 +108,11 @@ data class MuralPostWithPlant(
 
 data class CommentWithUser(
     val id: Long,
-    val postId: Long,
-    val userId: Long,
+    val remoteId: String?,
+    val localPostId: Long,
+    val localUserId: Long,
     val content: String,
     val createdAt: Long,
     val username: String,
-    val parentId: Long? = null
+    val parentId: String? = null
 )

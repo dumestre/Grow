@@ -38,7 +38,7 @@ fun buildCommentTree(allComments: List<CommentWithUser>): List<Pair<CommentWithU
 
     fun walk(comment: CommentWithUser, depth: Int) {
         result.add(comment to depth)
-        map[comment.id]?.forEach { child ->
+        map[comment.remoteId]?.forEach { child ->
             walk(child, depth + 1)
         }
     }
@@ -50,7 +50,7 @@ fun buildCommentTree(allComments: List<CommentWithUser>): List<Pair<CommentWithU
 @Composable
 fun MuralCommentItem(
     comment: CommentWithUser,
-    currentUserId: Long?,
+    currentUsername: String?,
     onReplyClick: (CommentWithUser) -> Unit,
     onDeleteClick: (CommentWithUser) -> Unit,
     onEditClick: (CommentWithUser) -> Unit,
@@ -144,7 +144,7 @@ fun MuralCommentItem(
                     )
                 }
 
-                if (comment.userId == currentUserId) {
+                if (comment.username == currentUsername) {
                     Spacer(modifier = Modifier.width(4.dp))
                     
                     // Botão Editar direto
@@ -180,7 +180,7 @@ fun MuralCommentItem(
 
 @Composable
 fun CommentInput(
-    currentUserId: Long?,
+    currentUserUuid: String?,
     editingComment: CommentWithUser? = null,
     onCancelEdit: () -> Unit = {},
     onSendComment: (String) -> Unit,
@@ -243,7 +243,7 @@ fun CommentInput(
             IconButton(
                 onClick = {
                     if (commentText.isNotBlank()) {
-                        if (currentUserId == null && editingComment == null) {
+                        if (currentUserUuid == null && editingComment == null) {
                             onRequestUsername(commentText)
                         } else {
                             onSendComment(commentText)

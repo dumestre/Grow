@@ -15,17 +15,19 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("plantId")]
+    indices = [Index("plantId"), Index("remoteId")]
 )
 data class MuralPostEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: String? = null,
     val plantId: Long,
     val createdAt: Long
 )
 
-@Entity(tableName = "mural_users")
+@Entity(tableName = "mural_users", indices = [Index("remoteId", unique = true)])
 data class MuralUserEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: String? = null,
     val username: String,
     val createdAt: Long
 )
@@ -36,23 +38,24 @@ data class MuralUserEntity(
         ForeignKey(
             entity = MuralPostEntity::class,
             parentColumns = ["id"],
-            childColumns = ["postId"],
+            childColumns = ["localPostId"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
             entity = MuralUserEntity::class,
             parentColumns = ["id"],
-            childColumns = ["userId"],
+            childColumns = ["localUserId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("postId"), Index("userId")]
+    indices = [Index("localPostId"), Index("localUserId"), Index("remoteId")]
 )
 data class MuralCommentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val postId: Long,
-    val userId: Long,
+    val remoteId: String? = null,
+    val localPostId: Long,
+    val localUserId: Long,
     val content: String,
     val createdAt: Long,
-    val parentId: Long? = null
+    val parentId: String? = null
 )
