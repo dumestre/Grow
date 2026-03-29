@@ -20,9 +20,10 @@ import com.daime.grow.data.remote.model.MuralCommentDto
 import com.daime.grow.data.remote.model.MuralLikeDto
 import com.daime.grow.data.remote.model.MuralPostDto
 import com.daime.grow.data.remote.model.MuralUserDto
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.daime.grow.BuildConfig
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.realtime.PostgresAction
@@ -360,14 +361,20 @@ class MuralViewModel @Inject constructor(
                 return@launch
             }
 
+            if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
+                _events.emit(
+                    MuralEvent.GoogleLoginError(
+                        "Google login nao configurado. Defina GOOGLE_WEB_CLIENT_ID no ambiente local."
+                    )
+                )
+                return@launch
+            }
+
             try {
                 android.util.Log.d("MuralViewModel", "Iniciando login nativo com Google...")
 
                 val credentialManager = CredentialManager.create(context)
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId("224676541421-70952mhqkainuv93ns74vr39tq8v7qib.apps.googleusercontent.com")
-                    .build()
+                val googleIdOption = GetSignInWithGoogleOption(BuildConfig.GOOGLE_WEB_CLIENT_ID)
 
                 val request = GetCredentialRequest.Builder()
                     .addCredentialOption(googleIdOption)

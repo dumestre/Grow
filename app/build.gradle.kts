@@ -47,8 +47,10 @@ android {
 
         val supabaseUrl = readProperty("SUPABASE_URL").orEmpty().escapeForKotlinStringLiteral()
         val supabaseAnonKey = readProperty("SUPABASE_ANON_KEY").orEmpty().escapeForKotlinStringLiteral()
+        val googleWebClientId = readProperty("GOOGLE_WEB_CLIENT_ID").orEmpty().escapeForKotlinStringLiteral()
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     signingConfigs {
