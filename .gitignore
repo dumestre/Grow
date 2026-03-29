@@ -30,6 +30,7 @@ keystore.properties
 
 # Local development files
 .gradle_user_home/
+.gradle-user-home/
 .vscode/
 .idea/
 local.properties
