@@ -106,7 +106,7 @@ fun StoreScreen(
         product.description?.contains(state.searchQuery, ignoreCase = true) == true
     }
 
-    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("pt", "BR")) }
+    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")) }
 
     Scaffold(
         floatingActionButton = {

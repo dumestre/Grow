@@ -16,7 +16,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -26,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -60,6 +63,9 @@ import com.daime.grow.ui.viewmodel.SettingsViewModel
 fun SettingsScreen(
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
+    accountUsername: String?,
+    accountId: String?,
+    onSignOut: () -> Unit,
     onBack: () -> Unit
 ) {
     val security by viewModel.security.collectAsStateWithLifecycle()
@@ -162,6 +168,61 @@ fun SettingsScreen(
             val pinLengthInvalid = normalizedPin.isNotEmpty() && normalizedPin.length < 4
             val pinMismatch = normalizedPinConfirm.isNotEmpty() && normalizedPin != normalizedPinConfirm
             val canSavePin = normalizedPin.length in 4..6 && normalizedPin == normalizedPinConfirm
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Column {
+                            Text(
+                                text = "Conta conectada",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = accountUsername?.let { "@$it" } ?: "Google",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    if (!accountId.isNullOrBlank()) {
+                        Text(
+                            text = "Identificador: $accountId",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onSignOut,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Sair",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
 
             if (isTablet) {
                 Row(

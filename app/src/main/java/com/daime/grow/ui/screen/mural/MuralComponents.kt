@@ -21,8 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.daime.grow.R
 import com.daime.grow.data.local.dao.CommentWithUser
 import java.text.SimpleDateFormat
 import java.util.*
@@ -277,7 +279,8 @@ fun UsernameDialog(
     reason: String,
     initialError: String? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
+    onGoogleLogin: (() -> Unit)? = null
 ) {
     var username by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(initialError) }
@@ -288,11 +291,46 @@ fun UsernameDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Criar usuário", fontWeight = FontWeight.SemiBold) },
+        title = { Text("Entrar no Mural", fontWeight = FontWeight.SemiBold) },
         text = {
             Column {
                 Text(text = reason, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                // Botão Google
+                if (onGoogleLogin != null) {
+                    Button(
+                        onClick = onGoogleLogin,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.DarkGray
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.googleicon),
+                            contentDescription = "Google",
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Continuar com Google")
+                    }
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    
+                    Text(
+                        text = "ou digite um nome:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
                 OutlinedTextField(
                     value = username,
                     onValueChange = { 

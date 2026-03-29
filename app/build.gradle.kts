@@ -88,6 +88,8 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    buildToolsVersion = "36.1.0"
+    ndkVersion = "29.0.14206865"
 }
 
 dependencies {
@@ -125,6 +127,9 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +46,7 @@ fun MuralPostScreen(
     val state by viewModel.postUiState.collectAsStateWithLifecycle()
     val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
     val currentUsername by viewModel.currentUsername.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showUsernameDialog by remember { mutableStateOf(false) }
     var editingComment by remember { mutableStateOf<CommentWithUser?>(null) }
     var pendingComment by remember { mutableStateOf("") }
@@ -238,12 +240,36 @@ fun MuralPostScreen(
 
     if (showUsernameDialog) {
         var usernameError by remember { mutableStateOf<String?>(null) }
+        var isLoggingIn by remember { mutableStateOf(false) }
         
         LaunchedEffect(Unit) {
             viewModel.events.collect { event ->
                 when (event) {
                     is MuralEvent.UsernameTaken -> {
                         usernameError = "Nome de usuário já está em uso"
+                        isLoggingIn = false
+                    }
+                    is MuralEvent.GoogleLoginSuccess -> {
+                        if (pendingComment.isNotBlank()) {
+                            viewModel.addComment(postId, pendingComment, pendingReplyToId)
+                            pendingComment = ""
+                            pendingReplyToId = null
+                        }
+                        showUsernameDialog = false
+                        replyToComment = null
+                        isLoggingIn = false
+                    }
+                    is MuralEvent.GoogleLoginError -> {
+                        usernameError = event.message
+                        isLoggingIn = false
+                    }
+                    MuralEvent.SignedOut -> {
+                        pendingComment = ""
+                        pendingReplyToId = null
+                        usernameError = null
+                        showUsernameDialog = false
+                        replyToComment = null
+                        isLoggingIn = false
                     }
                 }
             }
@@ -270,7 +296,22 @@ fun MuralPostScreen(
                         usernameError = "Nome de usuário já está em uso"
                     }
                 )
-            }
+            },
+            onGoogleLogin = if (!isLoggingIn) {
+                {
+                    isLoggingIn = true
+                    usernameError = null
+                    viewModel.signInWithGoogle(context) { _ ->
+                        if (pendingComment.isNotBlank()) {
+                            viewModel.addComment(postId, pendingComment, pendingReplyToId)
+                            pendingComment = ""
+                            pendingReplyToId = null
+                        }
+                        showUsernameDialog = false
+                        replyToComment = null
+                    }
+                }
+            } else null
         )
     }
 }

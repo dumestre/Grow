@@ -23,12 +23,12 @@ interface MuralDao {
             COALESCE(p.stage, mp.stage, 'Germinação') as stage,
             COALESCE(p.days, mp.days, 0) as days,
             COALESCE(p.photoUri, mp.photoUrl) as photoUri,
-            p.sharedOnMural,
-            p.createdAt as plantCreatedAt,
+            COALESCE(p.sharedOnMural, 0) as sharedOnMural,
+            COALESCE(p.createdAt, mp.createdAt) as plantCreatedAt,
             COALESCE(p.medium, mp.medium, '') as medium
         FROM mural_posts mp
         LEFT JOIN plants p ON mp.plantId = p.id
-        WHERE mp.remoteId IS NOT NULL OR p.sharedOnMural = 1
+        WHERE mp.remoteId IS NOT NULL OR COALESCE(p.sharedOnMural, 0) = 1
         ORDER BY mp.createdAt DESC
     """)
     fun observeMuralPostsWithPlants(): Flow<List<MuralPostWithPlant>>

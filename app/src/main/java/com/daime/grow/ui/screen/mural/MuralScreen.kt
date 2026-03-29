@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,12 +52,13 @@ fun MuralScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
     val currentUsername by viewModel.currentUsername.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
-    var expandedPostId by remember { mutableStateOf<String?>(null) }
+    var expandedPostId by remember { mutableStateOf<Long?>(null) }
     var showUsernameDialog by remember { mutableStateOf(false) }
     var pendingComment by remember { mutableStateOf("") }
     var pendingReplyToId by remember { mutableStateOf<String?>(null) }
@@ -115,7 +117,7 @@ fun MuralScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.posts, key = { it.id }) { post ->
-                        val isExpanded = expandedPostId == post.remoteId
+                        val isExpanded = expandedPostId == post.id
                         
                         MuralPostItem(
                             post = post,
@@ -123,7 +125,7 @@ fun MuralScreen(
                             viewModel = viewModel,
                             currentUsername = currentUsername,
                             onExpandToggle = {
-                                expandedPostId = if (isExpanded) null else post.remoteId
+                                expandedPostId = if (isExpanded) null else post.id
                                 if (!isExpanded && post.remoteId != null) {
                                     viewModel.loadPost(post.remoteId)
                                 }
@@ -142,12 +144,37 @@ fun MuralScreen(
 
     if (showUsernameDialog) {
         var usernameError by remember { mutableStateOf<String?>(null) }
+        var isLoggingIn by remember { mutableStateOf(false) }
         
         LaunchedEffect(Unit) {
             viewModel.events.collect { event ->
                 when (event) {
                     is MuralEvent.UsernameTaken -> {
                         usernameError = "Nome de usuário já está em uso"
+                        isLoggingIn = false
+                    }
+                    is MuralEvent.GoogleLoginSuccess -> {
+                        if (pendingComment.isNotBlank() && expandedPostId != null) {
+                            val post = state.posts.find { it.id == expandedPostId }
+                            if (post?.remoteId != null) {
+                                viewModel.addComment(post.remoteId, pendingComment, pendingReplyToId)
+                            }
+                            pendingComment = ""
+                            pendingReplyToId = null
+                        }
+                        showUsernameDialog = false
+                        isLoggingIn = false
+                    }
+                    is MuralEvent.GoogleLoginError -> {
+                        usernameError = event.message
+                        isLoggingIn = false
+                    }
+                    MuralEvent.SignedOut -> {
+                        pendingComment = ""
+                        pendingReplyToId = null
+                        usernameError = null
+                        showUsernameDialog = false
+                        isLoggingIn = false
                     }
                 }
             }
@@ -163,7 +190,10 @@ fun MuralScreen(
                     username = username,
                     onComplete = { userUuid ->
                         if (pendingComment.isNotBlank() && expandedPostId != null) {
-                            viewModel.addComment(expandedPostId!!, pendingComment, pendingReplyToId)
+                            val post = state.posts.find { it.id == expandedPostId }
+                            if (post?.remoteId != null) {
+                                viewModel.addComment(post.remoteId, pendingComment, pendingReplyToId)
+                            }
                             pendingComment = ""
                             pendingReplyToId = null
                         }
@@ -173,7 +203,24 @@ fun MuralScreen(
                         usernameError = "Nome de usuário já está em uso"
                     }
                 )
-            }
+            },
+            onGoogleLogin = if (!isLoggingIn) {
+                {
+                    isLoggingIn = true
+                    usernameError = null
+                    viewModel.signInWithGoogle(context) { _ ->
+                        if (pendingComment.isNotBlank() && expandedPostId != null) {
+                            val post = state.posts.find { it.id == expandedPostId }
+                            if (post?.remoteId != null) {
+                                viewModel.addComment(post.remoteId, pendingComment, pendingReplyToId)
+                            }
+                            pendingComment = ""
+                            pendingReplyToId = null
+                        }
+                        showUsernameDialog = false
+                    }
+                }
+            } else null
         )
     }
 }
@@ -221,7 +268,7 @@ fun MuralPostItem(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                MetaLine("Dias", "${post.days} dias de cultivo")
+                MetaLine("Ciclo", formatCultivoTime(post.days))
                 MetaLine("Strain", post.strain)
                 MetaLine("Substrato", post.medium)
             }
@@ -389,6 +436,15 @@ private fun MetaLine(label: String, value: String) {
             style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF3A3A3A)
         )
+    }
+}
+
+private fun formatCultivoTime(days: Int): String {
+    return when {
+        days < 7 -> "$days dias"
+        days < 14 -> "1 semana"
+        days % 7 == 0 -> "${days / 7} semanas"
+        else -> "${days / 7}s ${days % 7}d"
     }
 }
 

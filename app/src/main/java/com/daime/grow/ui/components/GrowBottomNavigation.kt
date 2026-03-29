@@ -1,10 +1,22 @@
 package com.daime.grow.ui.components
 
-import androidx.compose.foundation.background
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
@@ -17,7 +29,15 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Yard
-import androidx.compose.material3.*
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -31,10 +51,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.annotation.StringRes
 import com.daime.grow.ui.navigation.NavRoute
+import com.daime.grow.ui.theme.GrowTheme
 
 enum class BottomNavItem(
     val route: String,
@@ -103,6 +124,7 @@ fun GrowBottomNavigationBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), // Bordas arredondadas no topo
         modifier = modifier
     ) {
         Row(
@@ -116,7 +138,9 @@ fun GrowBottomNavigationBar(
             val secondGroup = items.drop(3)
 
             firstGroup.forEach { item ->
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f).height(52.dp))
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier
+                    .weight(1f)
+                    .height(52.dp))
             }
 
             Box(
@@ -145,7 +169,9 @@ fun GrowBottomNavigationBar(
 
             secondGroup.forEach { item ->
                 val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier.weight(1f).height(52.dp), badgeCount)
+                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier
+                    .weight(1f)
+                    .height(52.dp), badgeCount)
             }
         }
     }
@@ -229,4 +255,17 @@ private fun NavIconItem(
 @Composable
 private fun getStringResource(@StringRes resId: Int): String {
     return stringResource(resId)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GrowBottomNavigationBarPreview() {
+    GrowTheme {
+        GrowBottomNavigationBar(
+            currentRoute = NavRoute.Home.route,
+            onNavigate = {},
+            onAddClick = {},
+            notificationBadgeCount = 5
+        )
+    }
 }

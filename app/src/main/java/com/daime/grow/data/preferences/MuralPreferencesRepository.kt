@@ -23,4 +23,10 @@ class MuralPreferencesRepository(private val context: Context) {
             preferences[Keys.currentUserUuid] = userUuid
         }
     }
+
+    suspend fun clearUserUuid() {
+        context.muralDataStore.edit { preferences ->
+            preferences.remove(Keys.currentUserUuid)
+        }
+    }
 }

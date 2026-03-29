@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,6 +39,7 @@ import com.daime.grow.ui.components.GrowNavigationRail
 import com.daime.grow.ui.components.NotificationSheet
 import com.daime.grow.ui.navigation.NavRoute
 import com.daime.grow.ui.screen.add.NewPlantScreen
+import com.daime.grow.ui.screen.auth.GoogleLoginScreen
 import com.daime.grow.ui.screen.detail.PlantDetailScreen
 import com.daime.grow.ui.screen.home.HomeScreen
 import com.daime.grow.ui.screen.lock.LockScreen
@@ -64,10 +65,15 @@ fun GrowRoot(container: AppContainer) {
     val lockState by lockViewModel.uiState.collectAsStateWithLifecycle()
     val securityPrefs by settingsViewModel.security.collectAsStateWithLifecycle()
     val unreadNotificationCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
+    val currentUserUuid by muralViewModel.currentUserUuid.collectAsStateWithLifecycle()
+    val currentUsername by muralViewModel.currentUsername.collectAsStateWithLifecycle()
+    val isAuthResolved by muralViewModel.isAuthResolved.collectAsStateWithLifecycle()
     
     val context = LocalContext.current
 
     var showNotificationSheet by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+    var isGoogleLoginLoading by remember { mutableStateOf(false) }
     
     var isDraggingPlant by remember { mutableStateOf(false) }
     var trashBounds by remember { mutableStateOf<Rect?>(null) }
@@ -98,6 +104,50 @@ fun GrowRoot(container: AppContainer) {
             onPinChange = lockViewModel::onPinInputChange,
             onUnlockWithPin = lockViewModel::unlockWithPin,
             onTryBiometric = { lockViewModel.tryBiometric(context) }
+        )
+        return
+    }
+
+    if (!isAuthResolved) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (currentUserUuid == null) {
+        LaunchedEffect(muralViewModel) {
+            muralViewModel.events.collect { event ->
+                when (event) {
+                    is MuralEvent.GoogleLoginError -> {
+                        loginError = event.message
+                        isGoogleLoginLoading = false
+                    }
+                    MuralEvent.GoogleLoginSuccess -> {
+                        loginError = null
+                        isGoogleLoginLoading = false
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+        GoogleLoginScreen(
+            isLoading = isGoogleLoginLoading,
+            errorMessage = loginError,
+            onGoogleLogin = {
+                isGoogleLoginLoading = true
+                loginError = null
+                muralViewModel.signInWithGoogle(context) {
+                    isGoogleLoginLoading = false
+                    loginError = null
+                }
+            }
         )
         return
     }
@@ -248,6 +298,9 @@ fun GrowRoot(container: AppContainer) {
                             SettingsScreen(
                                 innerPadding = innerPadding,
                                 viewModel = settingsViewModel,
+                                accountUsername = currentUsername,
+                                accountId = currentUserUuid,
+                                onSignOut = { muralViewModel.signOut() },
                                 onBack = { navController.popBackStack() }
                             )
                         }

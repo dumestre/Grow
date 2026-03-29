@@ -7,6 +7,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.ExternalAuthAction
 
 
 object SupabaseClient {
@@ -19,7 +20,11 @@ object SupabaseClient {
             install(Postgrest)
             install(Storage)
             install(Realtime)
-            install(Auth)
+            install(Auth) {
+                host = "callback"
+                scheme = "com.daime.grow"
+                defaultExternalAuthAction = ExternalAuthAction.CustomTabs()
+            }
         }
     }
 
