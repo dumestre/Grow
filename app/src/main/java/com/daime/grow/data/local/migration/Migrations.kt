@@ -210,3 +210,117 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_localUserId ON mural_comments(localUserId)")
     }
 }
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE mural_posts RENAME TO mural_posts_legacy")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                remoteId TEXT,
+                plantId INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                plantName TEXT,
+                strain TEXT,
+                stage TEXT,
+                medium TEXT,
+                days INTEGER,
+                photoUrl TEXT,
+                FOREIGN KEY(plantId) REFERENCES plants(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO mural_posts (id, remoteId, plantId, createdAt, plantName, strain, stage, medium, days, photoUrl)
+            SELECT id, remoteId, plantId, createdAt, NULL, NULL, NULL, NULL, NULL, NULL
+            FROM mural_posts_legacy
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE mural_posts_legacy")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_posts_plantId ON mural_posts(plantId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_posts_remoteId ON mural_posts(remoteId)")
+
+        db.execSQL("ALTER TABLE mural_users RENAME TO mural_users_legacy")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                remoteId TEXT,
+                username TEXT NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO mural_users (id, remoteId, username, createdAt)
+            SELECT id, remoteId, username, createdAt
+            FROM mural_users_legacy
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE mural_users_legacy")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_mural_users_remoteId ON mural_users(remoteId)")
+
+        db.execSQL("ALTER TABLE mural_comments RENAME TO mural_comments_legacy")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                remoteId TEXT,
+                localPostId INTEGER NOT NULL,
+                localUserId INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                parentId TEXT,
+                FOREIGN KEY(localPostId) REFERENCES mural_posts(id) ON DELETE CASCADE,
+                FOREIGN KEY(localUserId) REFERENCES mural_users(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO mural_comments (id, remoteId, localPostId, localUserId, content, createdAt, parentId)
+            SELECT id, remoteId, localPostId, localUserId, content, createdAt, parentId
+            FROM mural_comments_legacy
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE mural_comments_legacy")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_localPostId ON mural_comments(localPostId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_localUserId ON mural_comments(localUserId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_comments_remoteId ON mural_comments(remoteId)")
+
+        db.execSQL("ALTER TABLE harvest_batches RENAME TO harvest_batches_legacy")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS harvest_batches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                plantId INTEGER NOT NULL,
+                plantName TEXT NOT NULL,
+                strain TEXT NOT NULL,
+                harvestDate INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                currentHumidity REAL,
+                currentTemperature REAL,
+                lastBurpDate INTEGER,
+                nextBurpDate INTEGER,
+                weightGrams REAL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO harvest_batches (
+                id, plantId, plantName, strain, harvestDate, status,
+                currentHumidity, currentTemperature, lastBurpDate, nextBurpDate, weightGrams
+            )
+            SELECT
+                id, plantId, plantName, strain, harvestDate, status,
+                NULL, NULL, NULL, NULL, NULL
+            FROM harvest_batches_legacy
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE harvest_batches_legacy")
+    }
+}
