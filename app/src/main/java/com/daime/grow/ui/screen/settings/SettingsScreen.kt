@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +66,7 @@ fun SettingsScreen(
     innerPadding: PaddingValues,
     viewModel: SettingsViewModel,
     accountUsername: String?,
-    accountId: String?,
+    accountEmail: String?,
     onSignOut: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -170,11 +173,12 @@ fun SettingsScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -183,37 +187,44 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
                         Column {
                             Text(
-                                text = "Conta conectada",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                text = "Conta",
+                                style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = accountUsername?.let { "@$it" } ?: "Google",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                text = "Google conectada",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    if (!accountId.isNullOrBlank()) {
-                        Text(
-                            text = "Identificador: $accountId",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                        )
-                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    AccountInfoRow(
+                        label = "Usuário",
+                        value = accountUsername?.let { "@$it" } ?: "-"
+                    )
+                    AccountInfoRow(
+                        label = "E-mail",
+                        value = accountEmail ?: "-"
+                    )
 
                     OutlinedButton(
                         onClick = onSignOut,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = null
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = "Sair",
@@ -302,6 +313,22 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AccountInfoRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

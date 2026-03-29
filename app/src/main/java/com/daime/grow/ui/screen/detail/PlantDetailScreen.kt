@@ -291,7 +291,7 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
             }
             Text(stringResource(R.string.detail_strain, details.plant.strain))
             Text(stringResource(R.string.detail_medium, details.plant.medium))
-            Text(stringResource(R.string.detail_days, details.plant.days.toString()))
+            Text(stringResource(R.string.detail_days, formatCultivationTime(details.plant.days)))
         }
     }
 }
@@ -536,5 +536,20 @@ private fun DetailAccentCard(
                 content()
             }
         }
+    }
+}
+
+private fun formatCultivationTime(days: Int): String {
+    if (days < 7) return if (days == 1) "1 dia" else "$days dias"
+
+    val weeks = days / 7
+    val remainingDays = days % 7
+    return when {
+        remainingDays == 0 && weeks == 1 -> "1 semana"
+        remainingDays == 0 -> "$weeks semanas"
+        remainingDays == 1 && weeks == 1 -> "1 semana e 1 dia"
+        remainingDays == 1 -> "$weeks semanas e 1 dia"
+        weeks == 1 -> "1 semana e $remainingDays dias"
+        else -> "$weeks semanas e $remainingDays dias"
     }
 }

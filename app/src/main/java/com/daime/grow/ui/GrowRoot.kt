@@ -67,6 +67,7 @@ fun GrowRoot(container: AppContainer) {
     val unreadNotificationCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
     val currentUserUuid by muralViewModel.currentUserUuid.collectAsStateWithLifecycle()
     val currentUsername by muralViewModel.currentUsername.collectAsStateWithLifecycle()
+    val currentUserEmail by muralViewModel.currentUserEmail.collectAsStateWithLifecycle()
     val isAuthResolved by muralViewModel.isAuthResolved.collectAsStateWithLifecycle()
     
     val context = LocalContext.current
@@ -299,7 +300,7 @@ fun GrowRoot(container: AppContainer) {
                                 innerPadding = innerPadding,
                                 viewModel = settingsViewModel,
                                 accountUsername = currentUsername,
-                                accountId = currentUserUuid,
+                                accountEmail = currentUserEmail,
                                 onSignOut = { muralViewModel.signOut() },
                                 onBack = { navController.popBackStack() }
                             )

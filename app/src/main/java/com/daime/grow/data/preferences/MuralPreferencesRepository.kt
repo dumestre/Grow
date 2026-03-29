@@ -12,10 +12,15 @@ private val Context.muralDataStore by preferencesDataStore(name = "mural_setting
 class MuralPreferencesRepository(private val context: Context) {
     private object Keys {
         val currentUserUuid = stringPreferencesKey("current_user_uuid")
+        val currentUserEmail = stringPreferencesKey("current_user_email")
     }
 
     val currentUserUuid: Flow<String?> = context.muralDataStore.data.map { preferences ->
         preferences[Keys.currentUserUuid]
+    }
+
+    val currentUserEmail: Flow<String?> = context.muralDataStore.data.map { preferences ->
+        preferences[Keys.currentUserEmail]
     }
 
     suspend fun saveUserUuid(userUuid: String) {
@@ -24,9 +29,16 @@ class MuralPreferencesRepository(private val context: Context) {
         }
     }
 
+    suspend fun saveUserEmail(userEmail: String) {
+        context.muralDataStore.edit { preferences ->
+            preferences[Keys.currentUserEmail] = userEmail
+        }
+    }
+
     suspend fun clearUserUuid() {
         context.muralDataStore.edit { preferences ->
             preferences.remove(Keys.currentUserUuid)
+            preferences.remove(Keys.currentUserEmail)
         }
     }
 }

@@ -221,7 +221,7 @@ fun PlantCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            MetaLine("Dias", "${plant.days} dias de cultivo")
+            MetaLine("Ciclo", formatCultivationTime(plant.days))
             Spacer(modifier = Modifier.height(6.dp))
             MetaLine("Espécie", plant.strain)
             MetaLine("Substrato", plant.medium)
@@ -266,4 +266,19 @@ private fun MetaLine(label: String, value: String) {
 
 private fun Long.toDateLabel(): String {
     return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(this))
+}
+
+private fun formatCultivationTime(days: Int): String {
+    if (days < 7) return "$days dias de cultivo"
+
+    val weeks = days / 7
+    val remainingDays = days % 7
+    return when {
+        remainingDays == 0 && weeks == 1 -> "1 semana de cultivo"
+        remainingDays == 0 -> "$weeks semanas de cultivo"
+        remainingDays == 1 && weeks == 1 -> "1 semana e 1 dia de cultivo"
+        remainingDays == 1 -> "$weeks semanas e 1 dia de cultivo"
+        weeks == 1 -> "1 semana e $remainingDays dias de cultivo"
+        else -> "$weeks semanas e $remainingDays dias de cultivo"
+    }
 }

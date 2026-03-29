@@ -82,6 +82,9 @@ class MuralViewModel @Inject constructor(
     private val _currentUsername = MutableStateFlow<String?>(null)
     val currentUsername: StateFlow<String?> = _currentUsername.asStateFlow()
 
+    private val _currentUserEmail = MutableStateFlow<String?>(null)
+    val currentUserEmail: StateFlow<String?> = _currentUserEmail.asStateFlow()
+
     private val _isAuthResolved = MutableStateFlow(false)
     val isAuthResolved: StateFlow<Boolean> = _isAuthResolved.asStateFlow()
 
@@ -109,6 +112,11 @@ class MuralViewModel @Inject constructor(
                     _currentUsername.value = null
                 }
                 _isAuthResolved.value = true
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.currentUserEmail.collect { email ->
+                _currentUserEmail.value = email
             }
         }
     }
@@ -392,6 +400,8 @@ class MuralViewModel @Inject constructor(
                         ?: googleIdTokenCredential.id.substringBefore("@")
                     val resolvedUsername = findExistingOrAvailableUsername(baseUsername)
                     val userUuid = createUserAndPersistSession(resolvedUsername)
+                    preferencesRepository.saveUserEmail(googleIdTokenCredential.id)
+                    _currentUserEmail.value = googleIdTokenCredential.id
 
                     android.util.Log.d(
                         "MuralViewModel",
@@ -426,6 +436,7 @@ class MuralViewModel @Inject constructor(
             preferencesRepository.clearUserUuid()
             _currentUserUuid.value = null
             _currentUsername.value = null
+            _currentUserEmail.value = null
             _postUiState.value = MuralPostUiState()
             _events.emit(MuralEvent.SignedOut)
             onComplete?.invoke()

@@ -61,7 +61,7 @@
     <string name="detail_current_phase">Fase atual: %1$s</string>
     <string name="detail_strain">Espécie: %1$s</string>
     <string name="detail_medium">Substrato: %1$s</string>
-    <string name="detail_days">Dias de cultivo: %1$s</string>
+    <string name="detail_days">Semanas de cultivo: %1$s</string>
     <string name="detail_watering">Rega</string>
     <string name="detail_watering_volume">Volume (ml)</string>
     <string name="detail_watering_interval">Intervalo (dias)</string>
