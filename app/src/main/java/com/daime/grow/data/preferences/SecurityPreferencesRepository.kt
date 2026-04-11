@@ -27,7 +27,6 @@ class SecurityPreferencesRepository(private val context: Context) {
         val maskStoreCatalog = booleanPreferencesKey("mask_store_catalog")
         val legacyUseAlternativeIcons = booleanPreferencesKey("use_alternative_icons")
         val darkTheme = intPreferencesKey("dark_theme_mode")
-        val widgetPromptShown = booleanPreferencesKey("widget_prompt_shown")
     }
 
     fun observe(): Flow<SecurityPreferences> = context.securityDataStore.data
@@ -80,14 +79,6 @@ class SecurityPreferencesRepository(private val context: Context) {
 
     suspend fun setDarkThemeMode(mode: DarkThemeMode) {
         context.securityDataStore.edit { it[Keys.darkTheme] = mode.ordinal }
-    }
-
-    suspend fun shouldSuggestWidget(): Boolean {
-        return context.securityDataStore.data.map { it[Keys.widgetPromptShown] ?: false }.first().not()
-    }
-
-    suspend fun markWidgetPromptShown() {
-        context.securityDataStore.edit { it[Keys.widgetPromptShown] = true }
     }
 
     private fun hashPin(pin: String): String {

@@ -1,0 +1,428 @@
+package com.daime.grow.ui.screen.tips
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
+
+
+data class TipCategory(
+    val title: String,
+    val icon: ImageVector,
+    val color: Color,
+    val tips: List<TipItem>
+)
+
+data class TipItem(
+    val title: String,
+    val description: String,
+    val icon: ImageVector
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GrowTipsScreen(
+    onBack: () -> Unit
+) {
+    val categories = remember {
+        listOf(
+            TipCategory(
+                title = "Estágios de Vida",
+                icon = Icons.Rounded.Loop,
+                color = Color(0xFF4CAF50),
+                tips = listOf(
+                    TipItem(
+                        title = "Germinação (Dias 1-7)",
+                        description = "Mantenha as sementes entre papel toalha úmido ou plante direto em solo leve. Escuridão total, temperatura 20-25°C. Emergem em 1-7 dias.",
+                        icon = Icons.Rounded.Spa
+                    ),
+                    TipItem(
+                        title = "Seedling (Semanas 1-3)",
+                        description = "Luz suave 18-24h, distância maior do que o normal. Regue com borrifador. Primeira folha inteira aparece na semana 2.",
+                        icon = Icons.Rounded.Grass
+                    ),
+                    TipItem(
+                        title = "Vegetativo (Semanas 3-8)",
+                        description = "18h de luz, 6h escuro. Crescimento intenso de folhas e caule. Fase de construir estrutura. Mais nitrogênio (N).",
+                        icon = Icons.Rounded.Park
+                    ),
+                    TipItem(
+                        title = "Floração (Semanas 8-14)",
+                        description = "12h luz, 12h escuro EXATAMENTE. Qualquer luz extra reinicia o ciclo. Pistas brancas (colas) se formam. Mais fósforo (P) e potássio (K).",
+                        icon = Icons.Rounded.FilterVintage
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Iluminação",
+                icon = Icons.Rounded.WbSunny,
+                color = Color(0xFFFFB300),
+                tips = listOf(
+                    TipItem(
+                        title = "LED Full Spectrum (Recomendado)",
+                        description = "Espectro completo para todas as fases. Menos calor, menos energia. Mantenha 30-60cm das pontas. Ideal para espaços fechados.",
+                        icon = Icons.Rounded.Lightbulb
+                    ),
+                    TipItem(
+                        title = "HPS/MH (Vapor de Sódio/Mercúrio)",
+                        description = "Alto calor, alto consumo. HPS para floração, MH para veg. Requer refrigeração. Menos eficiente que LED nowadays.",
+                        icon = Icons.Rounded.LocalFireDepartment
+                    ),
+                    TipItem(
+                        title = "CFL / Lâmpadas Fluorescentes",
+                        description = "Boa opção para seedlings e clones. Pouco calor, fácil de usar. Menos potente para veg intenso ou floração.",
+                        icon = Icons.Rounded.FlashOn
+                    ),
+                    TipItem(
+                        title = "Fotoperíodo",
+                        description = "Veg: 18/6 ou 20/4 (mais luz = mais crescimento). Flor: 12/12 EXATO. Mudanças mesmo pequenas reiniciam a floração.",
+                        icon = Icons.Rounded.Schedule
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Nutrição (NPK)",
+                icon = Icons.Rounded.Science,
+                color = Color(0xFF9C27B0),
+                tips = listOf(
+                    TipItem(
+                        title = "Vegetativo - Alto Nitrogênio",
+                        description = "NPK typical: 3-1-2 ou 2-1-2. Nitrogênio para folhas verdes escuras e crescimento rápido. Não exagereouburna as raízes.",
+                        icon = Icons.Rounded.Eco
+                    ),
+                    TipItem(
+                        title = "Floração - Fósforo e Potássio",
+                        description = "NPK typical: 1-3-3 ou 1-2-3. P para raízes e resina. K para densidade das buds e THC. Reduzir N para quase zero.",
+                        icon = Icons.Rounded.FilterVintage
+                    ),
+                    TipItem(
+                        title = "Overfeeding (Queimadura de Nutri)",
+                        description = "Pontas das folhas amarelas ou marrons = muito nutri. Lave com água limpa (runoff 20%). Sempre comece com 50% da dose.",
+                        icon = Icons.Rounded.Warning
+                    ),
+                    TipItem(
+                        title = "pH Correcto",
+                        description = "Solo: 6.0-7.0. Hydro/Coco: 5.5-6.5. pH errado = lockout de nutrientes mesmo que estejam presentes. Use medidor.",
+                        icon = Icons.Rounded.Science
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Rega e Umidade",
+                icon = Icons.Rounded.WaterDrop,
+                color = Color(0xFF2196F3),
+                tips = listOf(
+                    TipItem(
+                        title = "Frequência de Rega",
+                        description = "Veg: a cada 2-3 dias. Flor: a cada 3-4 dias (planta bebe menos). Método do dedo: 2-3cm seco = regue. Menos em floração tardia.",
+                        icon = Icons.Rounded.Waves
+                    ),
+                    TipItem(
+                        title = "Qualidade da Água",
+                        description = "EC (conductivity) ideal: 0.8-1.2 veg, 1.2-1.6 flor. Use filtro ou deixe repousar 24h. pH after adjusting: check sempre.",
+                        icon = Icons.Rounded.FilterAlt
+                    ),
+                    TipItem(
+                        title = "Umidade Ideal",
+                        description = "Seedling: 70-80%. Veg: 50-70%. Floração: 40-50%. Alta umidade em flor = risco de bolor. Use desumidificador no fim.",
+                        icon = Icons.Rounded.Water
+                    ),
+                    TipItem(
+                        title = "Drenagem",
+                        description = "Vasos com furos EM TODO LADO. Waterlogging = raízes sem oxigênio = apodrecimento. Use bandeja com pedras pra drenar.",
+                        icon = Icons.Rounded.Layers
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Temperatura e Ambiente",
+                icon = Icons.Rounded.Thermostat,
+                color = Color(0xFFFF5722),
+                tips = listOf(
+                    TipItem(
+                        title = "Temperatura Perfeita",
+                        description = "Dia: 22-28°C. Noite: 18-24°C. Diferença dia/noite (DIF) de 5-10°C ajuda no crescimento. Acima de 30°C = estresse severo.",
+                        icon = Icons.Rounded.DeviceThermostat
+                    ),
+                    TipItem(
+                        title = "Ventilação",
+                        description = "Ar fresco entrando SEMPRE. CO2 fresco = crescimento 20% melhor. Extractors suckando o ar quente. Oscillating fans pra circulação.",
+                        icon = Icons.Rounded.Air
+                    ),
+                    TipItem(
+                        title = "CO2 Suplementar",
+                        description = "Em grow rooms seladas: 800-1500ppm acelera crescimento. Só faz sentido com LED forte. Em grows normais: ventilação é suficiente.",
+                        icon = Icons.Rounded.Cloud
+                    ),
+                    TipItem(
+                        title = "Controle de Odor",
+                        description = "Floração = odor Forte! Filtros de carvão (can filter) são essenciais. Carbon scrubbers, ozônio em casos extremos.",
+                        icon = Icons.Rounded.FilterAlt
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Técnicas de Treino (HIG-TECH)",
+                icon = Icons.Rounded.Construction,
+                color = Color(0xFFE91E63),
+                tips = listOf(
+                    TipItem(
+                        title = "LST (Low Stress Training)",
+                        description = "Dobre caule principal suavemente, amarre com fio soft. Quebra apical não! Promove múltiplos tops uniformes. Comece cedo na veg.",
+                        icon = Icons.Rounded.Balance
+                    ),
+                    TipItem(
+                        title = "SCROG (Screen of Green)",
+                        description = "Tela a 20-30cm acima das plantas. Thread plants through. Preenche toda a tela uniformemente. Máximo aproveitamento de luz.",
+                        icon = Icons.Rounded.GridOn
+                    ),
+                    TipItem(
+                        title = "SOG (Sea of Green)",
+                        description = "Muitas plantas pequenas em vez de poucas grandes. Clone direto pra flor, 4-6 semanas veg máximo. Rápido e produtivo.",
+                        icon = Icons.Rounded.Waves
+                    ),
+                    TipItem(
+                        title = "Topping / Fimming",
+                        description = "TOPPING: corta ponta do main stem acima do nó 4-5. Two tops nascem. FIMMING: corta 80% da ponta. 4+ tops. Promove arbusto.",
+                        icon = Icons.Rounded.ContentCut
+                    ),
+                    TipItem(
+                        title = "Defoliação (Defoliating)",
+                        description = "Remove folhas grandes que bloqueiam luz das buds. 2-3x durante floração. Menos é mais! Só folhas que não recebem luz direta.",
+                        icon = Icons.Rounded.RemoveCircle
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Colheita e Curing",
+                icon = Icons.Rounded.Agriculture,
+                color = Color(0xFF795548),
+                tips = listOf(
+                    TipItem(
+                        title = "Quando Colher",
+                        description = "Pistilos (pêlos): 70-90% marrons/avermelhados. Tricomas: milky white + 10-20% amber. Use lupa 60x+ ou microscópio.",
+                        icon = Icons.Rounded.Visibility
+                    ),
+                    TipItem(
+                        title = "Flush Final",
+                        description = "2 semanas antes da colheita: água limpa SEM nutrientes. Remove acúmulo de sal. Gosto mais suave, queima melhor.",
+                        icon = Icons.Rounded.WaterDrop
+                    ),
+                    TipItem(
+                        title = "Secagem (Drying)",
+                        description = "Inverted (de cabeça pra baixo), 18-21°C, umidade 50-60%. Escuro total. 7-14 dias até branches quebrarem (snap test).",
+                        icon = Icons.Rounded.Dry
+                    ),
+                    TipItem(
+                        title = "Curing (Curagem)",
+                        description = "Jars de vidro, buracos sehari. Primeira semana: abrir 2x ao dia por 15min (burp). Depois 1x ao dia. Mínimo 2-4 semanas.",
+                        icon = Icons.Rounded.Inventory
+                    ),
+                    TipItem(
+                        title = "Armazenamento",
+                        description = "Jars herméticos, lugar fresco e escuro. Não congelar. Boa cure dura meses mantendo potency. Boveda packs ajudam.",
+                        icon = Icons.Rounded.Inventory2
+                    )
+                )
+            ),
+            TipCategory(
+                title = "Pragas e Problemas",
+                icon = Icons.Rounded.BugReport,
+                color = Color(0xFFD32F2F),
+                tips = listOf(
+                    TipItem(
+                        title = "Ácaros (Spider Mites)",
+                        description = "Pequenos pontos amarelos nas folhas, teias finas. Spray de água + sabão neutro, Neem oil. Isolar planta. Reapply 3x.",
+                        icon = Icons.Rounded.PestControl
+                    ),
+                    TipItem(
+                        title = "Fungos (Botrytis, Powdery Mildew)",
+                        description = "Botrytis: bud cinza/mofo = REMOVER IMEDIATAMENTE. Powdery mildew: pó branco = leite spray 1:9. Ventilação é prevenção.",
+                        icon = Icons.Rounded.Healing
+                    ),
+                    TipItem(
+                        title = "Deficiências Comuns",
+                        description = "N deficiency: yellow bottom leaves. P deficiency: purple stems. K deficiency: brown edges. Mg deficiency: veins green, yellow between.",
+                        icon = Icons.Rounded.Warning
+                    ),
+                    TipItem(
+                        title = "Prevenção",
+                        description = "Inspect novas plantas por 2 semanas. Quarantine total. Ambiente limpo. Sticky traps. Preventive Neem weekly helps.",
+                        icon = Icons.Rounded.Visibility
+                    )
+                )
+            )
+        )
+    }
+
+    var expandedCategory by remember { mutableStateOf<Int?>(0) }
+
+    val configuration = LocalConfiguration.current
+    val isTablet = configuration.screenWidthDp >= 600
+    val horizontalPadding = if (isTablet) 32.dp else 20.dp
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Voltar"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Categorias",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            items(categories.size) { index ->
+                val category = categories[index]
+                val isExpanded = expandedCategory == index
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    onClick = {
+                        expandedCategory = if (isExpanded) null else index
+                    }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(category.color.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    category.icon,
+                                    contentDescription = null,
+                                    tint = category.color,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                category.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = isExpanded,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(top = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                HorizontalDivider()
+                                category.tips.forEach { tip ->
+                                    TipCard(tip = tip, categoryColor = category.color)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TipCard(
+    tip: TipItem,
+    categoryColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(categoryColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                tip.icon,
+                contentDescription = null,
+                tint = categoryColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                tip.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                tip.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}

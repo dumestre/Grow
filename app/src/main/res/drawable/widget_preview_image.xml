@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/widget_preview_bg" />
+
+    <item
+        android:top="16dp"
+        android:left="16dp"
+        android:right="16dp"
+        android:bottom="130dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="18dp" />
+            <solid android:color="#E6F4EC" />
+            <stroke
+                android:width="1dp"
+                android:color="#551F6D3C" />
+        </shape>
+    </item>
+
+    <item
+        android:top="76dp"
+        android:left="16dp"
+        android:right="16dp"
+        android:bottom="54dp"
+        android:drawable="@drawable/widget_preview_card" />
+
+    <item
+        android:top="28dp"
+        android:left="24dp"
+        android:width="74dp"
+        android:height="22dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="#6D8041" />
+        </shape>
+    </item>
+
+    <item
+        android:top="28dp"
+        android:right="56dp"
+        android:width="8dp"
+        android:height="8dp"
+        android:drawable="@drawable/widget_dot_active" />
+
+    <item
+        android:top="29dp"
+        android:right="40dp"
+        android:width="6dp"
+        android:height="6dp"
+        android:drawable="@drawable/widget_dot_inactive" />
+
+    <item
+        android:top="29dp"
+        android:right="28dp"
+        android:width="6dp"
+        android:height="6dp"
+        android:drawable="@drawable/widget_dot_inactive" />
+
+    <item
+        android:gravity="bottom"
+        android:bottom="16dp"
+        android:left="16dp"
+        android:right="16dp"
+        android:height="26dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="#66FFFFFF" />
+            <stroke
+                android:width="1dp"
+                android:color="#40A7C9B1" />
+        </shape>
+    </item>
+</layer-list>

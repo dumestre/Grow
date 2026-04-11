@@ -1,9 +1,6 @@
-﻿package com.daime.grow
+package com.daime.grow
 
 import android.Manifest
-import android.app.AlertDialog
-import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -12,11 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -29,10 +23,8 @@ import com.daime.grow.data.worker.PlantSyncWorker
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.GrowRoot
 import com.daime.grow.ui.theme.GrowTheme
-import com.daime.grow.widget.GrowPlantWidgetReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
@@ -57,7 +49,6 @@ class MainActivity : ComponentActivity() {
         val securityRepository = SecurityPreferencesRepository(this)
 
         setContent {
-            // Observar preferência de tema de forma reativa
             val darkThemeMode by securityRepository.observe()
                 .map { it.darkTheme }
                 .collectAsStateWithLifecycle(initialValue = DarkThemeMode.SYSTEM)
@@ -71,10 +62,6 @@ class MainActivity : ComponentActivity() {
             GrowTheme(darkTheme = useDarkTheme) {
                 GrowRoot(container)
             }
-        }
-
-        lifecycleScope.launch {
-            maybeSuggestWidget(securityRepository)
         }
     }
 
@@ -130,29 +117,5 @@ class MainActivity : ComponentActivity() {
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
-    }
-
-    private suspend fun maybeSuggestWidget(securityRepository: SecurityPreferencesRepository) {
-        if (!securityRepository.shouldSuggestWidget()) return
-
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-        if (!appWidgetManager.isRequestPinAppWidgetSupported) return
-        val provider = ComponentName(this, GrowPlantWidgetReceiver::class.java)
-        val existingWidgetIds = appWidgetManager.getAppWidgetIds(provider)
-        if (existingWidgetIds.isNotEmpty()) {
-            securityRepository.markWidgetPromptShown()
-            return
-        }
-
-        securityRepository.markWidgetPromptShown()
-
-        AlertDialog.Builder(this)
-            .setTitle("Adicionar widget")
-            .setMessage("Quer adicionar o widget grande do Grow na tela inicial?")
-            .setNegativeButton("Agora não", null)
-            .setPositiveButton("Adicionar") { _, _ ->
-                appWidgetManager.requestPinAppWidget(provider, null, null)
-            }
-            .show()
     }
 }

@@ -33,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.daime.grow.core.AppContainer
+import com.daime.grow.data.preferences.AppPreferencesRepository
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.components.GrowBottomNavigationBar
 import com.daime.grow.ui.components.GrowNavigationRail
@@ -43,17 +44,40 @@ import com.daime.grow.ui.screen.auth.GoogleLoginScreen
 import com.daime.grow.ui.screen.detail.PlantDetailScreen
 import com.daime.grow.ui.screen.home.HomeScreen
 import com.daime.grow.ui.screen.lock.LockScreen
+import com.daime.grow.ui.screen.onboarding.DisclaimerScreen
 import com.daime.grow.ui.screen.mural.MuralPostScreen
+import kotlinx.coroutines.launch
 import com.daime.grow.ui.screen.mural.MuralScreen
 import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
-import com.daime.grow.ui.screen.store.StoreComingSoonScreen
+import com.daime.grow.ui.screen.store.StrainDetailScreen
+import com.daime.grow.ui.screen.store.StrainsScreen
 import com.daime.grow.ui.screen.store.StoreScreen
 import com.daime.grow.ui.screen.tips.GrowTipsScreen
 import com.daime.grow.ui.viewmodel.*
 
 @Composable
 fun GrowRoot(container: AppContainer) {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferencesRepository(context) }
+    val disclaimerAccepted by appPreferences.observeDisclaimerAccepted().collectAsStateWithLifecycle(initialValue = null)
+
+    if (disclaimerAccepted == null) {
+        Box(modifier = Modifier.fillMaxSize()) {}
+        return
+    }
+
+    if (disclaimerAccepted == false) {
+        DisclaimerScreen(
+            onAccept = {
+                kotlinx.coroutines.MainScope().launch {
+                    appPreferences.setDisclaimerAccepted(true)
+                }
+            }
+        )
+        return
+    }
+
     val factories = ViewModelFactories(container)
     val homeViewModel: HomeViewModel = viewModel(factory = factories.home)
     val lockViewModel: LockViewModel = viewModel(factory = factories.lock)
@@ -71,8 +95,6 @@ fun GrowRoot(container: AppContainer) {
     val currentUserEmail by muralViewModel.currentUserEmail.collectAsStateWithLifecycle()
     val isAuthResolved by muralViewModel.isAuthResolved.collectAsStateWithLifecycle()
     
-    val context = LocalContext.current
-
     var showNotificationSheet by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
     var isGoogleLoginLoading by remember { mutableStateOf(false) }
@@ -264,9 +286,21 @@ fun GrowRoot(container: AppContainer) {
                         }
 
                         composable(NavRoute.Store.route) {
-                            StoreComingSoonScreen(
+                            StrainsScreen(
                                 innerPadding = innerPadding,
-                                maskStoreCatalog = securityPrefs.maskStoreCatalog
+                                onStrainClick = { strainId -> 
+                                    navController.navigate(NavRoute.StrainDetail.create(strainId))
+                                }
+                            )
+                        }
+
+                        composable(NavRoute.StrainDetail.route,
+                            arguments = listOf(navArgument("strainId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val strainId = backStackEntry.arguments?.getString("strainId") ?: return@composable
+                            StrainDetailScreen(
+                                strainId = strainId,
+                                onBack = { navController.popBackStack() }
                             )
                         }
 

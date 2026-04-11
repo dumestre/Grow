@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.Yard
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.daime.grow.R
 import com.daime.grow.ui.navigation.NavRoute
 import com.daime.grow.ui.theme.GrowTheme
 
@@ -89,10 +91,10 @@ enum class BottomNavItem(
     ),
     Store(
         route = NavRoute.Store.route,
-        titleRes = com.daime.grow.R.string.nav_loja,
-        iconRes = null,
-        selectedIcon = Icons.Filled.ShoppingCart,
-        unselectedIcon = Icons.Outlined.ShoppingCart
+        titleRes = R.string.nav_strains,
+        iconRes = R.drawable.cannabis_24,
+        selectedIcon = Icons.Filled.Spa,
+        unselectedIcon = Icons.Outlined.Spa
     ),
     Notifications(
         route = NavRoute.Notifications.route,
@@ -195,7 +197,7 @@ private fun NavIconItem(
         modifier = modifier
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = false, radius = 20.dp),
+                indication = ripple(bounded = false, radius = 50.dp),
                 onClick = { onNavigate(item.route) }
             ),
         contentAlignment = Alignment.Center
