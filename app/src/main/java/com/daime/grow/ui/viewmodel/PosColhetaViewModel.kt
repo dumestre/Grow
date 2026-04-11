@@ -7,6 +7,7 @@ import com.daime.grow.data.local.dao.HarvestDao
 import com.daime.grow.data.local.dao.PlantDao
 import com.daime.grow.data.local.entity.HarvestBatchEntity
 import com.daime.grow.data.reminder.ReminderScheduler
+import com.daime.grow.widget.GrowWidgetUpdater
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -60,6 +61,7 @@ class PosColhetaViewModel @Inject constructor(
         viewModelScope.launch {
             val batch = harvestDao.getBatchById(id) ?: return@launch
             harvestDao.updateBatch(batch.copy(currentHumidity = humidity))
+            GrowWidgetUpdater.refreshAll(getApplication())
         }
     }
 
@@ -87,8 +89,9 @@ class PosColhetaViewModel @Inject constructor(
             
             val nextBurpTime = now + (nextIntervalHours * 60 * 60 * 1000L)
             harvestDao.updateBatch(batch.copy(lastBurpDate = now, nextBurpDate = nextBurpTime))
-            
+             
             scheduler.scheduleBurpReminder(id, nextIntervalHours.toLong())
+            GrowWidgetUpdater.refreshAll(getApplication())
         }
     }
 
@@ -97,6 +100,7 @@ class PosColhetaViewModel @Inject constructor(
             val batch = harvestDao.getBatchById(id) ?: return@launch
             harvestDao.updateBatch(batch.copy(status = "CURING"))
             scheduler.scheduleBurpReminder(id, 24)
+            GrowWidgetUpdater.refreshAll(getApplication())
         }
     }
 }

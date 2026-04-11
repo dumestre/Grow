@@ -16,6 +16,12 @@ interface HarvestDao {
     @Query("SELECT * FROM harvest_batches WHERE status = 'CURING' ORDER BY harvestDate DESC")
     fun observeCuringBatches(): Flow<List<HarvestBatchEntity>>
 
+    @Query("SELECT * FROM harvest_batches WHERE status = 'DRYING' ORDER BY harvestDate DESC")
+    suspend fun getDryingBatchesNow(): List<HarvestBatchEntity>
+
+    @Query("SELECT * FROM harvest_batches WHERE status = 'CURING' ORDER BY harvestDate DESC")
+    suspend fun getCuringBatchesNow(): List<HarvestBatchEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBatch(batch: HarvestBatchEntity): Long
 

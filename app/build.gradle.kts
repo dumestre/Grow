@@ -132,6 +132,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    implementation(libs.androidx.glance.appwidget)
 
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)

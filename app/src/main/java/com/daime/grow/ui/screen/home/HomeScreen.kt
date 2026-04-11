@@ -4,13 +4,18 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +50,7 @@ fun HomeScreen(
     onOpenDetails: (Long) -> Unit,
     onOpenSettings: () -> Unit,
     onAddPlant: () -> Unit,
+    onOpenTips: () -> Unit = {},
     externalIsDragging: Boolean = false,
     onDraggingChanged: (Boolean) -> Unit = {},
     externalTrashBounds: Rect? = null
@@ -100,6 +106,28 @@ fun HomeScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        floatingActionButton = {
+            Box(
+                modifier = Modifier.padding(bottom = 72.dp)
+            ) {
+                SmallFloatingActionButton(
+                    onClick = onOpenTips,
+                    containerColor = Color.White,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 12.dp
+                    )
+                ) {
+                    Icon(
+                        Icons.Rounded.Lightbulb,
+                        contentDescription = "Dicas de Cultivo",
+                        tint = Color(0xFFE91E63),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {

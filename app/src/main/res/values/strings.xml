@@ -178,4 +178,17 @@
     <string name="settings_theme_system">Sistema (padrão)</string>
     <string name="settings_theme_light">Sempre claro</string>
     <string name="settings_theme_dark">Sempre escuro</string>
+
+    <!-- Widget -->
+    <string name="widget_label">Grow em foco</string>
+    <string name="widget_empty_title">Nenhuma planta ainda</string>
+    <string name="widget_empty_subtitle">Abra o app para cadastrar sua primeira planta.</string>
+    <string name="widget_focus_title">Em foco</string>
+    <string name="widget_next_watering">Próxima rega</string>
+    <string name="widget_watering_today">Hoje</string>
+    <string name="widget_watering_tomorrow">Amanhã</string>
+    <string name="widget_watering_overdue">Atrasada</string>
+    <string name="widget_watering_unscheduled">Sem rega agendada</string>
+    <string name="widget_open_app">Abrir app</string>
+    <string name="widget_total_plants">%1$d plantas</string>
 </resources>

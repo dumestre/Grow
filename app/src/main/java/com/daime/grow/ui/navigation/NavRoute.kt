@@ -15,4 +15,5 @@ sealed class NavRoute(val route: String) {
     data object MuralPost : NavRoute("mural_post/{postId}") {
         fun create(postId: String) = "mural_post/$postId"
     }
+    data object GrowTips : NavRoute("grow_tips")
 }

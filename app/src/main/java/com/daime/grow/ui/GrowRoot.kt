@@ -49,6 +49,7 @@ import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
 import com.daime.grow.ui.screen.store.StoreComingSoonScreen
 import com.daime.grow.ui.screen.store.StoreScreen
+import com.daime.grow.ui.screen.tips.GrowTipsScreen
 import com.daime.grow.ui.viewmodel.*
 
 @Composable
@@ -240,6 +241,7 @@ fun GrowRoot(container: AppContainer) {
                                 onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
                                 onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
                                 onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
+                                onOpenTips = { navController.navigate(NavRoute.GrowTips.route) },
                                 externalIsDragging = isDraggingPlant,
                                 onDraggingChanged = { isDraggingPlant = it },
                                 externalTrashBounds = trashBounds
@@ -315,6 +317,12 @@ fun GrowRoot(container: AppContainer) {
                                 postId = checkNotNull(it.arguments?.getString("postId")),
                                 innerPadding = PaddingValues(),
                                 viewModel = currentMuralViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(NavRoute.GrowTips.route) {
+                            GrowTipsScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }

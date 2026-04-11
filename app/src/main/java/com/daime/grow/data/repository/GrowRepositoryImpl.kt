@@ -30,6 +30,7 @@ import com.daime.grow.domain.model.WateringLog
 import com.daime.grow.domain.repository.GrowRepository
 import com.daime.grow.domain.usecase.ChecklistFactory
 import com.daime.grow.ui.util.ImageUtils
+import com.daime.grow.widget.GrowWidgetUpdater
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.Flow
@@ -165,7 +166,8 @@ class GrowRepositoryImpl @Inject constructor(
 
             val createdPlant = plantDao.observePlant(createdId).first()
             createdPlant?.toDomain()?.let { scheduler.scheduleForPlant(it) }
-            
+            GrowWidgetUpdater.refreshAll(appContext)
+             
             Log.d(TAG, "addPlant: Planta finalizada com ID=$createdId")
             return createdId
         } catch (e: Exception) {
@@ -251,6 +253,7 @@ class GrowRepositoryImpl @Inject constructor(
         }
 
         plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun addNutrient(log: NutrientLog) {
@@ -277,6 +280,7 @@ class GrowRepositoryImpl @Inject constructor(
         }
         plantDao.observePlant(plantId).first()?.toDomain()?.let { scheduler.scheduleForPlant(it) }
         syncPlantsToRemote()
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun updatePlantPhoto(plantId: Long, photoUri: String?) {
@@ -288,6 +292,7 @@ class GrowRepositoryImpl @Inject constructor(
             deletePhotoIfOwned(appContext, currentPhoto)
         }
         syncPlantsToRemote()
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun deletePlant(plantId: Long) {
@@ -298,6 +303,7 @@ class GrowRepositoryImpl @Inject constructor(
         scheduler.cancelForPlant(plantId)
         deletePhotoIfOwned(appContext, photoUri)
         syncPlantsToRemote()
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun updatePlantsOrder(orderedIds: List<Long>) {
@@ -308,6 +314,7 @@ class GrowRepositoryImpl @Inject constructor(
             }
         }
         syncPlantsToRemote()
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long) {
@@ -324,6 +331,7 @@ class GrowRepositoryImpl @Inject constructor(
                 nextBurpDate = null
             )
         )
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     override suspend fun seedDataIfNeeded() {
@@ -392,6 +400,7 @@ class GrowRepositoryImpl @Inject constructor(
 
     override suspend fun importBackup(uri: Uri) {
         backupManager.importFrom(uri)
+        GrowWidgetUpdater.refreshAll(appContext)
     }
 
     // Mural
