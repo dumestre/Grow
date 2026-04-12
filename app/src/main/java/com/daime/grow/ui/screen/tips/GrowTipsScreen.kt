@@ -82,12 +82,12 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "HPS/MH (Vapor de Sódio/Mercúrio)",
-                        description = "Alto calor, alto consumo. HPS para floração, MH para veg. Requer refrigeração. Menos eficiente que LED nowadays.",
+                        description = "Alto calor, alto consumo. HPS para floração, MH para veg. Requer refrigeração. Menos eficiente que LED atualmente.",
                         icon = Icons.Rounded.LocalFireDepartment
                     ),
                     TipItem(
                         title = "CFL / Lâmpadas Fluorescentes",
-                        description = "Boa opção para seedlings e clones. Pouco calor, fácil de usar. Menos potente para veg intenso ou floração.",
+                        description = "Boa opção para mudas e clones. Pouco calor, fácil de usar. Menos potente para veg intenso ou floração.",
                         icon = Icons.Rounded.FlashOn
                     ),
                     TipItem(
@@ -104,7 +104,7 @@ fun GrowTipsScreen(
                 tips = listOf(
                     TipItem(
                         title = "Vegetativo - Alto Nitrogênio",
-                        description = "NPK typical: 3-1-2 ou 2-1-2. Nitrogênio para folhas verdes escuras e crescimento rápido. Não exagereouburna as raízes.",
+                        description = "NPK típico: 3-1-2 ou 2-1-2. Nitrogênio para folhas verdes escuras e crescimento rápido. Não exagere ou queima as raízes.",
                         icon = Icons.Rounded.Eco
                     ),
                     TipItem(
@@ -114,12 +114,12 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Overfeeding (Queimadura de Nutri)",
-                        description = "Pontas das folhas amarelas ou marrons = muito nutri. Lave com água limpa (runoff 20%). Sempre comece com 50% da dose.",
+                        description = "Pontas das folhas amarelas ou marrons = muito nutri. Lave com água limpa (dreno 20%). Sempre comece com 50% da dose.",
                         icon = Icons.Rounded.Warning
                     ),
                     TipItem(
                         title = "pH Correcto",
-                        description = "Solo: 6.0-7.0. Hydro/Coco: 5.5-6.5. pH errado = lockout de nutrientes mesmo que estejam presentes. Use medidor.",
+                        description = "Solo: 6.0-7.0. Hydro/Coco: 5.5-6.5. pH errado = bloqueio de nutrientes mesmo que estejam presentes. Use medidor.",
                         icon = Icons.Rounded.Science
                     )
                 )
@@ -136,7 +136,7 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Qualidade da Água",
-                        description = "EC (conductivity) ideal: 0.8-1.2 veg, 1.2-1.6 flor. Use filtro ou deixe repousar 24h. pH after adjusting: check sempre.",
+                        description = "EC (condutividade) ideal: 0.8-1.2 veg, 1.2-1.6 flor. Use filtro ou deixe repousar 24h. pH após ajuste: verifique sempre.",
                         icon = Icons.Rounded.FilterAlt
                     ),
                     TipItem(
@@ -146,7 +146,7 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Drenagem",
-                        description = "Vasos com furos EM TODO LADO. Waterlogging = raízes sem oxigênio = apodrecimento. Use bandeja com pedras pra drenar.",
+                        description = "Vasos com furos EM TODO LADO. Encharcamento = raízes sem oxígeno = apodrecimento. Use bandeja com pedras pra drenar.",
                         icon = Icons.Rounded.Layers
                     )
                 )
@@ -163,7 +163,7 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Ventilação",
-                        description = "Ar fresco entrando SEMPRE. CO2 fresco = crescimento 20% melhor. Extractors suckando o ar quente. Oscillating fans pra circulação.",
+                        description = "Ar fresco entrando SEMPRE. CO2 fresco = crescimento 20% melhor. Extractors sugando o ar quente. Ventiladores oscilantes pra circulação.",
                         icon = Icons.Rounded.Air
                     ),
                     TipItem(
@@ -173,7 +173,7 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Controle de Odor",
-                        description = "Floração = odor Forte! Filtros de carvão (can filter) são essenciais. Carbon scrubbers, ozônio em casos extremos.",
+                        description = "Floração = odor Forte! Filtros de carvão são essenciais. Depuradores de carbono, ozônio em casos extremos.",
                         icon = Icons.Rounded.FilterAlt
                     )
                 )
@@ -190,7 +190,7 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "SCROG (Screen of Green)",
-                        description = "Tela a 20-30cm acima das plantas. Thread plants through. Preenche toda a tela uniformemente. Máximo aproveitamento de luz.",
+                        description = "Tela a 20-30cm acima das plantas. Enfie plantas pela tela. Preenche toda a tela uniformemente. Máximo aproveitamento de luz.",
                         icon = Icons.Rounded.GridOn
                     ),
                     TipItem(
@@ -200,12 +200,12 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Topping / Fimming",
-                        description = "TOPPING: corta ponta do main stem acima do nó 4-5. Two tops nascem. FIMMING: corta 80% da ponta. 4+ tops. Promove arbusto.",
+                        description = "TOPPING: corta ponta do caule principal acima do nó 4-5. Dois tops nascem. FIMMING: corta 80% da ponta. 4+ tops. Promove arbusto.",
                         icon = Icons.Rounded.ContentCut
                     ),
                     TipItem(
                         title = "Defoliação (Defoliating)",
-                        description = "Remove folhas grandes que bloqueiam luz das buds. 2-3x durante floração. Menos é mais! Só folhas que não recebem luz direta.",
+                        description = "Remove folhas grandes que bloqueiam luz dos buds. 2-3x durante floração. Menos é mais! Só folhas que não recebem luz direta.",
                         icon = Icons.Rounded.RemoveCircle
                     )
                 )
@@ -217,7 +217,7 @@ fun GrowTipsScreen(
                 tips = listOf(
                     TipItem(
                         title = "Quando Colher",
-                        description = "Pistilos (pêlos): 70-90% marrons/avermelhados. Tricomas: milky white + 10-20% amber. Use lupa 60x+ ou microscópio.",
+                        description = "Pistilos (pêlos): 70-90% marrons/avermelhados. Tricomas: branco leitoso + 10-20% âmbar. Use lupa 60x+ ou microscópio.",
                         icon = Icons.Rounded.Visibility
                     ),
                     TipItem(
@@ -227,17 +227,17 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Secagem (Drying)",
-                        description = "Inverted (de cabeça pra baixo), 18-21°C, umidade 50-60%. Escuro total. 7-14 dias até branches quebrarem (snap test).",
+                        description = "Invertido (de cabeça pra baixo), 18-21°C, umidade 50-60%. Escuro total. 7-14 dias até galhos quebrarem.",
                         icon = Icons.Rounded.Dry
                     ),
                     TipItem(
                         title = "Curing (Curagem)",
-                        description = "Jars de vidro, buracos sehari. Primeira semana: abrir 2x ao dia por 15min (burp). Depois 1x ao dia. Mínimo 2-4 semanas.",
+                        description = "Potes de vidro, buracos sehari. Primeira semana: abrir 2x ao dia por 15min. Depois 1x ao dia. Mínimo 2-4 semanas.",
                         icon = Icons.Rounded.Inventory
                     ),
                     TipItem(
                         title = "Armazenamento",
-                        description = "Jars herméticos, lugar fresco e escuro. Não congelar. Boa cure dura meses mantendo potency. Boveda packs ajudam.",
+                        description = "Potes herméticos, lugar fresco e escuro. Não congelar. Boa cura dura meses mantendo potência. Boveda packs ajudam.",
                         icon = Icons.Rounded.Inventory2
                     )
                 )
@@ -249,7 +249,7 @@ fun GrowTipsScreen(
                 tips = listOf(
                     TipItem(
                         title = "Ácaros (Spider Mites)",
-                        description = "Pequenos pontos amarelos nas folhas, teias finas. Spray de água + sabão neutro, Neem oil. Isolar planta. Reapply 3x.",
+                        description = "Pequenos pontos amarelos nas folhas, teias finas. Spray de água + sabão neutro, Óleo de Neem. Isolar planta. Reaplique 3x.",
                         icon = Icons.Rounded.PestControl
                     ),
                     TipItem(
@@ -259,12 +259,12 @@ fun GrowTipsScreen(
                     ),
                     TipItem(
                         title = "Deficiências Comuns",
-                        description = "N deficiency: yellow bottom leaves. P deficiency: purple stems. K deficiency: brown edges. Mg deficiency: veins green, yellow between.",
+                        description = "Deficiência N: folhas amarelas embaixo. Deficiência P: caule roxo. Deficiência K: bordas marrons. Deficiência Mg: veias verdes, amarelo entre.",
                         icon = Icons.Rounded.Warning
                     ),
                     TipItem(
                         title = "Prevenção",
-                        description = "Inspect novas plantas por 2 semanas. Quarantine total. Ambiente limpo. Sticky traps. Preventive Neem weekly helps.",
+                        description = "Inspecione novas plantas por 2 semanas. Quarentena total. Ambiente limpo. Armadilhas pegajosas. Neem preventivo semanal ajuda.",
                         icon = Icons.Rounded.Visibility
                     )
                 )

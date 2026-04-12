@@ -1,6 +1,7 @@
 ﻿package com.daime.grow.data.repository
 
 import android.content.Context
+import android.provider.Settings
 import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
@@ -12,6 +13,7 @@ import com.daime.grow.data.local.entity.NutrientLogEntity
 import com.daime.grow.data.local.entity.PlantEntity
 import com.daime.grow.data.local.entity.PlantEventEntity
 import com.daime.grow.data.local.entity.WateringLogEntity
+import com.daime.grow.data.preferences.MuralPreferencesRepository
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
 import com.daime.grow.data.remote.model.AppConfigDto
 import com.daime.grow.data.reminder.ReminderScheduler
@@ -51,7 +53,8 @@ class GrowRepositoryImpl @Inject constructor(
     private val database: GrowDatabase,
     private val scheduler: ReminderScheduler,
     private val backupManager: BackupManager,
-    private val securityRepository: SecurityPreferencesRepository
+    private val securityRepository: SecurityPreferencesRepository,
+    private val muralPreferencesRepository: MuralPreferencesRepository
 ) : GrowRepository {
 
     private val plantDao = database.plantDao()
@@ -61,7 +64,7 @@ class GrowRepositoryImpl @Inject constructor(
     private val checklistDao = database.checklistDao()
     private val muralDao = database.muralDao()
     private val harvestDao = database.harvestDao()
-    private val supabase = SupabaseClient.clientOrNull
+    private val supabaseClient get() = SupabaseClient.clientOrNull
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
         return plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0)
@@ -158,7 +161,17 @@ class GrowRepositoryImpl @Inject constructor(
             }
             Log.d(TAG, "addPlant: Transação concluída com sucesso, ID=$createdId")
 
-            syncPlantsToRemote()
+            // Salva diretamente no Supabase (não usa sync para evitar duplicatas)
+            insertPlantDirectlyToSupabase(
+                localId = createdId,
+                name = name,
+                strain = strain,
+                stage = stage,
+                medium = medium,
+                days = days,
+                photoUri = photoUri,
+                isHydroponic = isHydroponic
+            )
 
             if (shareOnMural) {
                 syncToSupabase(name, strain, stage, medium, days, photoUri)
@@ -176,6 +189,63 @@ class GrowRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun insertPlantDirectlyToSupabase(
+        localId: Long,
+        name: String,
+        strain: String,
+        stage: String,
+        medium: String,
+        days: Int,
+        photoUri: String?,
+        isHydroponic: Boolean
+    ) {
+        val supabase = supabaseClient ?: return
+        
+        // Só salva no Supabase se usuário estiver logado com Google
+        val userUuid = getCurrentUserId() ?: run {
+            Log.d(TAG, "insertPlantDirectlyToSupabase: usuário não logado, pulando save no banco")
+            return
+        }
+        try {
+            val now = System.currentTimeMillis()
+            
+            var remotePhotoUrl: String? = null
+            if (photoUri != null && !photoUri.startsWith("http")) {
+                val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
+                if (bytes != null) {
+                    val fileName = "plant_${UUID.randomUUID()}.webp"
+                    val bucket = supabase.storage.from("plant-photos")
+                    bucket.upload(fileName, bytes)
+                    remotePhotoUrl = bucket.publicUrl(fileName)
+                }
+            } else if (photoUri?.startsWith("http") == true) {
+                remotePhotoUrl = photoUri
+            }
+
+            // Insere diretamente no Supabase com o local_id para evitar duplicatas
+            supabase.from("plants").insert(
+                PlantDto(
+                    user_id = userUuid,
+                    local_id = localId,
+                    name = name,
+                    strain = strain,
+                    stage = stage,
+                    medium = medium,
+                    days = days,
+                    photo_url = remotePhotoUrl,
+                    next_watering_date = null,
+                    sort_order = localId.toInt(),
+                    created_at = now,
+                    updated_at = now,
+                    is_hydroponic = isHydroponic
+                )
+            )
+            Log.d(TAG, "insertPlantDirectlyToSupabase: Planta $name inserida com local_id=$localId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao inserir planta no Supabase: ${e.message}")
+        }
+    }
+
     private suspend fun syncToSupabase(
         name: String,
         strain: String,
@@ -184,7 +254,7 @@ class GrowRepositoryImpl @Inject constructor(
         days: Int,
         photoUri: String?
     ) {
-        val supabase = supabase ?: return
+        val supabase = supabaseClient ?: return
         try {
             val userUuid = getCurrentUserId() ?: return
             var remotePhotoUrl: String? = null
@@ -337,7 +407,11 @@ class GrowRepositoryImpl @Inject constructor(
     override suspend fun seedDataIfNeeded() {
         // Sincroniza a configuração remota do Supabase que controla o mascaramento
         syncRemoteConfig()
-        // Não cria mais plantas placeholder - o usuário deve adicionar suas próprias plantas
+        
+        // Se usuário estiver logado, baixa dados do remoto
+        if (getCurrentUserId() != null) {
+            syncPlantsFromRemote()
+        }
     }
 
     override fun observeSecurityPreferences(): Flow<SecurityPreferences> {
@@ -374,24 +448,8 @@ class GrowRepositoryImpl @Inject constructor(
     }
 
     private suspend fun syncRemoteConfig() {
-        val supabase = supabase ?: return
-        try {
-            Log.d(TAG, "Sincronizando Remote Config do Supabase...")
-            // Busca a chave 'use_alternative_icons' que controla o mascaramento global
-            val config = supabase.from("app_config")
-                .select { filter { eq("key", "use_alternative_icons") } }
-                .decodeSingleOrNull<AppConfigDto>()
-            
-            Log.d(TAG, "Config recebida: $config")
-            
-            config?.let {
-                Log.d(TAG, "Atualizando mascaramento para: ${it.value_bool}")
-                // Atualiza ambos os mascaramentos baseados na flag do Supabase
-                securityRepository.setAllMasking(it.value_bool)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Falha ao sincronizar config remota: ${e.message}")
-        }
+        // Desabilitado - não temos mais a tabela app_config
+        // Pode ser habilitado novamente se precisar de config remota no futuro
     }
 
     override suspend fun exportBackup(uri: Uri) {
@@ -435,7 +493,7 @@ class GrowRepositoryImpl @Inject constructor(
                 )
             )
             try {
-                supabase?.from("mural_users")?.insert(MuralUserDto(username = username))
+                supabaseClient?.from("mural_users")?.insert(MuralUserDto(username = username))
             } catch (e: Exception) {
                 Log.e(TAG, "Erro ao criar usuário remoto: ${e.message}")
             }
@@ -444,20 +502,54 @@ class GrowRepositoryImpl @Inject constructor(
         return user.id
     }
 
-    private var currentUserUuid: String? = null
+    private var cachedUserUuid: String? = null
 
-    override suspend fun getCurrentUserId(): String? = currentUserUuid
+    override suspend fun getCurrentUserId(): String? {
+        if (cachedUserUuid != null) return cachedUserUuid
+        return muralPreferencesRepository.currentUserUuid.first().also {
+            cachedUserUuid = it
+        }
+    }
 
     fun setCurrentUserUuid(userUuid: String) {
-        currentUserUuid = userUuid
+        cachedUserUuid = userUuid
+    }
+
+private fun getDeviceUserId(): String {
+        val prefs = appContext.getSharedPreferences("device_id", Context.MODE_PRIVATE)
+        var deviceId = prefs.getString("device_uuid", null)
+        if (deviceId == null) {
+            val androidId = Settings.Secure.getString(
+                appContext.contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown_${UUID.randomUUID()}"
+            // Use simple ID without special chars
+            deviceId = "device_${androidId.take(16)}"
+            prefs.edit().putString("device_uuid", deviceId).apply()
+            Log.d(TAG, "Generated device ID: $deviceId")
+        }
+        return deviceId
     }
 
     override suspend fun syncPlantsToRemote() {
-        val supabase = supabase ?: return
-        val userUuid = currentUserUuid ?: return
+        val supabase = supabaseClient ?: run {
+            Log.w(TAG, "syncPlantsToRemote: Supabase não configurado, pulando")
+            return
+        }
+        
+        // Só sincroniza se usuário estiver logado
+        val userUuid = getCurrentUserId() ?: run {
+            Log.d(TAG, "syncPlantsToRemote: usuário não logado, pulando sync")
+            return
+        }
 
         try {
             val plants = plantDao.getAllNow()
+            Log.d(TAG, "syncPlantsToRemote: Found ${plants.size} plants locally")
+            if (plants.isEmpty()) {
+                Log.w(TAG, "syncPlantsToRemote: Nenhuma planta local para sincronizar")
+                return
+            }
             val now = System.currentTimeMillis()
 
             for (plant in plants) {
@@ -479,6 +571,7 @@ class GrowRepositoryImpl @Inject constructor(
                     supabase.from("plants").upsert(
                         PlantDto(
                             user_id = userUuid,
+                            local_id = plant.id,
                             name = plant.name,
                             strain = plant.strain,
                             stage = plant.stage,
@@ -502,8 +595,12 @@ class GrowRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncPlantsFromRemote() {
-        val supabase = supabase ?: return
-        val userUuid = currentUserUuid ?: return
+        val supabase = supabaseClient ?: return
+        
+        val userUuid = getCurrentUserId() ?: run {
+            Log.d(TAG, "syncPlantsFromRemote: usuário não logado, pulando download")
+            return
+        }
 
         try {
             val remotePlants = supabase.from("plants")
@@ -514,9 +611,19 @@ class GrowRepositoryImpl @Inject constructor(
 
             for (dto in remotePlants) {
                 try {
-                    val existingPlant = plantDao.getPlantById(dto.id?.toLongOrNull() ?: 0)
+                    val dtoId = dto.id
+                    
+                    // Primeiro tenta encontrar pela planta local pelo local_id (estratégia correta)
+                    val localId = dto.local_id
+                    val existingPlant = if (localId != null && localId > 0L) {
+                        plantDao.getPlantById(localId)
+                    } else {
+                        // Fallback: verifica se já existe pelo nome (para plantas antigas)
+                        plantDao.getPlantByName(dto.name)
+                    }
 
                     if (existingPlant != null) {
+                        // Atualiza campos remota para local (evita sobrescrever dados locais importantes)
                         plantDao.update(
                             existingPlant.copy(
                                 name = dto.name,
@@ -530,8 +637,16 @@ class GrowRepositoryImpl @Inject constructor(
                                 isHydroponic = dto.is_hydroponic
                             )
                         )
+                        
+                        // Se tinha local_id remoto nulo, atualiza agora
+                        if (dtoId != null && dto.local_id == null) {
+                            supabase.from("plants").update({ set("local_id", existingPlant.id) }) {
+                                filter { eq("id", dtoId) }
+                            }
+                        }
                     } else {
-                        plantDao.insert(
+                        // Cria nova planta local
+                        val newId = plantDao.insert(
                             PlantEntity(
                                 name = dto.name,
                                 strain = dto.strain ?: "",
@@ -545,6 +660,12 @@ class GrowRepositoryImpl @Inject constructor(
                                 isHydroponic = dto.is_hydroponic
                             )
                         )
+                        // Atualiza o remote com o novo local_id
+                        if (dtoId != null) {
+                            supabase.from("plants").update({ set("local_id", newId) }) {
+                                filter { eq("id", dtoId) }
+                            }
+                        }
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Erro ao importar planta ${dto.name}: ${e.message}")

@@ -43,6 +43,7 @@ data class MuralLikeDto(
 data class PlantDto(
     val id: String? = null,
     val user_id: String? = null,
+    val local_id: Long? = null,
     val name: String,
     val strain: String? = null,
     val stage: String = "Germinação",

@@ -12,7 +12,8 @@ class ViewModelFactories(container: AppContainer) {
         database = container.database,
         scheduler = container.reminderScheduler,
         backupManager = container.backupManager,
-        securityRepository = container.preferencesRepository
+        securityRepository = container.preferencesRepository,
+        muralPreferencesRepository = container.muralPreferencesRepository
     )
 
     val home: ViewModelProvider.Factory = singleFactory { HomeViewModel(repository) }

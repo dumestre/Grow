@@ -1,6 +1,7 @@
 package com.daime.grow
 
 import android.Manifest
+import android.util.Log
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +15,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     setupMuralWorker()
                     setupPlantSyncWorker()
+                    triggerImmediateSync()
                 }
                 else -> {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -82,7 +85,16 @@ class MainActivity : ComponentActivity() {
         } else {
             setupMuralWorker()
             setupPlantSyncWorker()
+            triggerImmediateSync()
         }
+    }
+
+    private fun triggerImmediateSync() {
+        Log.d("MainActivity", "Triggering immediate plant sync")
+        val syncRequest = OneTimeWorkRequestBuilder<PlantSyncWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        WorkManager.getInstance(applicationContext).enqueue(syncRequest)
     }
 
     private fun setupMuralWorker() {

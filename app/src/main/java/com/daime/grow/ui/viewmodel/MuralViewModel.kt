@@ -94,43 +94,10 @@ class MuralViewModel @Inject constructor(
     private val supabase = SupabaseClient.clientOrNull
 
     init {
-        if (BuildConfig.DEBUG) {
-            bypassAuthForDevelopment()
-        }
         loadPosts()
-        if (!BuildConfig.DEBUG) {
-            observeStoredUser()
-        }
+        observeStoredUser()
         viewModelScope.launch {
             syncWithRemote()
-        }
-    }
-
-    private fun bypassAuthForDevelopment() {
-        viewModelScope.launch {
-            val devUsername = "dev_user"
-            val existingUser = muralDao.getUserByUsername(devUsername)
-            if (existingUser != null) {
-                _currentUserUuid.value = existingUser.remoteId ?: devUsername
-                _currentUsername.value = devUsername
-                _currentUserEmail.value = "dev@localhost"
-                preferencesRepository.saveUserUuid(existingUser.remoteId ?: devUsername)
-                preferencesRepository.saveUserEmail("dev@localhost")
-            } else {
-                muralDao.insertUser(
-                    MuralUserEntity(
-                        username = devUsername,
-                        createdAt = System.currentTimeMillis()
-                    )
-                )
-                _currentUserUuid.value = devUsername
-                _currentUsername.value = devUsername
-                _currentUserEmail.value = "dev@localhost"
-                preferencesRepository.saveUserUuid(devUsername)
-                preferencesRepository.saveUserEmail("dev@localhost")
-                android.util.Log.d("MuralViewModel", "DEV MODE: Usuario fake criado: $devUsername")
-            }
-            _isAuthResolved.value = true
         }
     }
 

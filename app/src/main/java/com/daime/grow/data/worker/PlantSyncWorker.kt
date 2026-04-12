@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.daime.grow.data.local.GrowDatabase
+import com.daime.grow.data.preferences.MuralPreferencesRepository
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
 import com.daime.grow.data.reminder.ReminderScheduler
 import com.daime.grow.data.backup.BackupManager
@@ -18,6 +19,7 @@ class PlantSyncWorker(
         return try {
             val database = GrowDatabase.getInstance(applicationContext)
             val securityRepository = SecurityPreferencesRepository(applicationContext)
+            val muralPreferencesRepository = MuralPreferencesRepository(applicationContext)
             val reminderScheduler = ReminderScheduler(applicationContext)
             val backupManager = BackupManager(applicationContext, database)
             val repository = GrowRepositoryImpl(
@@ -25,7 +27,8 @@ class PlantSyncWorker(
                 database,
                 reminderScheduler,
                 backupManager,
-                securityRepository
+                securityRepository,
+                muralPreferencesRepository
             )
 
             repository.syncPlantsToRemote()

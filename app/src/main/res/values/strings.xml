@@ -73,7 +73,7 @@
     <string name="detail_ph">pH</string>
     <string name="detail_save_nutrients">Salvar nutrientes</string>
     <string name="detail_checklist_by_stage">Checklist por fase</string>
-    <string name="detail_timeline">Timeline</string>
+    <string name="detail_timeline">Linha do tempo</string>
     <string name="detail_watering_invalid">Preencha os campos de rega corretamente.</string>
     <string name="detail_watering_saved">Rega salva com sucesso.</string>
     <string name="detail_nutrients_invalid">Preencha os campos de nutrientes corretamente.</string>
@@ -128,7 +128,7 @@
     <string name="nav_plantas">Plantas</string>
     <string name="nav_pos">Pós</string>
     <string name="nav_mural">Mural</string>
-    <string name="nav_strains">Strains</string>
+    <string name="nav_strains">Cepas</string>
     <string name="nav_avisos">Avisos</string>
     <string name="nav_ajustes">Ajustes</string>
     

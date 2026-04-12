@@ -33,6 +33,9 @@ interface PlantDao {
     @Query("SELECT * FROM plants WHERE id = :plantId LIMIT 1")
     suspend fun getPlantById(plantId: Long): PlantEntity?
 
+    @Query("SELECT * FROM plants WHERE name = :name LIMIT 1")
+    suspend fun getPlantByName(name: String): PlantEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(plant: PlantEntity): Long
 

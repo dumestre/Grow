@@ -139,13 +139,13 @@ fun StrainsScreen(
                     modifier = Modifier.padding(horizontal = horizontalPadding)
                 ) {
                     Text(
-                        text = "Strains",
+                        text = "Cepas",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${strains.size} varieties available",
+                        text = "${strains.size} cepas disponíveis",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
