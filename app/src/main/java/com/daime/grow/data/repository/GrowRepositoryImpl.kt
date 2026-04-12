@@ -161,19 +161,23 @@ class GrowRepositoryImpl @Inject constructor(
             }
             Log.d(TAG, "addPlant: Transação concluída com sucesso, ID=$createdId")
 
-            // Salva diretamente no Supabase (não usa sync para evitar duplicatas)
-            insertPlantDirectlyToSupabase(
-                localId = createdId,
-                name = name,
-                strain = strain,
-                stage = stage,
-                medium = medium,
-                days = days,
-                photoUri = photoUri,
-                isHydroponic = isHydroponic
-            )
+            // Salva diretamente no Supabase se usuário logado
+            val userUuid = getCurrentUserId()
+            if (userUuid != null) {
+                insertPlantDirectlyToSupabase(
+                    localId = createdId,
+                    name = name,
+                    strain = strain,
+                    stage = stage,
+                    medium = medium,
+                    days = days,
+                    photoUri = photoUri,
+                    isHydroponic = isHydroponic
+                )
+            }
 
-            if (shareOnMural) {
+            // Só posta no mural se solicitado (não duplica mais)
+            if (shareOnMural && userUuid != null) {
                 syncToSupabase(name, strain, stage, medium, days, photoUri)
             }
 
@@ -366,14 +370,34 @@ class GrowRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deletePlant(plantId: Long) {
-        val photoUri = plantDao.observePlant(plantId).first()?.photoUri
+        val plant = plantDao.observePlant(plantId).first()
+        val photoUri = plant?.photoUri
+        
+        // Primeiro deleta do Supabase se usuário logado
+        val userUuid = getCurrentUserId()
+        if (userUuid != null && plant != null) {
+            deletePlantFromSupabase(plantId, userUuid)
+        }
+        
         database.withTransaction {
             plantDao.deleteById(plantId)
         }
         scheduler.cancelForPlant(plantId)
         deletePhotoIfOwned(appContext, photoUri)
-        syncPlantsToRemote()
         GrowWidgetUpdater.refreshAll(appContext)
+    }
+
+    private suspend fun deletePlantFromSupabase(localId: Long, userUuid: String) {
+        val supabase = supabaseClient ?: return
+        try {
+            supabase.from("plants").delete {
+                filter { eq("local_id", localId) }
+                filter { eq("user_id", userUuid) }
+            }
+            Log.d(TAG, "deletePlantFromSupabase: Planta $localId deletada do Supabase")
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao deletar planta do Supabase: ${e.message}")
+        }
     }
 
     override suspend fun updatePlantsOrder(orderedIds: List<Long>) {
@@ -537,7 +561,6 @@ private fun getDeviceUserId(): String {
             return
         }
         
-        // Só sincroniza se usuário estiver logado
         val userUuid = getCurrentUserId() ?: run {
             Log.d(TAG, "syncPlantsToRemote: usuário não logado, pulando sync")
             return
@@ -547,7 +570,6 @@ private fun getDeviceUserId(): String {
             val plants = plantDao.getAllNow()
             Log.d(TAG, "syncPlantsToRemote: Found ${plants.size} plants locally")
             if (plants.isEmpty()) {
-                Log.w(TAG, "syncPlantsToRemote: Nenhuma planta local para sincronizar")
                 return
             }
             val now = System.currentTimeMillis()
@@ -568,6 +590,7 @@ private fun getDeviceUserId(): String {
                         remotePhotoUrl = plant.photoUri
                     }
 
+                    // Upsert usando local_id para evitar duplicatas
                     supabase.from("plants").upsert(
                         PlantDto(
                             user_id = userUuid,
@@ -585,6 +608,7 @@ private fun getDeviceUserId(): String {
                             is_hydroponic = plant.isHydroponic
                         )
                     )
+                    Log.d(TAG, "syncPlantsToRemote: Planta ${plant.name} sincronizada")
                 } catch (e: Exception) {
                     Log.e(TAG, "Erro ao sincronizar planta ${plant.name}: ${e.message}")
                 }
