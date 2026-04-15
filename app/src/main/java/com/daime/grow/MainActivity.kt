@@ -25,12 +25,19 @@ import com.daime.grow.data.worker.PlantSyncWorker
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.GrowRoot
 import com.daime.grow.ui.theme.GrowTheme
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private lateinit var appUpdateManager: AppUpdateManager
+    private var hasResumedOnce = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -44,8 +51,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
+        appUpdateManager = AppUpdateManagerFactory.create(this)
 
         checkNotificationPermission()
+        checkForImmediateAppUpdate()
 
         val container = (application as GrowApplication).appContainer
         val securityRepository = SecurityPreferencesRepository(this)
@@ -64,6 +73,15 @@ class MainActivity : ComponentActivity() {
             GrowTheme(darkTheme = useDarkTheme) {
                 GrowRoot(container)
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (hasResumedOnce) {
+            resumeImmediateAppUpdateIfNeeded()
+        } else {
+            hasResumedOnce = true
         }
     }
 
@@ -129,5 +147,43 @@ class MainActivity : ComponentActivity() {
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
+    }
+
+    private fun checkForImmediateAppUpdate() {
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            val isImmediateUpdateAvailable =
+                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+
+            if (isImmediateUpdateAvailable) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    this,
+                    com.google.android.play.core.appupdate.AppUpdateOptions
+                        .newBuilder(AppUpdateType.IMMEDIATE)
+                        .build(),
+                    APP_UPDATE_REQUEST_CODE
+                )
+            }
+        }
+    }
+
+    private fun resumeImmediateAppUpdateIfNeeded() {
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    this,
+                    com.google.android.play.core.appupdate.AppUpdateOptions
+                        .newBuilder(AppUpdateType.IMMEDIATE)
+                        .build(),
+                    APP_UPDATE_REQUEST_CODE
+                )
+            }
+        }
+    }
+
+    companion object {
+        private const val APP_UPDATE_REQUEST_CODE = 1001
     }
 }

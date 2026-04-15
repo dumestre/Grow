@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,9 +42,13 @@ import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.viewmodel.PlantDetailUiEvent
 import com.daime.grow.ui.viewmodel.PlantDetailViewModel
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
+import android.content.Context
+import androidx.core.content.FileProvider
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -56,6 +61,7 @@ fun PlantDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val details = state.details
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
@@ -65,7 +71,10 @@ fun PlantDetailScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { viewModel.updatePhoto(it.toString()) }
+        uri?.let {
+            val persistentUri = persistPhotoToAppStorage(context, it)
+            viewModel.updatePhoto(persistentUri)
+        }
     }
 
     var showHarvestDialog by remember { mutableStateOf(false) }
@@ -291,7 +300,7 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
             }
             Text(stringResource(R.string.detail_strain, details.plant.strain))
             Text(stringResource(R.string.detail_medium, details.plant.medium))
-            Text(stringResource(R.string.detail_days, formatCultivationTime(details.plant.days)))
+            Text(stringResource(R.string.detail_days, formatCultivationTime(details.plant.currentDays)))
         }
     }
 }
@@ -552,4 +561,26 @@ private fun formatCultivationTime(days: Int): String {
         weeks == 1 -> "1 semana e $remainingDays dias"
         else -> "$weeks semanas e $remainingDays dias"
     }
+}
+
+private fun persistPhotoToAppStorage(context: Context, source: Uri): String? {
+    return runCatching {
+        val destination = createPersistentPhotoFile(context)
+        val inputStream = context.contentResolver.openInputStream(source)
+        if (inputStream != null) {
+            inputStream.use { input ->
+                destination.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", destination).toString()
+        } else {
+            null
+        }
+    }.getOrNull()
+}
+
+private fun createPersistentPhotoFile(context: Context): File {
+    val directory = File(context.filesDir, "plant_photos").apply { mkdirs() }
+    return File(directory, "plant_${UUID.randomUUID()}.jpg")
 }

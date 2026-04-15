@@ -49,6 +49,7 @@ import com.daime.grow.data.local.entity.HarvestBatchEntity
 import com.daime.grow.data.local.entity.PlantEntity
 import com.daime.grow.data.reminder.ReminderScheduler
 import com.daime.grow.domain.model.Plant
+import com.daime.grow.domain.model.calculateCultivationDays
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -273,7 +274,7 @@ private object GrowWidgetRepository {
             plantId = featuredPlant?.id,
             plantName = featuredPlant?.name,
             stage = featuredPlant?.stage,
-            days = featuredPlant?.days,
+            days = featuredPlant?.let { calculateCultivationDays(it.days, it.createdAt) },
             nextWateringDate = featuredPlant?.nextWateringDate,
             drying = harvestDao.getDryingBatchesNow().toWidgetSnapshot(),
             curing = harvestDao.getCuringBatchesNow().toWidgetSnapshot()
@@ -286,7 +287,7 @@ private fun List<PlantEntity>.pickFeaturedPlant(): PlantEntity? {
         compareBy<PlantEntity>(
             { it.nextWateringDate == null },
             { it.nextWateringDate ?: Long.MAX_VALUE },
-            { -it.days },
+            { -calculateCultivationDays(it.days, it.createdAt) },
             { -it.createdAt }
         )
     )

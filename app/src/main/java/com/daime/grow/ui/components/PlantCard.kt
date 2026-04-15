@@ -221,7 +221,7 @@ fun PlantCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            MetaLine("Ciclo", formatCultivationTime(plant.days))
+            MetaLine("Ciclo", formatCultivationTime(plant.currentDays))
             Spacer(modifier = Modifier.height(6.dp))
             MetaLine("Espécie", plant.strain)
             MetaLine("Substrato", plant.medium)

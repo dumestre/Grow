@@ -29,16 +29,22 @@ import com.daime.grow.domain.model.PlantEvent
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.domain.model.WateringLog
+import com.daime.grow.domain.model.calculateCultivationDays
+import com.daime.grow.domain.model.millisUntilNextLocalMidnight
 import com.daime.grow.domain.repository.GrowRepository
 import com.daime.grow.domain.usecase.ChecklistFactory
 import com.daime.grow.ui.util.ImageUtils
 import com.daime.grow.widget.GrowWidgetUpdater
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 import javax.inject.Inject
@@ -67,12 +73,18 @@ class GrowRepositoryImpl @Inject constructor(
     private val supabaseClient get() = SupabaseClient.clientOrNull
 
     override fun observePlants(query: String, stageFilter: String, sortAsc: Boolean): Flow<List<Plant>> {
-        return plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0)
-            .map { list -> list.map { it.toDomain() } }
+        return combine(
+            plantDao.observePlants(query.trim(), stageFilter, if (sortAsc) 1 else 0),
+            cultivationDayTicker()
+        ) { plants, _ ->
+            plants
+                .sortedWith(comparePlants(sortAsc))
+                .map { it.toDomain() }
+        }
     }
 
     override fun observePlantDetails(plantId: Long): Flow<PlantDetails?> {
-        return combine(
+        val detailsFlow = combine(
             plantDao.observePlant(plantId),
             plantEventDao.observeByPlantId(plantId),
             wateringDao.observeByPlantId(plantId),
@@ -88,6 +100,7 @@ class GrowRepositoryImpl @Inject constructor(
                 checklistItems = checklist.map { it.toDomain() }
             )
         }
+        return combine(detailsFlow, cultivationDayTicker()) { details, _ -> details }
     }
 
     override suspend fun addPlant(
@@ -164,21 +177,26 @@ class GrowRepositoryImpl @Inject constructor(
             // Salva diretamente no Supabase se usuário logado
             val userUuid = getCurrentUserId()
             if (userUuid != null) {
-                insertPlantDirectlyToSupabase(
-                    localId = createdId,
-                    name = name,
-                    strain = strain,
-                    stage = stage,
-                    medium = medium,
-                    days = days,
-                    photoUri = photoUri,
-                    isHydroponic = isHydroponic
-                )
+                withContext(Dispatchers.IO) {
+                    insertPlantDirectlyToSupabase(
+                        localId = createdId,
+                        name = name,
+                        strain = strain,
+                        stage = stage,
+                        medium = medium,
+                        days = days,
+                        photoUri = photoUri,
+                        isHydroponic = isHydroponic,
+                        sortOrder = plantDao.getPlantById(createdId)?.sortOrder ?: createdId.toInt()
+                    )
+                }
             }
 
             // Só posta no mural se solicitado (não duplica mais)
             if (shareOnMural && userUuid != null) {
-                syncToSupabase(name, strain, stage, medium, days, photoUri)
+                withContext(Dispatchers.IO) {
+                    syncToSupabase(name, strain, stage, medium, days, photoUri)
+                }
             }
 
             val createdPlant = plantDao.observePlant(createdId).first()
@@ -201,7 +219,8 @@ class GrowRepositoryImpl @Inject constructor(
         medium: String,
         days: Int,
         photoUri: String?,
-        isHydroponic: Boolean
+        isHydroponic: Boolean,
+        sortOrder: Int = localId.toInt()
     ) {
         val supabase = supabaseClient ?: return
         
@@ -226,8 +245,8 @@ class GrowRepositoryImpl @Inject constructor(
                 remotePhotoUrl = photoUri
             }
 
-            // Insere diretamente no Supabase com o local_id para evitar duplicatas
-            supabase.from("plants").insert(
+            // Usa upsert para reaproveitar o registro remoto quando local_id ja existir.
+            supabase.from("plants").upsert(
                 PlantDto(
                     user_id = userUuid,
                     local_id = localId,
@@ -238,13 +257,15 @@ class GrowRepositoryImpl @Inject constructor(
                     days = days,
                     photo_url = remotePhotoUrl,
                     next_watering_date = null,
-                    sort_order = localId.toInt(),
+                    sort_order = sortOrder,
                     created_at = now,
                     updated_at = now,
                     is_hydroponic = isHydroponic
                 )
-            )
-            Log.d(TAG, "insertPlantDirectlyToSupabase: Planta $name inserida com local_id=$localId")
+            ) {
+                onConflict = "user_id,local_id"
+            }
+            Log.d(TAG, "insertPlantDirectlyToSupabase: Planta $name sincronizada com local_id=$localId")
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao inserir planta no Supabase: ${e.message}")
         }
@@ -362,10 +383,12 @@ class GrowRepositoryImpl @Inject constructor(
         database.withTransaction {
             plantDao.updatePhoto(plantId, photoUri)
         }
-        if (currentPhoto != null && currentPhoto != photoUri) {
-            deletePhotoIfOwned(appContext, currentPhoto)
+        withContext(Dispatchers.IO) {
+            if (currentPhoto != null && currentPhoto != photoUri) {
+                deletePhotoIfOwned(appContext, currentPhoto)
+            }
+            syncPlantsToRemote()
         }
-        syncPlantsToRemote()
         GrowWidgetUpdater.refreshAll(appContext)
     }
 
@@ -556,65 +579,69 @@ private fun getDeviceUserId(): String {
     }
 
     override suspend fun syncPlantsToRemote() {
-        val supabase = supabaseClient ?: run {
-            Log.w(TAG, "syncPlantsToRemote: Supabase não configurado, pulando")
-            return
-        }
-        
-        val userUuid = getCurrentUserId() ?: run {
-            Log.d(TAG, "syncPlantsToRemote: usuário não logado, pulando sync")
-            return
-        }
-
-        try {
-            val plants = plantDao.getAllNow()
-            Log.d(TAG, "syncPlantsToRemote: Found ${plants.size} plants locally")
-            if (plants.isEmpty()) {
-                return
+        withContext(Dispatchers.IO) {
+            val supabase = supabaseClient ?: run {
+                Log.w(TAG, "syncPlantsToRemote: Supabase não configurado, pulando")
+                return@withContext
             }
-            val now = System.currentTimeMillis()
+            
+            val userUuid = getCurrentUserId() ?: run {
+                Log.d(TAG, "syncPlantsToRemote: usuário não logado, pulando sync")
+                return@withContext
+            }
 
-            for (plant in plants) {
-                try {
-                    var remotePhotoUrl: String? = null
-
-                    if (plant.photoUri != null && !plant.photoUri.startsWith("http")) {
-                        val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
-                        if (bytes != null) {
-                            val fileName = "plant_${UUID.randomUUID()}.webp"
-                            val bucket = supabase.storage.from("plant-photos")
-                            bucket.upload(fileName, bytes)
-                            remotePhotoUrl = bucket.publicUrl(fileName)
-                        }
-                    } else if (plant.photoUri?.startsWith("http") == true) {
-                        remotePhotoUrl = plant.photoUri
-                    }
-
-                    // Upsert usando local_id para evitar duplicatas
-                    supabase.from("plants").upsert(
-                        PlantDto(
-                            user_id = userUuid,
-                            local_id = plant.id,
-                            name = plant.name,
-                            strain = plant.strain,
-                            stage = plant.stage,
-                            medium = plant.medium,
-                            days = plant.days,
-                            photo_url = remotePhotoUrl,
-                            next_watering_date = plant.nextWateringDate,
-                            sort_order = plant.sortOrder,
-                            created_at = plant.createdAt,
-                            updated_at = now,
-                            is_hydroponic = plant.isHydroponic
-                        )
-                    )
-                    Log.d(TAG, "syncPlantsToRemote: Planta ${plant.name} sincronizada")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Erro ao sincronizar planta ${plant.name}: ${e.message}")
+            try {
+                val plants = plantDao.getAllNow()
+                Log.d(TAG, "syncPlantsToRemote: Found ${plants.size} plants locally")
+                if (plants.isEmpty()) {
+                    return@withContext
                 }
+                val now = System.currentTimeMillis()
+
+                for (plant in plants) {
+                    try {
+                        var remotePhotoUrl: String? = null
+
+                        if (plant.photoUri != null && !plant.photoUri.startsWith("http")) {
+                            val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
+                            if (bytes != null) {
+                                val fileName = "plant_${UUID.randomUUID()}.webp"
+                                val bucket = supabase.storage.from("plant-photos")
+                                bucket.upload(fileName, bytes)
+                                remotePhotoUrl = bucket.publicUrl(fileName)
+                            }
+                        } else if (plant.photoUri?.startsWith("http") == true) {
+                            remotePhotoUrl = plant.photoUri
+                        }
+
+                        // Upsert usando local_id para evitar duplicatas
+                        supabase.from("plants").upsert(
+                            PlantDto(
+                                user_id = userUuid,
+                                local_id = plant.id,
+                                name = plant.name,
+                                strain = plant.strain,
+                                stage = plant.stage,
+                                medium = plant.medium,
+                                days = plant.days,
+                                photo_url = remotePhotoUrl,
+                                next_watering_date = plant.nextWateringDate,
+                                sort_order = plant.sortOrder,
+                                created_at = plant.createdAt,
+                                updated_at = now,
+                                is_hydroponic = plant.isHydroponic
+                            )
+                        ) {
+                            onConflict = "user_id,local_id"
+                        }
+                        Log.d(TAG, "syncPlantsToRemote: Planta ${plant.name} sincronizada")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Erro ao sincronizar planta ${plant.name}: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao sincronizar plantas: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao sincronizar plantas: ${e.message}")
         }
     }
 
@@ -697,6 +724,37 @@ private fun getDeviceUserId(): String {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao buscar plantas remotas: ${e.message}")
+        }
+    }
+}
+
+private fun cultivationDayTicker(): Flow<Long> = flow {
+    while (true) {
+        val now = System.currentTimeMillis()
+        emit(now)
+        delay(millisUntilNextLocalMidnight(now) + 1_000)
+    }
+}
+
+private fun comparePlants(sortAsc: Boolean): Comparator<PlantEntity> {
+    return Comparator { first, second ->
+        val sortOrderComparison = first.sortOrder.compareTo(second.sortOrder)
+        if (sortOrderComparison != 0) {
+            return@Comparator sortOrderComparison
+        }
+
+        val firstDays = calculateCultivationDays(first.days, first.createdAt)
+        val secondDays = calculateCultivationDays(second.days, second.createdAt)
+        val daysComparison = if (sortAsc) {
+            firstDays.compareTo(secondDays)
+        } else {
+            secondDays.compareTo(firstDays)
+        }
+
+        if (daysComparison != 0) {
+            daysComparison
+        } else {
+            second.createdAt.compareTo(first.createdAt)
         }
     }
 }
