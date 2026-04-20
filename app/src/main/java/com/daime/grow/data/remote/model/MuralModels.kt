@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class MuralUserDto(
     val id: String? = null,
     val username: String,
+    val email: String? = null,
     val created_at: String? = null
 )
 

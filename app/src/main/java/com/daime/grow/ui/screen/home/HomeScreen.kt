@@ -137,28 +137,6 @@ fun HomeScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        floatingActionButton = {
-            Box(
-                modifier = Modifier.padding(bottom = 56.dp)
-            ) {
-                SmallFloatingActionButton(
-                    onClick = onOpenTips,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 6.dp,
-                        pressedElevation = 12.dp
-                    )
-                ) {
-                    Icon(
-                        Icons.Rounded.Lightbulb,
-                        contentDescription = "Dicas de Cultivo",
-                        tint = Color(0xFFE91E63),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        },
         topBar = {
             TopAppBar(
                 title = {
@@ -174,9 +152,9 @@ fun HomeScreen(
                             value = state.query,
                             onValueChange = viewModel::onQueryChange,
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.home_search_label), style = MaterialTheme.typography.bodySmall) },
+                            placeholder = { Text(stringResource(R.string.home_search_label), style = MaterialTheme.typography.bodyMedium) },
                             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                            textStyle = MaterialTheme.typography.bodySmall,
+                            textStyle = MaterialTheme.typography.bodyMedium,
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color.Transparent,

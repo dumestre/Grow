@@ -16,6 +16,7 @@ import com.daime.grow.data.local.migration.MIGRATION_6_7
 import com.daime.grow.data.local.migration.MIGRATION_7_8
 import com.daime.grow.data.local.migration.MIGRATION_8_9
 import com.daime.grow.data.local.migration.MIGRATION_9_10
+import com.daime.grow.data.local.migration.MIGRATION_10_11
 
 private const val TAG = "GrowDatabase"
 
@@ -32,7 +33,7 @@ private const val TAG = "GrowDatabase"
         NotificationEntity::class,
         HarvestBatchEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class GrowDatabase : RoomDatabase() {
@@ -65,7 +66,8 @@ abstract class GrowDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
-                        MIGRATION_9_10
+                        MIGRATION_9_10,
+                        MIGRATION_10_11
                     )
                     .fallbackToDestructiveMigration(true)
                     .build()

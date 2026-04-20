@@ -239,7 +239,8 @@ fun GrowRoot(container: AppContainer) {
                                 onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
                                 maskHomeIcon = securityPrefs.maskHomeIcon,
                                 onFabBounds = { trashBounds = it },
-                                notificationBadgeCount = unreadNotificationCount
+                                notificationBadgeCount = unreadNotificationCount,
+                                onTipsClick = { navController.navigate(NavRoute.GrowTips.route) }
                             )
                         }
                     }

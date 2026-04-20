@@ -131,6 +131,7 @@
     <string name="nav_strains">Cepas</string>
     <string name="nav_avisos">Avisos</string>
     <string name="nav_ajustes">Ajustes</string>
+    <string name="nav_dicas">Dicas</string>
     
     <!-- Tela de detalhes -->
     <string name="detail_harvest_button">Colher e Secar</string>

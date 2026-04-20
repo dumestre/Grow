@@ -21,6 +21,7 @@ data class MuralPostEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val remoteId: String? = null,
     val plantId: Long,
+    val userId: String? = null,
     val createdAt: Long,
     val plantName: String? = null,
     val strain: String? = null,
@@ -30,11 +31,12 @@ data class MuralPostEntity(
     val photoUrl: String? = null
 )
 
-@Entity(tableName = "mural_users", indices = [Index("remoteId", unique = true)])
+@Entity(tableName = "mural_users", indices = [Index("remoteId", unique = true), Index("email", unique = true)])
 data class MuralUserEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val remoteId: String? = null,
     val username: String,
+    val email: String? = null,
     val createdAt: Long
 )
 

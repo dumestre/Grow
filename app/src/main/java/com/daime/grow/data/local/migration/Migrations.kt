@@ -324,3 +324,11 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         db.execSQL("DROP TABLE harvest_batches_legacy")
     }
 }
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE mural_posts ADD COLUMN userId TEXT")
+        db.execSQL("ALTER TABLE mural_users ADD COLUMN email TEXT")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_mural_users_email ON mural_users(email)")
+    }
+}

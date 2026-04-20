@@ -11,6 +11,7 @@ data class StrainDto(
     val imageUrl: String? = null,
     val tipo: String? = null,
     val thc: String? = null,
+    val cbd: String? = null,
     @SerialName("tempo_floracao")
     val tempoFloracao: String? = null,
     val altura: String? = null,

@@ -17,7 +17,7 @@ interface MuralDao {
 
     @Query("""
         SELECT 
-            mp.id, mp.remoteId, mp.plantId, mp.createdAt,
+            mp.id, mp.remoteId, mp.plantId, mp.userId, mu.username, mp.createdAt,
             COALESCE(p.name, mp.plantName, 'Planta') as name,
             COALESCE(p.strain, mp.strain, '') as strain,
             COALESCE(p.stage, mp.stage, 'Germinação') as stage,
@@ -28,6 +28,7 @@ interface MuralDao {
             COALESCE(p.medium, mp.medium, '') as medium
         FROM mural_posts mp
         LEFT JOIN plants p ON mp.plantId = p.id
+        LEFT JOIN mural_users mu ON mp.userId = mu.remoteId
         WHERE mp.remoteId IS NOT NULL OR COALESCE(p.sharedOnMural, 0) = 1
         ORDER BY mp.createdAt DESC
     """)
@@ -59,6 +60,9 @@ interface MuralDao {
 
     @Query("SELECT * FROM mural_users WHERE remoteId = :userUuid LIMIT 1")
     suspend fun getUserByRemoteId(userUuid: String): MuralUserEntity?
+
+    @Query("SELECT * FROM mural_users WHERE email = :email LIMIT 1")
+    suspend fun getUserByEmail(email: String): MuralUserEntity?
 
     @Query("SELECT * FROM mural_users WHERE username = :username LIMIT 1")
     suspend fun getUserByUsername(username: String): MuralUserEntity?
@@ -110,6 +114,8 @@ data class MuralPostWithPlant(
     val id: Long,
     val remoteId: String?,
     val plantId: Long,
+    val userId: String?,
+    val username: String?,
     val createdAt: Long,
     val name: String,
     val strain: String,

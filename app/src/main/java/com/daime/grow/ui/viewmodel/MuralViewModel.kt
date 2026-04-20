@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -102,13 +102,24 @@ class MuralViewModel @Inject constructor(
 
     private fun observeStoredUser() {
         viewModelScope.launch {
-            preferencesRepository.currentUserUuid.collect { uuid ->
+            combine(
+                preferencesRepository.currentUserUuid,
+                preferencesRepository.currentUsername
+            ) { uuid, username ->
+                uuid to username
+            }.collect { (uuid, username) ->
                 _currentUserUuid.value = uuid
-                if (uuid != null) {
+                _currentUsername.value = username
+
+                if (uuid != null && username == null) {
+                    // Temos ID mas não nome nas prefs, tenta buscar no banco local
                     val user = muralDao.getUserByRemoteId(uuid)
-                    _currentUsername.value = user?.username
-                } else {
-                    _currentUsername.value = null
+                    if (user != null) {
+                        preferencesRepository.saveUsername(user.username)
+                    } else {
+                        // Se não tem local, tenta buscar do remote
+                        fetchUserFromRemote(uuid)
+                    }
                 }
                 _isAuthResolved.value = true
             }
@@ -117,6 +128,34 @@ class MuralViewModel @Inject constructor(
             preferencesRepository.currentUserEmail.collect { email ->
                 _currentUserEmail.value = email
             }
+        }
+    }
+
+    private suspend fun fetchUserFromRemote(uuid: String): MuralUserEntity? {
+        val supabase = this@MuralViewModel.supabase ?: return null
+        return try {
+            val remoteUser = supabase.from("mural_users")
+                .select { filter { eq("id", uuid) } }
+                .decodeSingleOrNull<MuralUserDto>()
+
+            if (remoteUser != null) {
+                val entity = MuralUserEntity(
+                    remoteId = remoteUser.id,
+                    username = remoteUser.username,
+                    email = remoteUser.email,
+                    createdAt = System.currentTimeMillis()
+                )
+                muralDao.insertUser(entity)
+                
+                // Garante que o username está salvo nas preferências se este for o usuário atual
+                if (uuid == _currentUserUuid.value) {
+                    preferencesRepository.saveUsername(remoteUser.username)
+                }
+                
+                entity
+            } else null
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -165,10 +204,24 @@ class MuralViewModel @Inject constructor(
                                 MuralUserEntity(
                                     remoteId = userDto.id,
                                     username = userDto.username,
+                                    email = userDto.email,
                                     createdAt = System.currentTimeMillis()
                                 )
                             )
                             android.util.Log.d("MuralViewModel", "Usuario criado localmente: ${userDto.username}")
+                        } else if (existingUser.username != userDto.username || existingUser.email != userDto.email) {
+                            // Atualiza se houver mudanca
+                            muralDao.insertUser(
+                                existingUser.copy(
+                                    username = userDto.username,
+                                    email = userDto.email
+                                )
+                            )
+                            // Se for o usuario atual, atualiza as preferencias para manter consistencia
+                            if (userDto.id == _currentUserUuid.value) {
+                                preferencesRepository.saveUsername(userDto.username)
+                                userDto.email?.let { preferencesRepository.saveUserEmail(it) }
+                            }
                         }
                     }
                 }
@@ -181,6 +234,7 @@ class MuralViewModel @Inject constructor(
                                 MuralPostEntity(
                                     remoteId = postDto.id,
                                     plantId = 0,
+                                    userId = postDto.user_id,
                                     createdAt = System.currentTimeMillis(),
                                     plantName = postDto.plant_name,
                                     strain = postDto.strain ?: "",
@@ -191,6 +245,9 @@ class MuralViewModel @Inject constructor(
                                 )
                             )
                             android.util.Log.d("MuralViewModel", "Post criado localmente: ${postDto.plant_name}")
+                        } else if (existingPost.userId != postDto.user_id) {
+                            // Atualiza userId se estiver vazio
+                            muralDao.insertPost(existingPost.copy(userId = postDto.user_id))
                         }
                     }
                 }
@@ -308,9 +365,11 @@ class MuralViewModel @Inject constructor(
         viewModelScope.launch {
             muralDao.updatePlantSharedStatus(plantId, true)
 
+            val currentUserUuid = _currentUserUuid.value
             muralDao.insertPost(
                 MuralPostEntity(
                     plantId = plantId,
+                    userId = currentUserUuid,
                     createdAt = System.currentTimeMillis(),
                     plantName = plantName,
                     strain = strain,
@@ -322,7 +381,6 @@ class MuralViewModel @Inject constructor(
             )
 
             val supabase = this@MuralViewModel.supabase
-            val currentUserUuid = _currentUserUuid.value
             if (supabase != null && currentUserUuid != null) {
                 try {
                     supabase.from("mural_posts").insert(
@@ -358,8 +416,55 @@ class MuralViewModel @Inject constructor(
                 return@launch
             }
 
-            val userUuid = createUserAndPersistSession(normalizedUsername)
+            val existingUuid = _currentUserUuid.value
+            if (existingUuid != null && existingUuid.isNotEmpty()) {
+                // Tenta associar o username ao UUID existente no remote
+                val success = updateUsernameForExistingUser(existingUuid, normalizedUsername)
+                if (success) {
+                    _currentUsername.value = normalizedUsername
+                    onComplete(existingUuid)
+                    return@launch
+                }
+            }
+
+            val userUuid = createUserAndPersistSession(normalizedUsername, _currentUserEmail.value)
             onComplete(userUuid)
+        }
+    }
+
+    private suspend fun updateUsernameForExistingUser(uuid: String, username: String): Boolean {
+        val supabase = supabase ?: return false
+        return try {
+            // Tenta inserir ou atualizar (upsert) na tabela mural_users
+            supabase.from("mural_users").upsert(
+                MuralUserDto(
+                    id = uuid,
+                    username = username,
+                    email = _currentUserEmail.value
+                )
+            )
+            
+            // Atualiza localmente
+            val localUser = muralDao.getUserByRemoteId(uuid)
+            if (localUser != null) {
+                muralDao.insertUser(localUser.copy(username = username))
+            } else {
+                muralDao.insertUser(
+                    MuralUserEntity(
+                        remoteId = uuid,
+                        username = username,
+                        email = _currentUserEmail.value,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            }
+            
+            // Salva nas preferências
+            preferencesRepository.saveUsername(username)
+            true
+        } catch (e: Exception) {
+            android.util.Log.e("MuralViewModel", "Erro ao atualizar username para UUID existente: ${e.message}")
+            false
         }
     }
 
@@ -396,17 +501,61 @@ class MuralViewModel @Inject constructor(
                     )
 
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                    val baseUsername = googleIdTokenCredential.displayName
-                        ?.takeIf { it.isNotBlank() }
-                        ?: googleIdTokenCredential.id.substringBefore("@")
-                    val resolvedUsername = findExistingOrAvailableUsername(baseUsername)
-                    val userUuid = createUserAndPersistSession(resolvedUsername)
-                    preferencesRepository.saveUserEmail(googleIdTokenCredential.id)
-                    _currentUserEmail.value = googleIdTokenCredential.id
+                    val email = googleIdTokenCredential.id
+                    
+                    preferencesRepository.saveUserEmail(email)
+                    _currentUserEmail.value = email
+
+                    // Tenta encontrar usuario pelo email no Supabase
+                    var userUuid: String? = null
+                    var username: String? = null
+
+                    val supabase = this@MuralViewModel.supabase
+                    if (supabase != null) {
+                        try {
+                            val remoteUser = supabase.from("mural_users")
+                                .select { filter { eq("email", email) } }
+                                .decodeSingleOrNull<MuralUserDto>()
+                            
+                            if (remoteUser != null) {
+                                userUuid = remoteUser.id
+                                username = remoteUser.username
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MuralViewModel", "Erro ao buscar usuario por email: ${e.message}")
+                        }
+                    }
+
+                    if (userUuid != null && username != null) {
+                        // Usuario ja existe, salva sessao
+                        preferencesRepository.saveUserUuid(userUuid)
+                        preferencesRepository.saveUsername(username)
+                        _currentUserUuid.value = userUuid
+                        _currentUsername.value = username
+                        
+                        // Salva localmente se nao existir
+                        if (muralDao.getUserByRemoteId(userUuid) == null) {
+                            muralDao.insertUser(
+                                MuralUserEntity(
+                                    remoteId = userUuid,
+                                    username = username,
+                                    email = email,
+                                    createdAt = System.currentTimeMillis()
+                                )
+                            )
+                        }
+                    } else {
+                        // Usuario novo, resolve username baseado no displayName
+                        val baseUsername = googleIdTokenCredential.displayName
+                            ?.takeIf { it.isNotBlank() }
+                            ?: email.substringBefore("@")
+                        val resolvedUsername = findExistingOrAvailableUsername(baseUsername)
+                        userUuid = createUserAndPersistSession(resolvedUsername, email)
+                    }
 
                     android.util.Log.d(
                         "MuralViewModel",
-                        "Google ID Token obtido (${googleIdTokenCredential.idToken.take(12)}...), sessao local criada"
+                        "Google login realizado para $email, UUID: $userUuid"
                     )
 
                     _events.emit(MuralEvent.GoogleLoginSuccess)
@@ -460,11 +609,12 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    private suspend fun createUserAndPersistSession(username: String): String {
+    private suspend fun createUserAndPersistSession(username: String, email: String? = null): String {
         val existingLocalUser = muralDao.getUserByUsername(username)
         val localUserId = existingLocalUser?.id ?: muralDao.insertUser(
             MuralUserEntity(
                 username = username,
+                email = email,
                 createdAt = System.currentTimeMillis()
             )
         )
@@ -475,6 +625,7 @@ class MuralViewModel @Inject constructor(
         val supabase = this@MuralViewModel.supabase
         if (supabase != null && userUuid.isEmpty()) {
             try {
+                // Tenta encontrar por username primeiro no remote
                 val existingRemoteUsers = supabase.from("mural_users")
                     .select { filter { eq("username", username) } }
                     .decodeList<MuralUserDto>()
@@ -484,7 +635,8 @@ class MuralViewModel @Inject constructor(
                 } else {
                     supabase.from("mural_users").insert(
                         MuralUserDto(
-                            username = username
+                            username = username,
+                            email = email
                         )
                     )
                     val newUsers = supabase.from("mural_users")
@@ -494,10 +646,6 @@ class MuralViewModel @Inject constructor(
                         userUuid = newUsers.first().id!!
                     }
                 }
-
-                if (userUuid.isNotEmpty()) {
-                    muralDao.updateUserRemoteId(localUserId, userUuid)
-                }
             } catch (e: Exception) {
                 android.util.Log.e("MuralViewModel", "Erro ao sincronizar usuario: ${e.message}")
             }
@@ -506,8 +654,12 @@ class MuralViewModel @Inject constructor(
         if (userUuid.isEmpty()) {
             userUuid = username
         }
+        
+        // Garante que o banco local tem o remoteId (UUID ou fallback username)
+        muralDao.updateUserRemoteId(localUserId, userUuid)
 
         preferencesRepository.saveUserUuid(userUuid)
+        preferencesRepository.saveUsername(username)
         _currentUserUuid.value = userUuid
         _currentUsername.value = username
         return userUuid

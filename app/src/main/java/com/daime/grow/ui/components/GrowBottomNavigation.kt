@@ -1,20 +1,40 @@
 package com.daime.grow.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +42,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.rounded.Agriculture
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Spa
+import androidx.compose.material.icons.rounded.Thermostat
+import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Public
@@ -32,19 +61,28 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.Yard
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
@@ -110,70 +148,200 @@ enum class BottomNavItem(
         iconRes = null,
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
+    ),
+    Tips(
+        route = "tips",
+        titleRes = com.daime.grow.R.string.nav_dicas,
+        iconRes = null,
+        selectedIcon = Icons.Rounded.Lightbulb,
+        unselectedIcon = Icons.Rounded.Lightbulb
     )
 }
 
+private val tipsGridItems = listOf(
+    Triple("Estágios", Icons.Rounded.Spa, Color(0xFF4CAF50)),
+    Triple("Luz", Icons.Rounded.WbSunny, Color(0xFFFFB300)),
+    Triple("Nutrição", Icons.Rounded.Science, Color(0xFF9C27B0)),
+    Triple("Rega", Icons.Rounded.WaterDrop, Color(0xFF2196F3)),
+    Triple("Clima", Icons.Rounded.Thermostat, Color(0xFFFF5722)),
+    Triple("Treinos", Icons.Rounded.Construction, Color(0xFFE91E63)),
+    Triple("Colheita", Icons.Rounded.Agriculture, Color(0xFF795548)),
+    Triple("Pragas", Icons.Rounded.BugReport, Color(0xFFD32F2F))
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GrowBottomNavigationBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     onAddClick: () -> Unit,
+    onTipsClick: () -> Unit,
     modifier: Modifier = Modifier,
     maskHomeIcon: Boolean = true,
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     notificationBadgeCount: Int = 0
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), // Bordas arredondadas no topo
-        modifier = modifier
-    ) {
-        Row(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
-            verticalAlignment = Alignment.CenterVertically
+                .background(
+                    MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                )
         ) {
-            val items = BottomNavItem.entries
-            val firstGroup = items.take(3)
-            val secondGroup = items.drop(3)
+            val dragState = rememberDraggableState { delta: Float ->
+        if (delta < -20f) isExpanded = true
+        else if (delta > 20f) isExpanded = false
+    }
 
-            firstGroup.forEach { item ->
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier
-                    .weight(1f)
-                    .height(52.dp))
-            }
-
-            Box(
-                modifier = Modifier
-                    .weight(1.1f)
-                    .height(52.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                FloatingActionButton(
-                    onClick = onAddClick,
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = Color(0xFF1B5E20)
-                    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(20.dp)
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Vertical
+            )
+            .clickable { isExpanded = !isExpanded },
+        contentAlignment = Alignment.Center
+    ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(3) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
                 }
             }
 
-            secondGroup.forEach { item ->
-                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                NavIconItem(item, currentRoute, onNavigate, maskHomeIcon, Modifier
-                    .weight(1f)
-                    .height(52.dp), badgeCount)
+            if (isExpanded) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(3) { rowIndex ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(7) { colIndex ->
+                                val itemIndex = rowIndex * 7 + colIndex
+                                val addInMiddle = rowIndex == 1 && colIndex == 3
+                                if (addInMiddle) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = ripple(bounded = false, radius = 40.dp),
+                                                onClick = onAddClick
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(22.dp),
+                                            tint = Color(0xFF1B5E20)
+                                        )
+                                    }
+                                } else if (itemIndex < BottomNavItem.entries.size) {
+                                    val item = BottomNavItem.entries.get(itemIndex)
+                                    val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                    NavIconItem(
+                                        item = item,
+                                        currentRoute = currentRoute,
+                                        onNavigate = {
+                                            onNavigate(it)
+                                            isExpanded = false
+                                        },
+                                        maskHomeIcon = maskHomeIcon,
+                                        badgeCount = badgeCount
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.size(42.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf(0, 1, 2).forEach { index ->
+                        val item = BottomNavItem.entries.getOrNull(index)
+                        if (item != null) {
+                            val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                            NavIconItem(
+                                item = item,
+                                currentRoute = currentRoute,
+                                onNavigate = onNavigate,
+                                maskHomeIcon = maskHomeIcon,
+                                modifier = Modifier.weight(1f),
+                                badgeCount = badgeCount
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+FloatingActionButton(
+                        onClick = onAddClick,
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = Color(0xFF1B5E20)
+                        )
+                    }
+
+                    listOf(3, 4, 5).forEach { index ->
+                        val item = BottomNavItem.entries.getOrNull(index)
+                        if (item != null) {
+                            val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                            NavIconItem(
+                                item = item,
+                                currentRoute = currentRoute,
+                                onNavigate = onNavigate,
+                                maskHomeIcon = maskHomeIcon,
+                                modifier = Modifier.weight(1f),
+                                badgeCount = badgeCount
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
             }
         }
     }
@@ -195,9 +363,10 @@ private fun NavIconItem(
 
     Box(
         modifier = modifier
+            .fillMaxHeight()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = false, radius = 50.dp),
+                indication = ripple(bounded = false, radius = 40.dp),
                 onClick = { onNavigate(item.route) }
             ),
         contentAlignment = Alignment.Center
@@ -220,21 +389,21 @@ private fun NavIconItem(
                     item.iconRes != null && !useAlternativeForItem -> Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = title,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = color
                     )
 
                     item.iconRes != null && useAlternativeForItem -> Icon(
                         imageVector = item.alternativeIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = color
                     )
 
                     else -> Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = color
                     )
                 }
@@ -242,8 +411,7 @@ private fun NavIconItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                    fontSize = 11.sp
                 ),
                 color = color,
                 maxLines = 1,
@@ -267,6 +435,7 @@ fun GrowBottomNavigationBarPreview() {
             currentRoute = NavRoute.Home.route,
             onNavigate = {},
             onAddClick = {},
+            onTipsClick = {},
             notificationBadgeCount = 5
         )
     }

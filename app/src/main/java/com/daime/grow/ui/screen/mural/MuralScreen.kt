@@ -252,7 +252,23 @@ fun MuralPostItem(
     ) {
         Column {
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-                Text(text = post.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFFF01264))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = post.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF01264),
+                        modifier = Modifier.weight(1f)
+                    )
+                    post.username?.let {
+                        Text(
+                            text = "@$it",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = getUserColor(it)
+                        )
+                    }
+                }
                 Text(text = "Compartilhado em ${formatMuralDate(post.createdAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
             }
 
