@@ -1,6 +1,8 @@
 ﻿package com.daime.grow.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -102,14 +104,15 @@ fun GrowRoot(container: AppContainer) {
     var isDraggingPlant by remember { mutableStateOf(false) }
     var trashBounds by remember { mutableStateOf<Rect?>(null) }
 
-    // Estado global para esconder a barra de navegação no scroll
+    // Estado global para esconder a barra de navegação no scroll com threshold aumentado
     var isBottomBarVisible by remember { mutableStateOf(true) }
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -1) {
+                // Aumentando o threshold para evitar que qualquer toque esconda a barra
+                if (available.y < -15) {
                     isBottomBarVisible = false
-                } else if (available.y > 1) {
+                } else if (available.y > 15) {
                     isBottomBarVisible = true
                 }
                 return Offset.Zero
@@ -220,8 +223,14 @@ fun GrowRoot(container: AppContainer) {
                     if (!isTablet && showNavElements) {
                         AnimatedVisibility(
                             visible = isBottomBarVisible,
-                            enter = slideInVertically(initialOffsetY = { it }),
-                            exit = slideOutVertically(targetOffsetY = { it })
+                            enter = slideInVertically(
+                                initialOffsetY = { it },
+                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                            ),
+                            exit = slideOutVertically(
+                                targetOffsetY = { it },
+                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                            )
                         ) {
                             GrowBottomNavigationBar(
                                 currentRoute = currentRoute,

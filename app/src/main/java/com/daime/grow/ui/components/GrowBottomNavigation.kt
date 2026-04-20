@@ -1,6 +1,16 @@
 package com.daime.grow.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -21,6 +31,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -162,7 +173,6 @@ fun GrowBottomNavigationBar(
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     notificationBadgeCount: Int = 0
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
@@ -173,153 +183,171 @@ fun GrowBottomNavigationBar(
                     MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 )
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
         ) {
             val dragState = rememberDraggableState { delta: Float ->
-        if (delta < -20f) isExpanded = true
-        else if (delta > 20f) isExpanded = false
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(20.dp)
-            .draggable(
-                state = dragState,
-                orientation = Orientation.Vertical
-            )
-            .clickable { isExpanded = !isExpanded },
-        contentAlignment = Alignment.Center
-    ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    repeat(3) {
-                        Box(
-                            modifier = Modifier
-                                .size(5.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                    shape = CircleShape
-                                )
-                        )
-                    }
-                }
+                if (delta < -10f) isExpanded = true
+                else if (delta > 10f) isExpanded = false
             }
 
-            if (isExpanded) {
-                LazyColumn(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .draggable(
+                        state = dragState,
+                        orientation = Orientation.Vertical
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { isExpanded = !isExpanded }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                // Barra visual para indicar arrasto
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(3) { rowIndex ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            repeat(7) { colIndex ->
-                                val itemIndex = rowIndex * 7 + colIndex
-                                val addInMiddle = rowIndex == 1 && colIndex == 3
-                                if (addInMiddle) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.tertiary, CircleShape)
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = ripple(bounded = false, radius = 40.dp),
-                                                onClick = onAddClick
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(22.dp),
-                                            tint = Color(0xFF1B5E20)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
+                )
+            }
+
+            AnimatedContent(
+                targetState = isExpanded,
+                transitionSpec = {
+                    fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
+                        .togetherWith(fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow)))
+                        .using(SizeTransform(clip = false))
+                },
+                label = "BottomBarExpansion"
+            ) { expanded ->
+                if (expanded) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(3) { rowIndex ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                repeat(7) { colIndex ->
+                                    val itemIndex = rowIndex * 7 + colIndex
+                                    val addInMiddle = rowIndex == 1 && colIndex == 3
+                                    if (addInMiddle) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = ripple(bounded = false, radius = 40.dp),
+                                                    onClick = onAddClick
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(22.dp),
+                                                tint = Color(0xFF1B5E20)
+                                            )
+                                        }
+                                    } else if (itemIndex < BottomNavItem.entries.size) {
+                                        val item = BottomNavItem.entries[itemIndex]
+                                        val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                        NavIconItem(
+                                            item = item,
+                                            currentRoute = currentRoute,
+                                            onNavigate = {
+                                                onNavigate(it)
+                                                isExpanded = false
+                                            },
+                                            maskHomeIcon = maskHomeIcon,
+                                            badgeCount = badgeCount
                                         )
+                                    } else {
+                                        Spacer(modifier = Modifier.size(42.dp))
                                     }
-                                } else if (itemIndex < BottomNavItem.entries.size) {
-                                    val item = BottomNavItem.entries[itemIndex]
-                                    val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                                    NavIconItem(
-                                        item = item,
-                                        currentRoute = currentRoute,
-                                        onNavigate = {
-                                            onNavigate(it)
-                                            isExpanded = false
-                                        },
-                                        maskHomeIcon = maskHomeIcon,
-                                        badgeCount = badgeCount
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.size(42.dp))
                                 }
                             }
                         }
                     }
-                }
-            } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    listOf(0, 1, 2).forEach { index ->
-                        val item = BottomNavItem.entries.getOrNull(index)
-                        if (item != null) {
-                            val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                            NavIconItem(
-                                item = item,
-                                currentRoute = currentRoute,
-                                onNavigate = onNavigate,
-                                maskHomeIcon = maskHomeIcon,
-                                modifier = Modifier.weight(1f),
-                                badgeCount = badgeCount
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-
-FloatingActionButton(
-                        onClick = onAddClick,
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-                        shape = CircleShape,
+                } else {
+                    Row(
                         modifier = Modifier
-                            .size(42.dp)
-                            .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp),
-                            tint = Color(0xFF1B5E20)
-                        )
-                    }
+                        listOf(0, 1, 2).forEach { index ->
+                            val item = BottomNavItem.entries.getOrNull(index)
+                            if (item != null) {
+                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                NavIconItem(
+                                    item = item,
+                                    currentRoute = currentRoute,
+                                    onNavigate = onNavigate,
+                                    maskHomeIcon = maskHomeIcon,
+                                    modifier = Modifier.weight(1f),
+                                    badgeCount = badgeCount
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
 
-                    listOf(3, 4, 5).forEach { index ->
-                        val item = BottomNavItem.entries.getOrNull(index)
-                        if (item != null) {
-                            val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                            NavIconItem(
-                                item = item,
-                                currentRoute = currentRoute,
-                                onNavigate = onNavigate,
-                                maskHomeIcon = maskHomeIcon,
-                                modifier = Modifier.weight(1f),
-                                badgeCount = badgeCount
+                        FloatingActionButton(
+                            onClick = onAddClick,
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            shape = CircleShape,
+                            modifier = Modifier
+                                .size(42.dp)
+                                .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
+                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint = Color(0xFF1B5E20)
                             )
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
+                        }
+
+                        listOf(3, 4, 5).forEach { index ->
+                            val item = BottomNavItem.entries.getOrNull(index)
+                            if (item != null) {
+                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                NavIconItem(
+                                    item = item,
+                                    currentRoute = currentRoute,
+                                    onNavigate = onNavigate,
+                                    maskHomeIcon = maskHomeIcon,
+                                    modifier = Modifier.weight(1f),
+                                    badgeCount = badgeCount
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
