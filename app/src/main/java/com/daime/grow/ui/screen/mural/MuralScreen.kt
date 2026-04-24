@@ -133,7 +133,17 @@ fun MuralScreen(
                             onRequestUsername = { text, replyId ->
                                 pendingComment = text
                                 pendingReplyToId = replyId
-                                showUsernameDialog = true
+                                // Se já tem username, pode comentar diretamente
+                                if (currentUsername != null) {
+                                    val post = state.posts.find { it.id == expandedPostId }
+                                    if (post?.remoteId != null) {
+                                        viewModel.addComment(post.remoteId, pendingComment, pendingReplyToId)
+                                    }
+                                    pendingComment = ""
+                                    pendingReplyToId = null
+                                } else {
+                                    showUsernameDialog = true
+                                }
                             }
                         )
                     }

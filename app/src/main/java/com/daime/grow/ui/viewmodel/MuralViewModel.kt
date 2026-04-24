@@ -432,6 +432,28 @@ class MuralViewModel @Inject constructor(
         }
     }
 
+    fun updateUsername(username: String, onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val normalizedUsername = sanitizeUsername(username)
+            if (!isUsernameAvailable(normalizedUsername)) {
+                _events.emit(MuralEvent.UsernameTaken(normalizedUsername))
+                onComplete(false)
+                return@launch
+            }
+
+            val existingUuid = _currentUserUuid.value
+            if (existingUuid != null && existingUuid.isNotEmpty()) {
+                val success = updateUsernameForExistingUser(existingUuid, normalizedUsername)
+                if (success) {
+                    _currentUsername.value = normalizedUsername
+                }
+                onComplete(success)
+            } else {
+                onComplete(false)
+            }
+        }
+    }
+
     private suspend fun updateUsernameForExistingUser(uuid: String, username: String): Boolean {
         val supabase = supabase ?: return false
         return try {

@@ -358,11 +358,12 @@ fun StrainCard(
                     }
                 }
 
-                Row(
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
                     if (strain.thc != null) {
                         Surface(
@@ -378,6 +379,7 @@ fun StrainCard(
                             )
                         }
                     }
+
                     if (strain.cbd != null) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),

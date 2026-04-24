@@ -228,7 +228,14 @@ fun MuralPostScreen(
                                 onRequestUsername = { content ->
                                     pendingComment = content
                                     pendingReplyToId = replyToComment?.remoteId
-                                    showUsernameDialog = true
+                                    if (currentUsername != null) {
+                                        viewModel.addComment(postId, pendingComment, pendingReplyToId)
+                                        pendingComment = ""
+                                        pendingReplyToId = null
+                                        replyToComment = null
+                                    } else {
+                                        showUsernameDialog = true
+                                    }
                                 }
                             )
                         }

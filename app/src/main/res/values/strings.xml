@@ -192,4 +192,8 @@
     <string name="widget_watering_unscheduled">Sem rega agendada</string>
     <string name="widget_open_app">Abrir app</string>
     <string name="widget_total_plants">%1$d plantas</string>
+    <string name="settings_username_updated">Nome de usuário atualizado!</string>
+    <string name="settings_username_error">Erro ao atualizar nome de usuário</string>
+    <string name="settings_edit_username">Editar usuário</string>
+    <string name="settings_new_username">Novo usuário</string>
 </resources>

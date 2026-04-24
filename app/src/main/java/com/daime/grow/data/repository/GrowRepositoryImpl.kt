@@ -236,7 +236,7 @@ class GrowRepositoryImpl @Inject constructor(
             if (photoUri != null && !photoUri.startsWith("http")) {
                 val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
                 if (bytes != null) {
-                    val fileName = "plant_${UUID.randomUUID()}.webp"
+                    val fileName = "plant_$localId.webp"
                     val bucket = supabase.storage.from("plant-photos")
                     bucket.upload(fileName, bytes)
                     remotePhotoUrl = bucket.publicUrl(fileName)
@@ -386,6 +386,7 @@ class GrowRepositoryImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             if (currentPhoto != null && currentPhoto != photoUri) {
                 deletePhotoIfOwned(appContext, currentPhoto)
+                deletePhotoFromSupabaseStorage(currentPhoto)
             }
             syncPlantsToRemote()
         }
@@ -407,6 +408,7 @@ class GrowRepositoryImpl @Inject constructor(
         }
         scheduler.cancelForPlant(plantId)
         deletePhotoIfOwned(appContext, photoUri)
+        deletePhotoFromSupabaseStorage(photoUri)
         GrowWidgetUpdater.refreshAll(appContext)
     }
 
@@ -605,7 +607,7 @@ private fun getDeviceUserId(): String {
                         if (plant.photoUri != null && !plant.photoUri.startsWith("http")) {
                             val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
                             if (bytes != null) {
-                                val fileName = "plant_${UUID.randomUUID()}.webp"
+                                val fileName = "plant_${plant.id}.webp"
                                 val bucket = supabase.storage.from("plant-photos")
                                 bucket.upload(fileName, bytes)
                                 remotePhotoUrl = bucket.publicUrl(fileName)
@@ -769,6 +771,20 @@ private fun deletePhotoIfOwned(appContext: Context, photoUri: String?) {
             }
             "content" -> appContext.contentResolver.delete(uri, null, null)
         }
+    }
+}
+
+private suspend fun deletePhotoFromSupabaseStorage(photoUrl: String?) {
+    if (photoUrl.isNullOrBlank()) return
+    try {
+        val supabase = SupabaseClient.clientOrNull ?: return
+        val url = photoUrl.removePrefix(supabase.storage.from("plant-photos").publicUrl(""))
+        if (url.isNotBlank()) {
+            supabase.storage.from("plant-photos").delete(url)
+            Log.d(TAG, "Imagem deletada do Storage: $url")
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Erro ao deletar imagem do Storage: ${e.message}")
     }
 }
 

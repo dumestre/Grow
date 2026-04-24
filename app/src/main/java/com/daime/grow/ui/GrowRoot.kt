@@ -348,6 +348,9 @@ fun GrowRoot(container: AppContainer) {
                                 accountUsername = currentUsername,
                                 accountEmail = currentUserEmail,
                                 onSignOut = { muralViewModel.signOut() },
+                                onUpdateUsername = { username, onComplete ->
+                                    muralViewModel.updateUsername(username, onComplete)
+                                },
                                 onBack = { navController.popBackStack() }
                             )
                         }

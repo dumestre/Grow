@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,7 +19,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,12 +38,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +62,7 @@ import com.daime.grow.R
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,12 +72,16 @@ fun SettingsScreen(
     accountUsername: String?,
     accountEmail: String?,
     onSignOut: () -> Unit,
+    onUpdateUsername: (String, (Boolean) -> Unit) -> Unit,
     onBack: () -> Unit
 ) {
     val security by viewModel.security.collectAsStateWithLifecycle()
     var pinInput by remember { mutableStateOf("") }
     var pinConfirmInput by remember { mutableStateOf("") }
     var revealPin by remember { mutableStateOf(false) }
+    var showEditUsernameDialog by remember { mutableStateOf(false) }
+    var editUsernameInput by remember { mutableStateOf("") }
+    var editUsernameError by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val invalidPinMessage = stringResource(R.string.settings_invalid_pin)
     val pinUpdatedMessage = stringResource(R.string.settings_pin_updated)
@@ -81,6 +89,8 @@ fun SettingsScreen(
     val backupExportErrorMessage = stringResource(R.string.settings_backup_export_error)
     val backupImportedMessage = stringResource(R.string.settings_backup_imported)
     val backupImportErrorMessage = stringResource(R.string.settings_backup_import_error)
+    val usernameUpdatedMessage = stringResource(R.string.settings_username_updated)
+    val usernameErrorMessage = stringResource(R.string.settings_username_error)
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -100,6 +110,8 @@ fun SettingsScreen(
         }
     }
 
+    val scope = rememberCoroutineScope()
+
     val createDocument = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
@@ -108,6 +120,61 @@ fun SettingsScreen(
 
     val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri?.let { viewModel.importBackup(it) }
+    }
+
+    if (showEditUsernameDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditUsernameDialog = false },
+            title = { Text(stringResource(R.string.settings_edit_username)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editUsernameInput,
+                        onValueChange = { editUsernameInput = it; editUsernameError = null },
+                        label = { Text(stringResource(R.string.settings_new_username)) },
+                        isError = editUsernameError != null,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    editUsernameError?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val newUsername = editUsernameInput.trim().lowercase()
+                                .replace(Regex("[^a-z0-9_]"), "")
+                            if (newUsername.length < 3) {
+                                editUsernameError = "Mínimo 3 caracteres"
+                            } else {
+                                onUpdateUsername(newUsername) { success ->
+                                    if (success) {
+                                        showEditUsernameDialog = false
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(usernameUpdatedMessage)
+                                        }
+                                    } else {
+                                        editUsernameError = "Nome já está em uso"
+                                    }
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(R.string.settings_save_pin))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEditUsernameDialog = false }) {
+                        Text(stringResource(R.string.home_delete_cancel))
+                    }
+                }
+        )
     }
 
     Scaffold(
@@ -207,7 +274,10 @@ fun SettingsScreen(
 
                     AccountInfoRow(
                         label = "Usuário",
-                        value = accountUsername?.let { "@$it" } ?: "-"
+                        value = accountUsername?.let { "@$it" } ?: "-",
+                        onEdit = if (accountUsername != null) {
+                            { showEditUsernameDialog = true; editUsernameInput = accountUsername }
+                        } else null
                     )
                     AccountInfoRow(
                         label = "E-mail",
@@ -317,18 +387,33 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun AccountInfoRow(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+private fun AccountInfoRow(label: String, value: String, onEdit: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        if (onEdit != null) {
+            IconButton(onClick = onEdit) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.settings_edit_username),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 }
 
