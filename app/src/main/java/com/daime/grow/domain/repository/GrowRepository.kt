@@ -30,6 +30,7 @@ interface GrowRepository {
     suspend fun updatePlantStage(plantId: Long, stage: String)
     suspend fun updatePlantPhoto(plantId: Long, photoUri: String?)
     suspend fun deletePlant(plantId: Long)
+    suspend fun shareToMural(plantId: Long)
     suspend fun updatePlantsOrder(orderedIds: List<Long>)
     suspend fun seedDataIfNeeded()
     suspend fun createHarvestBatch(plantId: Long, plantName: String, strain: String, harvestDate: Long)

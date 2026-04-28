@@ -20,32 +20,31 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -99,8 +98,8 @@ fun HomeScreen(
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dropIndex by remember { mutableStateOf<Int?>(null) }
     var draggedPlantId by remember { mutableStateOf<Long?>(null) }
-    var dragOffsetX by remember { mutableStateOf(0f) }
-    var dragOffsetY by remember { mutableStateOf(0f) }
+    var dragOffsetX by remember { mutableFloatStateOf(0f) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var draggedCardBounds by remember { mutableStateOf<Rect?>(null) }
 
     val reorderStepXPx = with(LocalDensity.current) { (configuration.screenWidthDp / columnsCount).dp.toPx() }
@@ -167,107 +166,125 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columnsCount),
-            state = gridState,
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = if (isTablet) 32.dp else 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(
-                top = padding.calculateTopPadding() + 8.dp,
-                bottom = innerPadding.calculateBottomPadding() + 52.dp
-            )
+                .padding(padding)
         ) {
-            item(span = { GridItemSpan(columnsCount) }) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnsCount),
+                state = gridState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = if (isTablet) 32.dp else 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(
+                    top = 8.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 52.dp
+                )
+            ) {
+                item(span = { GridItemSpan(columnsCount) }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Text(
-                            stringResource(R.string.home_focus_title),
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        Text(
-                            stringResource(R.string.home_focus_subtitle),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
-            item(span = { GridItemSpan(columnsCount) }) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    PlantStage.filterEntries.forEach { phase ->
-                        FilterChip(
-                            onClick = { viewModel.onStageChange(phase) },
-                            label = { Text(phase) },
-                            selected = state.stageFilter == phase
-                        )
-                    }
-                }
-            }
-
-            item(span = { GridItemSpan(columnsCount) }) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        onClick = viewModel::toggleSort,
-                        selected = true,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = if (state.sortAscending) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                                contentDescription = null
-                            )
-                        },
-                        label = {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(
-                                stringResource(
-                                    if (state.sortAscending) R.string.home_sort_asc else R.string.home_sort_desc
-                                )
+                                stringResource(R.string.home_focus_title),
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            Text(
+                                stringResource(R.string.home_focus_subtitle),
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                    )
-                }
-            }
-            
-            val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
-                val from = draggedIndex ?: -1
-                val to = dropIndex ?: -1
-                if (from != -1 && to != -1) {
-                    orderedPlants.toMutableList().apply {
-                        val dragged = removeAt(from)
-                        add(to, dragged)
                     }
-                } else orderedPlants
-            } else {
-                orderedPlants
-            }
+                }
 
-            if (previewPlants.isEmpty()) {
                 item(span = { GridItemSpan(columnsCount) }) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(R.string.home_empty_state),
-                            style = MaterialTheme.typography.bodyLarge
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        PlantStage.filterEntries.forEach { phase ->
+                            FilterChip(
+                                onClick = { viewModel.onStageChange(phase) },
+                                label = { Text(phase) },
+                                selected = state.stageFilter == phase
+                            )
+                        }
+                    }
+                }
+
+                item(span = { GridItemSpan(columnsCount) }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            onClick = viewModel::toggleSort,
+                            selected = true,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (state.sortAscending) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                                    contentDescription = null
+                                )
+                            },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        if (state.sortAscending) R.string.home_sort_asc else R.string.home_sort_desc
+                                    )
+                                )
+                            }
                         )
                     }
                 }
-            } else {
-                itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
+                
+                val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
+                    val from = draggedIndex ?: -1
+                    val to = dropIndex ?: -1
+                    if (from != -1 && to != -1) {
+                        orderedPlants.toMutableList().apply {
+                            val dragged = removeAt(from)
+                            add(to, dragged)
+                        }
+                    } else orderedPlants
+                } else {
+                    orderedPlants
+                }
+
+                if (state.isLoading) {
+                    item(span = { GridItemSpan(columnsCount) }) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                } else if (previewPlants.isEmpty()) {
+                    item(span = { GridItemSpan(columnsCount) }) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stringResource(R.string.home_empty_state),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                } else {
+                    itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
                     val isDraggedItem = plant.id == draggedPlantId
                     val fromIndex = draggedIndex
                     val toIndex = dropIndex
@@ -373,8 +390,9 @@ fun HomeScreen(
                 }
             }
         }
+    }
 
-        plantPendingDelete?.let { plant ->
+    plantPendingDelete?.let { plant ->
             AlertDialog(
                 onDismissRequest = { plantPendingDelete = null },
                 title = { Text(stringResource(R.string.home_delete_title)) },

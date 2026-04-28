@@ -35,7 +35,7 @@ class PlantSyncWorker(
             repository.syncPlantsFromRemote()
 
             Result.success()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.retry()
         }
     }

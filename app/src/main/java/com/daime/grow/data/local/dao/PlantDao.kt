@@ -54,6 +54,9 @@ interface PlantDao {
     @Query("UPDATE plants SET photoUri = :photoUri WHERE id = :plantId")
     suspend fun updatePhoto(plantId: Long, photoUri: String?)
 
+    @Query("UPDATE plants SET sharedOnMural = :shared WHERE id = :plantId")
+    suspend fun updateSharedOnMural(plantId: Long, shared: Boolean)
+
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM plants")
     suspend fun maxSortOrder(): Int
 

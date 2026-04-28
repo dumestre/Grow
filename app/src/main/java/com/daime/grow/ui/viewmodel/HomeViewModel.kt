@@ -28,7 +28,9 @@ data class HomeUiState(
     val query: String = "",
     val stageFilter: String = PlantStage.ALL,
     val sortAscending: Boolean = true,
-    val plants: List<Plant> = emptyList()
+    val plants: List<Plant> = emptyList(),
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false
 )
 
 private data class HomeFilters(
@@ -56,6 +58,7 @@ class HomeViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val stageFilter = MutableStateFlow(PlantStage.ALL)
     private val sortAscending = MutableStateFlow(true)
+    private val _isRefreshing = MutableStateFlow(false)
     private val _events = MutableSharedFlow<HomeUiEvent>()
     val events = _events.asSharedFlow()
 
@@ -75,17 +78,28 @@ class HomeViewModel @Inject constructor(
         .flatMapLatest { f ->
             combine(
                 repository.observePlants(f.query, f.stageFilter, f.sortAscending),
-                pendingDeleteIds
-            ) { plants, hiddenIds ->
+                pendingDeleteIds,
+                _isRefreshing
+            ) { plants, hiddenIds, refreshing ->
                 HomeUiState(
                     query = f.query,
                     stageFilter = f.stageFilter,
                     sortAscending = f.sortAscending,
-                    plants = plants.filterNot { it.id in hiddenIds }
+                    plants = plants.filterNot { it.id in hiddenIds },
+                    isLoading = plants.isEmpty() && f.query.isEmpty() && f.stageFilter == PlantStage.ALL,
+                    isRefreshing = refreshing
                 )
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            repository.syncPlantsFromRemote()
+            _isRefreshing.value = false
+        }
+    }
 
     fun onQueryChange(value: String) {
         query.value = value

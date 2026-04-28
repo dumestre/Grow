@@ -130,6 +130,7 @@ fun PlantDetailScreen(
                 PlantDetailUiEvent.NutrientsSaved -> "Nutrientes salvos com sucesso!"
                 PlantDetailUiEvent.StageUpdated -> "Fase da planta atualizada"
                 PlantDetailUiEvent.PhotoUpdated -> "Foto atualizada com sucesso!"
+                PlantDetailUiEvent.SharedToMural -> "Planta partilhada no mural!"
             }
             snackbarHostState.showSnackbar(message)
         }
@@ -282,10 +283,28 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                stringResource(R.string.detail_current_phase, details.plant.stage),
-                style = MaterialTheme.typography.titleSmall
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.detail_current_phase, details.plant.stage),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                
+                if (!details.plant.sharedOnMural) {
+                    TextButton(
+                        onClick = { viewModel.shareToMural() },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Partilhar no Mural", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)

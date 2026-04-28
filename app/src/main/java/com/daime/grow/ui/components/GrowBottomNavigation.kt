@@ -142,7 +142,7 @@ enum class BottomNavItem(
         unselectedIcon = Icons.Outlined.Settings
     ),
     Tips(
-        route = "tips",
+        route = NavRoute.GrowTips.route,
         titleRes = com.daime.grow.R.string.nav_dicas,
         iconRes = null,
         selectedIcon = Icons.Rounded.Lightbulb,
@@ -167,7 +167,6 @@ fun GrowBottomNavigationBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     onAddClick: () -> Unit,
-    onTipsClick: () -> Unit,
     modifier: Modifier = Modifier,
     maskHomeIcon: Boolean = true,
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
@@ -444,7 +443,6 @@ fun GrowBottomNavigationBarPreview() {
             currentRoute = NavRoute.Home.route,
             onNavigate = {},
             onAddClick = {},
-            onTipsClick = {},
             notificationBadgeCount = 5
         )
     }

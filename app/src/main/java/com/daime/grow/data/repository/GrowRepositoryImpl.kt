@@ -284,7 +284,7 @@ class GrowRepositoryImpl @Inject constructor(
             val userUuid = getCurrentUserId() ?: return
             var remotePhotoUrl: String? = null
 
-            if (photoUri != null) {
+            if (photoUri != null && !photoUri.startsWith("http")) {
                 val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
                 if (bytes != null) {
                     val fileName = "plant_${UUID.randomUUID()}.webp"
@@ -292,6 +292,8 @@ class GrowRepositoryImpl @Inject constructor(
                     bucket.upload(fileName, bytes)
                     remotePhotoUrl = bucket.publicUrl(fileName)
                 }
+            } else {
+                remotePhotoUrl = photoUri
             }
 
             supabase.from("mural_posts").insert(
@@ -410,6 +412,35 @@ class GrowRepositoryImpl @Inject constructor(
         deletePhotoIfOwned(appContext, photoUri)
         deletePhotoFromSupabaseStorage(photoUri)
         GrowWidgetUpdater.refreshAll(appContext)
+    }
+
+    override suspend fun shareToMural(plantId: Long) {
+        val plant = plantDao.observePlant(plantId).first() ?: return
+        if (plant.sharedOnMural) return
+
+        database.withTransaction {
+            plantDao.updateSharedOnMural(plantId, true)
+            muralDao.insertPost(
+                com.daime.grow.data.local.entity.MuralPostEntity(
+                    plantId = plantId,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+        }
+
+        val userUuid = getCurrentUserId()
+        if (userUuid != null) {
+            withContext(Dispatchers.IO) {
+                syncToSupabase(
+                    name = plant.name,
+                    strain = plant.strain,
+                    stage = plant.stage,
+                    medium = plant.medium,
+                    days = plant.days,
+                    photoUri = plant.photoUri
+                )
+            }
+        }
     }
 
     private suspend fun deletePlantFromSupabase(localId: Long, userUuid: String) {

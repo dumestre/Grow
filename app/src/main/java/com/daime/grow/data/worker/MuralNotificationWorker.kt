@@ -14,6 +14,7 @@ import com.daime.grow.data.remote.model.MuralPostDto
 import io.github.jan.supabase.postgrest.from
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import androidx.core.content.edit
 
 class MuralNotificationWorker(
     context: Context,
@@ -59,7 +60,7 @@ class MuralNotificationWorker(
             }
 
             // Atualizar o timestamp da última verificação
-            sharedPrefs.edit().putLong("last_mural_check", System.currentTimeMillis()).apply()
+            sharedPrefs.edit { putLong("last_mural_check", System.currentTimeMillis()) }
 
             return Result.success()
         } catch (e: Exception) {
