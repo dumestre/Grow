@@ -69,9 +69,34 @@ fun MuralCommentItem(
     var isLiked by remember { mutableStateOf(false) }
     val userColor = remember(comment.username) { getUserColor(comment.username) }
     val isReply = depth > 0
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     
     // Limita a indentação máxima para não espremer o texto em telas pequenas
     val indentation = (depth * 16).coerceAtMost(48).dp
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Excluir comentário", style = MaterialTheme.typography.titleMedium) },
+            text = { Text("Deseja realmente excluir seu comentário? Esta ação não pode ser desfeita.", style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick(comment)
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Row(
         modifier = Modifier
@@ -172,7 +197,7 @@ fun MuralCommentItem(
 
                     // Botão Excluir direto
                     IconButton(
-                        onClick = { onDeleteClick(comment) },
+                        onClick = { showDeleteConfirm = true },
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(

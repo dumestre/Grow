@@ -166,7 +166,7 @@ fun MuralPostScreen(
                                             replyToComment = it
                                             editingComment = null
                                         },
-                                        onDeleteClick = { viewModel.deleteComment(it.remoteId ?: "") },
+                                        onDeleteClick = { viewModel.deleteComment(it) },
                                         onEditClick = { 
                                             editingComment = it
                                             replyToComment = null

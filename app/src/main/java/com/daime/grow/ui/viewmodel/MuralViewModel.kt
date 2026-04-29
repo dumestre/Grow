@@ -779,22 +779,22 @@ class MuralViewModel @Inject constructor(
         }
     }
 
-    fun deleteComment(commentId: String) {
+    fun deleteComment(comment: CommentWithUser) {
         viewModelScope.launch {
-            val comment = muralDao.getCommentByRemoteId(commentId)
-            if (comment != null) {
-                muralDao.deleteCommentByRemoteId(commentId)
-            }
-
-            val supabase = this@MuralViewModel.supabase
-            if (supabase != null) {
-                try {
-                    supabase.from("mural_comments")
-                        .delete { filter { eq("id", commentId) } }
-                } catch (e: Exception) {
-                    android.util.Log.e("MuralViewModel", "Erro ao deletar comentario remoto: ${e.message}")
+            if (!comment.remoteId.isNullOrBlank()) {
+                val supabase = this@MuralViewModel.supabase
+                if (supabase != null) {
+                    try {
+                        supabase.from("mural_comments")
+                            .delete { filter { eq("id", comment.remoteId) } }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MuralViewModel", "Erro ao deletar comentario remoto: ${e.message}")
+                    }
                 }
             }
+            
+            // Sempre deleta localmente pelo ID numérico
+            muralDao.deleteComment(comment.id)
         }
     }
 
