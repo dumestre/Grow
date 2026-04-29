@@ -243,39 +243,21 @@ fun GrowBottomNavigationBar(
                             .fillMaxWidth()
                             .height(300.dp)
                             .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 8.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(3) { rowIndex ->
+                        val itemsCount = BottomNavItem.entries.size
+                        val rows = (itemsCount + 3) / 4
+
+                        items(rows) { rowIndex ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                repeat(7) { colIndex ->
-                                    val itemIndex = rowIndex * 7 + colIndex
-                                    val addInMiddle = rowIndex == 1 && colIndex == 3
-                                    if (addInMiddle) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(42.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.tertiary, CircleShape)
-                                                .clickable(
-                                                    interactionSource = remember { MutableInteractionSource() },
-                                                    indication = ripple(bounded = false, radius = 40.dp),
-                                                    onClick = onAddClick
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(22.dp),
-                                                tint = Color(0xFF1B5E20)
-                                            )
-                                        }
-                                    } else if (itemIndex < BottomNavItem.entries.size) {
+                                repeat(4) { colIndex ->
+                                    val itemIndex = rowIndex * 4 + colIndex
+                                    if (itemIndex < itemsCount) {
                                         val item = BottomNavItem.entries[itemIndex]
                                         val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
                                         NavIconItem(
@@ -286,10 +268,11 @@ fun GrowBottomNavigationBar(
                                                 isExpanded = false
                                             },
                                             maskHomeIcon = maskHomeIcon,
-                                            badgeCount = badgeCount
+                                            badgeCount = badgeCount,
+                                            modifier = Modifier.weight(1f)
                                         )
                                     } else {
-                                        Spacer(modifier = Modifier.size(42.dp))
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }

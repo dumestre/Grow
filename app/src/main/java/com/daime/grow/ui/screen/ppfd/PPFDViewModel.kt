@@ -18,7 +18,8 @@ data class PPFDUiState(
     val ppfd: Double = 0.0,
     val selectedSource: LightSource = LightSource.LED_WHITE,
     val calibrationMultiplier: Float = 1.0f,
-    val isSensorAvailable: Boolean = true
+    val isSensorAvailable: Boolean = true,
+    val isHoldActive: Boolean = false
 )
 
 @HiltViewModel
@@ -63,8 +64,12 @@ class PPFDViewModel @Inject constructor(
         }
     }
 
+    fun toggleHold() {
+        _uiState.update { it.copy(isHoldActive = !it.isHoldActive) }
+    }
+
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_LIGHT) {
+        if (event?.sensor?.type == Sensor.TYPE_LIGHT && !_uiState.value.isHoldActive) {
             val luxValue = event.values[0]
             _uiState.update { 
                 it.copy(
