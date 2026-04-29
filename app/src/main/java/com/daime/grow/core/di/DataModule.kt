@@ -1,6 +1,7 @@
 package com.daime.grow.core.di
 
 import android.content.Context
+import android.hardware.SensorManager
 import com.daime.grow.data.local.GrowDatabase
 import com.daime.grow.data.preferences.MuralPreferencesRepository
 import com.daime.grow.data.preferences.SecurityPreferencesRepository
@@ -77,6 +78,12 @@ abstract class DataModule {
         @Singleton
         fun provideBackupManager(@ApplicationContext context: Context, database: GrowDatabase): BackupManager {
             return BackupManager(context, database)
+        }
+
+        @Provides
+        @Singleton
+        fun provideSensorManager(@ApplicationContext context: Context): SensorManager {
+            return context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         }
     }
 }
