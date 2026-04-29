@@ -95,6 +95,11 @@ class MuralViewModel @Inject constructor(
 
     private val supabase = SupabaseClient.clientOrNull
 
+    private var currentPostJob: kotlinx.coroutines.Job? = null
+    private var commentsCollectionJob: kotlinx.coroutines.Job? = null
+    private var commentsSubscriptionJob: kotlinx.coroutines.Job? = null
+    private var likesSubscriptionJob: kotlinx.coroutines.Job? = null
+
     init {
         loadPosts()
         observeStoredUser()
@@ -286,16 +291,18 @@ class MuralViewModel @Inject constructor(
     }
 
     fun loadPost(postId: String) {
-        viewModelScope.launch {
+        currentPostJob?.cancel()
+        currentPostJob = viewModelScope.launch {
             muralDao.observeMuralPostsWithPlants().collect { posts ->
                 val post = posts.find { it.remoteId == postId }
-
+                
+                val currentPost = _postUiState.value.post
                 _postUiState.value = _postUiState.value.copy(
                     post = post,
                     isLoading = false
                 )
 
-                if (post != null && post.remoteId != null) {
+                if (post != null && post.remoteId != null && post.remoteId != currentPost?.remoteId) {
                     loadComments(post.id)
                     loadLikes(post.remoteId)
                     subscribeToCommentsRealtime(post.remoteId)
@@ -306,7 +313,8 @@ class MuralViewModel @Inject constructor(
     }
 
     private fun loadComments(localPostId: Long) {
-        viewModelScope.launch {
+        commentsCollectionJob?.cancel()
+        commentsCollectionJob = viewModelScope.launch {
             muralDao.observeCommentsWithUsers(localPostId).collect { comments ->
                 _postUiState.value = _postUiState.value.copy(comments = comments)
             }
@@ -752,19 +760,6 @@ class MuralViewModel @Inject constructor(
             )
             android.util.Log.d("MuralViewModel", "Comentario salvo localmente: id=$localCommentId")
 
-            _postUiState.value = _postUiState.value.copy(
-                comments = _postUiState.value.comments + CommentWithUser(
-                    id = localCommentId,
-                    remoteId = null,
-                    localPostId = post.id,
-                    localUserId = user.id,
-                    content = content,
-                    createdAt = System.currentTimeMillis(),
-                    username = user.username,
-                    parentId = parentId
-                )
-            )
-
             val supabase = this@MuralViewModel.supabase
             if (supabase != null) {
                 try {
@@ -843,47 +838,57 @@ class MuralViewModel @Inject constructor(
     }
 
     private fun subscribeToCommentsRealtime(postId: String) {
-        viewModelScope.launch {
+        commentsSubscriptionJob?.cancel()
+        commentsSubscriptionJob = viewModelScope.launch {
             val supabase = supabase ?: return@launch
             val channel = supabase.realtime.channel("comments_$postId")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "mural_comments"
             }
             channel.subscribe()
-            changeFlow.collect { action ->
-                when (action) {
-                    is PostgresAction.Insert -> {
-                        val dto = action.decodeRecord<MuralCommentDto>()
-                        if (dto.post_id == postId) {
-                            syncRemoteCommentToLocal(dto)
-                        }
-                    }
-                    is PostgresAction.Delete -> {
-                        val oldRecord = action.oldRecord
-                        val commentId = oldRecord["id"]?.jsonPrimitive?.content
-                        val commentPostId = oldRecord["post_id"]?.jsonPrimitive?.content
-                        if (commentId != null && commentPostId == postId) {
-                            muralDao.getCommentByRemoteId(commentId)?.let {
-                                muralDao.deleteCommentByRemoteId(commentId)
+            try {
+                changeFlow.collect { action ->
+                    when (action) {
+                        is PostgresAction.Insert -> {
+                            val dto = action.decodeRecord<MuralCommentDto>()
+                            if (dto.post_id == postId) {
+                                syncRemoteCommentToLocal(dto)
                             }
                         }
+                        is PostgresAction.Delete -> {
+                            val oldRecord = action.oldRecord
+                            val commentId = oldRecord["id"]?.jsonPrimitive?.content
+                            val commentPostId = oldRecord["post_id"]?.jsonPrimitive?.content
+                            if (commentId != null && commentPostId == postId) {
+                                muralDao.getCommentByRemoteId(commentId)?.let {
+                                    muralDao.deleteCommentByRemoteId(commentId)
+                                }
+                            }
+                        }
+                        else -> {}
                     }
-                    else -> {}
                 }
+            } finally {
+                channel.unsubscribe()
             }
         }
     }
 
     private fun subscribeToLikesRealtime(postId: String) {
-        viewModelScope.launch {
+        likesSubscriptionJob?.cancel()
+        likesSubscriptionJob = viewModelScope.launch {
             val supabase = supabase ?: return@launch
             val channel = supabase.realtime.channel("likes_$postId")
             val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "mural_likes"
             }
             channel.subscribe()
-            changeFlow.collect {
-                loadLikes(postId)
+            try {
+                changeFlow.collect {
+                    loadLikes(postId)
+                }
+            } finally {
+                channel.unsubscribe()
             }
         }
     }

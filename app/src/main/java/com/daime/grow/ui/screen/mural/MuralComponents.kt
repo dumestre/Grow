@@ -35,13 +35,21 @@ import java.util.*
  */
 fun buildCommentTree(allComments: List<CommentWithUser>): List<Pair<CommentWithUser, Int>> {
     val result = mutableListOf<Pair<CommentWithUser, Int>>()
-    val roots = allComments.filter { it.parentId == null }
-    val map = allComments.groupBy { it.parentId }
+    val roots = allComments.filter { it.parentId.isNullOrBlank() }
+    val map = allComments.filter { !it.parentId.isNullOrBlank() }.groupBy { it.parentId }
+    val visited = mutableSetOf<Long>()
 
     fun walk(comment: CommentWithUser, depth: Int) {
+        if (depth > 15 || visited.contains(comment.id)) return
+        visited.add(comment.id)
+        
         result.add(comment to depth)
-        map[comment.remoteId]?.forEach { child ->
-            walk(child, depth + 1)
+        
+        val idToLookFor = comment.remoteId
+        if (!idToLookFor.isNullOrBlank()) {
+            map[idToLookFor]?.forEach { child ->
+                walk(child, depth + 1)
+            }
         }
     }
 
