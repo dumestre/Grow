@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -23,7 +25,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +46,9 @@ fun PPFDScreen(
         initialPage = sources.indexOf(uiState.selectedSource),
         pageCount = { sources.size }
     )
+
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val isTablet = configuration.smallestScreenWidthDp >= 600
 
     // Sincroniza o pager com o ViewModel
     LaunchedEffect(pagerState.currentPage) {
@@ -87,7 +91,8 @@ fun PPFDScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (!uiState.isSensorAvailable) {
@@ -102,7 +107,7 @@ fun PPFDScreen(
                         modifier = Modifier.padding(horizontal = 16.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -120,42 +125,48 @@ fun PPFDScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.weight(0.5f))
+                    Spacer(modifier = Modifier.height(if (isTablet) 60.dp else 17.dp))
 
                     // Mostrador Principal
                     MainReadout(
                         ppfd = uiState.ppfd,
                         lux = uiState.lux,
                         color = ppfdColor,
-                        isHold = uiState.isHoldActive
+                        isHold = uiState.isHoldActive,
+                        isTablet = isTablet
                     )
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(if (isTablet) 80.dp else 20.dp))
 
-                    // Botão HOLD centralizado acima da seleção de luz
+                    // Botão HOLD logo acima do seletor de luz
                     HoldButton(
                         isHold = uiState.isHoldActive,
                         onHoldToggle = viewModel::toggleHold
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Seletor de Fonte por Swipe
+                    // Seletor de Fonte por Swipe e Click
                     LightSourcePager(
                         pagerState = pagerState,
                         sources = sources,
                         activeColor = ppfdColor
                     )
 
-                    Spacer(modifier = Modifier.weight(0.5f))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    // Controles de Rodapé (Apenas Calibração agora)
+                    // Controles de Rodapé (Calibração)
                     BottomControls(
                         multiplier = uiState.calibrationMultiplier,
                         onMultiplierChange = viewModel::updateCalibration
                     )
                     
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Card de Dicas de Precisão
+                    AccuracyTipsCard()
+                    
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
@@ -167,7 +178,7 @@ private fun HoldButton(isHold: Boolean, onHoldToggle: () -> Unit) {
     IconButton(
         onClick = onHoldToggle,
         modifier = Modifier
-            .size(72.dp)
+            .size(56.dp)
             .clip(CircleShape)
             .background(
                 if (isHold) MaterialTheme.colorScheme.errorContainer 
@@ -182,12 +193,50 @@ private fun HoldButton(isHold: Boolean, onHoldToggle: () -> Unit) {
         Icon(
             imageVector = if (isHold) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
             contentDescription = if (isHold) "Resumir" else "Hold",
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(28.dp),
             tint = if (isHold) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
         )
     }
 }
 
+@Composable
+private fun AccuracyTipsCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                Icons.Rounded.Lightbulb,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Dica de Precisão",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Use um pedaço de papel sulfite branco sobre o sensor frontal para captar a luz em 180° e aumentar a precisão.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun DynamicBackground(color: Color, ppfd: Double) {
@@ -216,7 +265,10 @@ private fun DynamicBackground(color: Color, ppfd: Double) {
 }
 
 @Composable
-private fun MainReadout(ppfd: Double, lux: Float, color: Color, isHold: Boolean) {
+private fun MainReadout(ppfd: Double, lux: Float, color: Color, isHold: Boolean, isTablet: Boolean) {
+    val displaySize = if (isTablet) 380.dp else 280.dp
+    val fontSize = if (isTablet) 140.sp else 100.sp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 32.dp)
@@ -224,7 +276,7 @@ private fun MainReadout(ppfd: Double, lux: Float, color: Color, isHold: Boolean)
         Box(contentAlignment = Alignment.Center) {
             // Círculo de brilho sutil
             Surface(
-                modifier = Modifier.size(280.dp),
+                modifier = Modifier.size(displaySize),
                 shape = CircleShape,
                 color = color.copy(alpha = 0.03f),
                 border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.1f))
@@ -249,7 +301,7 @@ private fun MainReadout(ppfd: Double, lux: Float, color: Color, isHold: Boolean)
                 
                 Text(
                     text = "%.0f".format(ppfd),
-                    fontSize = 100.sp,
+                    fontSize = fontSize,
                     fontWeight = FontWeight.Black,
                     color = if (isHold) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else color,
                     fontFamily = FontFamily.Monospace

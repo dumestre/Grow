@@ -40,8 +40,8 @@ android {
         applicationId = "com.daime.grow"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7"
+        versionCode = 15
+        versionName = "1.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
