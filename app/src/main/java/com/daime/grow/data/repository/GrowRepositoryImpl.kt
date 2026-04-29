@@ -423,6 +423,7 @@ class GrowRepositoryImpl @Inject constructor(
             muralDao.insertPost(
                 com.daime.grow.data.local.entity.MuralPostEntity(
                     plantId = plantId,
+                    userId = getCurrentUserId(),
                     createdAt = System.currentTimeMillis()
                 )
             )
@@ -440,6 +441,30 @@ class GrowRepositoryImpl @Inject constructor(
                     photoUri = plant.photoUri
                 )
             }
+        }
+    }
+
+    override suspend fun removeFromMural(plantId: Long) {
+        val posts = muralDao.observeMuralPosts().first()
+        val post = posts.find { it.plantId == plantId } ?: return
+        
+        val userUuid = getCurrentUserId()
+        if (userUuid != null && post.remoteId != null) {
+            withContext(Dispatchers.IO) {
+                try {
+                    supabaseClient?.from("mural_posts")?.delete {
+                        filter { eq("id", post.remoteId) }
+                        filter { eq("user_id", userUuid) }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao deletar post do mural no Supabase: ${e.message}")
+                }
+            }
+        }
+
+        database.withTransaction {
+            muralDao.deletePost(post.id)
+            plantDao.updateSharedOnMural(plantId, false)
         }
     }
 

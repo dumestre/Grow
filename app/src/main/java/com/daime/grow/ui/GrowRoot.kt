@@ -56,6 +56,7 @@ import com.daime.grow.ui.screen.store.StrainDetailScreen
 import com.daime.grow.ui.screen.store.StrainsScreen
 import com.daime.grow.ui.screen.store.StoreScreen
 import com.daime.grow.ui.screen.tips.GrowTipsScreen
+import com.daime.grow.ui.screen.ppfd.PPFDScreen
 import com.daime.grow.ui.viewmodel.*
 
 @Composable
@@ -189,7 +190,8 @@ fun GrowRoot(container: AppContainer) {
         NavRoute.Mural.route,
         NavRoute.Store.route,
         NavRoute.Notifications.route,
-        NavRoute.Settings.route
+        NavRoute.Settings.route,
+        NavRoute.PPFD.route
     )
 
     val configuration = LocalConfiguration.current
@@ -369,6 +371,12 @@ fun GrowRoot(container: AppContainer) {
 
                         composable(NavRoute.GrowTips.route) {
                             GrowTipsScreen(
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(NavRoute.PPFD.route) {
+                            PPFDScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }

@@ -332,3 +332,38 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_mural_users_email ON mural_users(email)")
     }
 }
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Altera mural_posts.plantId de NOT NULL para NULLABLE (precisa recriar a tabela no SQLite)
+        db.execSQL("ALTER TABLE mural_posts RENAME TO mural_posts_old")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS mural_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                remoteId TEXT,
+                plantId INTEGER,
+                createdAt INTEGER NOT NULL,
+                plantName TEXT,
+                strain TEXT,
+                stage TEXT,
+                medium TEXT,
+                days INTEGER,
+                photoUrl TEXT,
+                userId TEXT,
+                FOREIGN KEY(plantId) REFERENCES plants(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO mural_posts (id, remoteId, plantId, createdAt, plantName, strain, stage, medium, days, photoUrl, userId)
+            SELECT id, remoteId, plantId, createdAt, plantName, strain, stage, medium, days, photoUrl, userId
+            FROM mural_posts_old
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE mural_posts_old")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_posts_plantId ON mural_posts(plantId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_mural_posts_remoteId ON mural_posts(remoteId)")
+    }
+}

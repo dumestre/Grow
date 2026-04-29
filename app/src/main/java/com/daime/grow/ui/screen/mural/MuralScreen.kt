@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -246,9 +247,35 @@ fun MuralPostItem(
 ) {
     val commentsFlow = remember(post.id) { viewModel.getCommentsFlow(post.id) }
     val allComments by commentsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
     
     var replyToComment by remember { mutableStateOf<CommentWithUser?>(null) }
     var editingComment by remember { mutableStateOf<CommentWithUser?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Excluir Post") },
+            text = { Text("Deseja realmente excluir este post do mural? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deletePost(post)
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -270,6 +297,21 @@ fun MuralPostItem(
                         color = Color(0xFFF01264),
                         modifier = Modifier.weight(1f)
                     )
+                    
+                    if (post.userId == currentUserUuid && currentUserUuid != null) {
+                        IconButton(
+                            onClick = { showDeleteConfirmation = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Excluir post",
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
                     post.username?.let {
                         Text(
                             text = "@$it",

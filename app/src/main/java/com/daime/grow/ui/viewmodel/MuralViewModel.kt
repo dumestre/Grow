@@ -233,7 +233,7 @@ class MuralViewModel @Inject constructor(
                             muralDao.insertPost(
                                 MuralPostEntity(
                                     remoteId = postDto.id,
-                                    plantId = 0,
+                                    plantId = null,
                                     userId = postDto.user_id,
                                     createdAt = System.currentTimeMillis(),
                                     plantName = postDto.plant_name,
@@ -817,6 +817,27 @@ class MuralViewModel @Inject constructor(
                 } catch (e: Exception) {
                     android.util.Log.e("MuralViewModel", "Erro ao editar comentario remoto: ${e.message}")
                 }
+            }
+        }
+    }
+
+    fun deletePost(post: MuralPostWithPlant) {
+        viewModelScope.launch {
+            val userUuid = _currentUserUuid.value
+            if (userUuid != null && post.remoteId != null && post.userId == userUuid) {
+                try {
+                    supabase?.from("mural_posts")?.delete {
+                        filter { eq("id", post.remoteId) }
+                        filter { eq("user_id", userUuid) }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MuralViewModel", "Erro ao deletar post remoto: ${e.message}")
+                }
+            }
+            
+            muralDao.deletePost(post.id)
+            if (post.plantId > 0) {
+                muralDao.updatePlantSharedStatus(post.plantId, false)
             }
         }
     }

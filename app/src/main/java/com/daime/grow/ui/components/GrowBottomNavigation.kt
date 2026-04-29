@@ -147,6 +147,13 @@ enum class BottomNavItem(
         iconRes = null,
         selectedIcon = Icons.Rounded.Lightbulb,
         unselectedIcon = Icons.Rounded.Lightbulb
+    ),
+    PPFD(
+        route = NavRoute.PPFD.route,
+        titleRes = com.daime.grow.R.string.nav_ppfd,
+        iconRes = null,
+        selectedIcon = Icons.Rounded.WbSunny,
+        unselectedIcon = Icons.Rounded.WbSunny
     )
 }
 

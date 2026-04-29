@@ -131,6 +131,7 @@ fun PlantDetailScreen(
                 PlantDetailUiEvent.StageUpdated -> "Fase da planta atualizada"
                 PlantDetailUiEvent.PhotoUpdated -> "Foto atualizada com sucesso!"
                 PlantDetailUiEvent.SharedToMural -> "Planta partilhada no mural!"
+                PlantDetailUiEvent.RemovedFromMural -> "Planta removida do mural!"
             }
             snackbarHostState.showSnackbar(message)
         }
@@ -302,6 +303,17 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("Partilhar no Mural", style = MaterialTheme.typography.labelMedium)
+                    }
+                } else {
+                    TextButton(
+                        onClick = { viewModel.removeFromMural() },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp),
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remover do Mural", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

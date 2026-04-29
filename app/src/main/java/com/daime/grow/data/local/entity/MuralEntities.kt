@@ -20,7 +20,7 @@ import androidx.room.PrimaryKey
 data class MuralPostEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val remoteId: String? = null,
-    val plantId: Long,
+    val plantId: Long? = null,
     val userId: String? = null,
     val createdAt: Long,
     val plantName: String? = null,

@@ -132,7 +132,8 @@
     <string name="nav_avisos">Avisos</string>
     <string name="nav_ajustes">Ajustes</string>
     <string name="nav_dicas">Dicas</string>
-    
+    <string name="nav_ppfd">PPFD</string>
+
     <!-- Tela de detalhes -->
     <string name="detail_harvest_button">Colher e Secar</string>
     <string name="detail_no_events">Nenhum evento registrado ainda.</string>

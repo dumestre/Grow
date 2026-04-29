@@ -44,6 +44,7 @@ sealed interface PlantDetailUiEvent {
     data object StageUpdated : PlantDetailUiEvent
     data object PhotoUpdated : PlantDetailUiEvent
     data object SharedToMural : PlantDetailUiEvent
+    data object RemovedFromMural : PlantDetailUiEvent
 }
 
 @HiltViewModel
@@ -203,6 +204,13 @@ class PlantDetailViewModel @Inject constructor(
         viewModelScope.launch {
             repository.shareToMural(plantId)
             _events.emit(PlantDetailUiEvent.SharedToMural)
+        }
+    }
+
+    fun removeFromMural() {
+        viewModelScope.launch {
+            repository.removeFromMural(plantId)
+            _events.emit(PlantDetailUiEvent.RemovedFromMural)
         }
     }
 }
