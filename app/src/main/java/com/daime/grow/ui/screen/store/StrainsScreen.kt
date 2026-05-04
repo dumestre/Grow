@@ -51,7 +51,7 @@ fun StrainsScreen(
     val columnsCount = if (isTablet) 3 else 2
     val horizontalPadding = if (isTablet) 32.dp else 16.dp
 
-    val filters = listOf("Todas", "Sativa", "Indica", "Híbrida")
+    val filters = listOf("Todas", "Frutíferas", "Hortaliças", "Ervas", "Legumes", "Sativa", "Indica", "Híbrida")
 
     LaunchedEffect(Unit) {
         loadStrains(
@@ -68,6 +68,14 @@ fun StrainsScreen(
             "Híbrida" -> strain.tipo?.lowercase()?.contains("hybrid") == true || 
                          strain.tipo?.lowercase()?.contains("híbrida") == true ||
                          strain.tipo?.lowercase()?.contains("hibrida") == true
+            "Frutíferas" -> strain.tipo?.lowercase()?.contains("frut") == true || 
+                             strain.descricao?.lowercase()?.contains("frut") == true
+            "Hortaliças" -> strain.tipo?.lowercase()?.contains("hort") == true || 
+                             strain.descricao?.lowercase()?.contains("hort") == true
+            "Ervas" -> strain.tipo?.lowercase()?.contains("erva") == true || 
+                        strain.descricao?.lowercase()?.contains("erva") == true
+            "Legumes" -> strain.tipo?.lowercase()?.contains("legum") == true || 
+                          strain.descricao?.lowercase()?.contains("legum") == true
             else -> true
         }
         val matchesSearch = searchQuery.isBlank() || 
