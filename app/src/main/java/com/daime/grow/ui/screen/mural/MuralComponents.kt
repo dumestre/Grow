@@ -141,8 +141,9 @@ fun MuralCommentItem(
                     color = userColor
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
                 Text(
-                    text = formatMuralDate(comment.createdAt),
+                    text = formatMuralDate(comment.createdAt, locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
@@ -407,7 +408,7 @@ fun getUserColor(username: String): Color {
     return colors[index]
 }
 
-fun formatMuralDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+fun formatMuralDate(timestamp: Long, locale: Locale): String {
+    val sdf = SimpleDateFormat("dd/MM/yy", locale)
     return sdf.format(Date(timestamp))
 }

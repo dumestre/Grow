@@ -204,6 +204,7 @@ fun DryingBatchCard(
 ) {
     val batch = batchWithPhoto.batch
     val photoUri = batchWithPhoto.photoUri
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     
     val daysInDrying = ((System.currentTimeMillis() - batch.harvestDate) / (1000 * 60 * 60 * 24)).toInt()
     val dryingProgress = (daysInDrying / 10f * 100).coerceIn(0f, 100f)
@@ -361,7 +362,7 @@ fun DryingBatchCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Início: ${formatDate(batch.harvestDate)}",
+                            text = "Início: ${formatDate(batch.harvestDate, locale)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -426,6 +427,7 @@ fun CuringBatchCard(
 ) {
     val batch = batchWithPhoto.batch
     val photoUri = batchWithPhoto.photoUri
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     
     val daysInCuring = ((System.currentTimeMillis() - batch.harvestDate) / (1000 * 60 * 60 * 24)).toInt()
     val curingProgress = (daysInCuring / 56f * 100).coerceIn(0f, 100f)
@@ -575,7 +577,7 @@ fun CuringBatchCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Início: ${formatDate(batch.harvestDate)}",
+                            text = "Início: ${formatDate(batch.harvestDate, locale)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -777,8 +779,8 @@ private fun InfoChip(
     }
 }
 
-private fun formatDate(timestamp: Long): String {
-    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+private fun formatDate(timestamp: Long, locale: Locale): String {
+    return SimpleDateFormat("dd/MM", locale).format(Date(timestamp))
 }
 
 private fun formatRelativeTime(timestamp: Long): String {

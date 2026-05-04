@@ -6,7 +6,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,7 +24,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -45,7 +43,6 @@ import com.daime.grow.ui.viewmodel.PlantDetailViewModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import java.util.UUID
 import android.content.Context
 import androidx.core.content.FileProvider
@@ -490,6 +487,7 @@ private fun TimelineSection(events: List<com.daime.grow.domain.model.PlantEvent>
 
 @Composable
 private fun TimelineItem(event: com.daime.grow.domain.model.PlantEvent) {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     DetailAccentCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -499,7 +497,7 @@ private fun TimelineItem(event: com.daime.grow.domain.model.PlantEvent) {
             Text(event.type, style = MaterialTheme.typography.titleMedium)
             if (event.note.isNotBlank()) Text(event.note)
             Text(
-                SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(event.createdAt)),
+                SimpleDateFormat("dd/MM/yyyy HH:mm", locale).format(Date(event.createdAt)),
                 style = MaterialTheme.typography.bodySmall
             )
         }

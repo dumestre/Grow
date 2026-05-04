@@ -158,6 +158,7 @@ fun NotificationRow(
         Spacer(modifier = Modifier.width(12.dp))
         
         Column(modifier = Modifier.weight(1f)) {
+            val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
             Text(
                 text = item.message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -166,7 +167,7 @@ fun NotificationRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = formatTime(item.time),
+                text = formatTime(item.time, locale),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
@@ -183,7 +184,7 @@ fun NotificationRow(
     }
 }
 
-private fun formatTime(timestamp: Long): String {
+private fun formatTime(timestamp: Long, locale: Locale): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
     
@@ -191,6 +192,6 @@ private fun formatTime(timestamp: Long): String {
         diff < 60000 -> "agora mesmo"
         diff < 3600000 -> "há ${diff / 60000} min"
         diff < 86400000 -> "há ${diff / 3600000}h"
-        else -> SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(timestamp))
+        else -> SimpleDateFormat("dd/MM/yyyy", locale).format(Date(timestamp))
     }
 }

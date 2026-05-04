@@ -321,7 +321,8 @@ fun MuralPostItem(
                         )
                     }
                 }
-                Text(text = "Compartilhado em ${formatMuralDate(post.createdAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+                Text(text = "Compartilhado em ${formatMuralDate(post.createdAt, locale)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
             }
 
             if (post.photoUri != null) {

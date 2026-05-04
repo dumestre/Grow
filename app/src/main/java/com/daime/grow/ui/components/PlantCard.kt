@@ -224,9 +224,10 @@ fun PlantCard(
             Spacer(modifier = Modifier.height(6.dp))
             MetaLine("Espécie", plant.strain)
             MetaLine("Substrato", plant.medium)
+            val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
             MetaLine(
                 "Próxima rega",
-                plant.nextWateringDate?.toDateLabel() ?: stringResource(R.string.plant_not_defined)
+                plant.nextWateringDate?.toDateLabel(locale) ?: stringResource(R.string.plant_not_defined)
             )
         }
     }
@@ -263,8 +264,8 @@ private fun MetaLine(label: String, value: String) {
     }
 }
 
-private fun Long.toDateLabel(): String {
-    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(this))
+private fun Long.toDateLabel(locale: Locale): String {
+    return SimpleDateFormat("dd/MM/yyyy", locale).format(Date(this))
 }
 
 private fun formatCultivationTime(days: Int): String {
