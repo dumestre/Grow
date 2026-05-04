@@ -44,56 +44,73 @@ fun GrowTipsScreen(
     val categories = remember {
         listOf(
             TipCategory(
-                title = "Estágios de Vida",
+                title = "O Ciclo de Vida",
                 icon = Icons.Rounded.Loop,
                 color = Color(0xFF4CAF50),
                 tips = listOf(
                     TipItem(
                         title = "Germinação (Dias 1-7)",
-                        description = "Mantenha as sementes entre papel toalha úmido ou plante direto em solo leve. Escuridão total, temperatura 20-25°C. Emergem em 1-7 dias.",
+                        description = "Escuridão total e umidade. A semente usa sua própria energia reserva. Temperatura ideal: 20-25°C.",
                         icon = Icons.Rounded.Spa
                     ),
                     TipItem(
                         title = "Seedling (Semanas 1-3)",
-                        description = "Luz suave 18-24h, distância maior do que o normal. Regue com borrifador. Primeira folha inteira aparece na semana 2.",
+                        description = "Luz suave (PPFD 100-300). Muita luz agora pode estressar a planta jovem. Foco em criar raízes.",
                         icon = Icons.Rounded.Grass
                     ),
                     TipItem(
                         title = "Vegetativo (Semanas 3-8)",
-                        description = "18h de luz, 6h escuro. Crescimento intenso de folhas e caule. Fase de construir estrutura. Mais nitrogênio (N).",
+                        description = "Crescimento explosivo. 18h de luz. A planta quer 'comer' o máximo de fótons possível para crescer (PPFD 400-600).",
                         icon = Icons.Rounded.Park
                     ),
                     TipItem(
                         title = "Floração (Semanas 8-14)",
-                        description = "12h luz, 12h escuro EXATAMENTE. Qualquer luz extra reinicia o ciclo. Pistas brancas (colas) se formam. Mais fósforo (P) e potássio (K).",
+                        description = "Ciclo 12/12. A escuridão total é o gatilho. Máxima intensidade de luz necessária (PPFD 600-900+).",
                         icon = Icons.Rounded.FilterVintage
                     )
                 )
             ),
             TipCategory(
-                title = "Iluminação",
+                title = "Iluminação & Energia",
                 icon = Icons.Rounded.WbSunny,
                 color = Color(0xFFFFB300),
                 tips = listOf(
                     TipItem(
-                        title = "LED Full Spectrum (Recomendado)",
-                        description = "Espectro completo para todas as fases. Menos calor, menos energia. Mantenha 30-60cm das pontas. Ideal para espaços fechados.",
-                        icon = Icons.Rounded.Lightbulb
+                        title = "PPFD: A Intensidade Real",
+                        description = "Não olhe para Watts, olhe para o PPFD. É a quantidade de fótons que realmente chegam na folha. Use nosso medidor!",
+                        icon = Icons.Rounded.Speed
                     ),
                     TipItem(
-                        title = "HPS/MH (Vapor de Sódio/Mercúrio)",
-                        description = "Alto calor, alto consumo. HPS para floração, MH para veg. Requer refrigeração. Menos eficiente que LED atualmente.",
-                        icon = Icons.Rounded.LocalFireDepartment
+                        title = "DLI: O Orçamento Diário",
+                        description = "Daily Light Integral é o total de luz que a planta recebe em 24h. Pense nisso como o 'prato de comida' do dia.",
+                        icon = Icons.Rounded.Calculate
                     ),
                     TipItem(
-                        title = "CFL / Lâmpadas Fluorescentes",
-                        description = "Boa opção para mudas e clones. Pouco calor, fácil de usar. Menos potente para veg intenso ou floração.",
-                        icon = Icons.Rounded.FlashOn
+                        title = "Espectro PAR",
+                        description = "Plantas amam Azul (450nm) para estrutura e Vermelho (660nm) para flores. O 'Full Spectrum' imita o sol perfeitamente.",
+                        icon = Icons.Rounded.Gradient
                     ),
                     TipItem(
-                        title = "Fotoperíodo",
-                        description = "Veg: 18/6 ou 20/4 (mais luz = mais crescimento). Flor: 12/12 EXATO. Mudanças mesmo pequenas reiniciam a floração.",
-                        icon = Icons.Rounded.Schedule
+                        title = "Distância e Penetração",
+                        description = "Luzes muito perto queimam; muito longe fazem a planta esticar. Encontre o 'sweet spot' usando o medidor do app.",
+                        icon = Icons.Rounded.Straighten
+                    )
+                )
+            ),
+            TipCategory(
+                title = "A Ciência da Luz",
+                icon = Icons.Rounded.Lightbulb,
+                color = Color(0xFFFBC02D),
+                tips = listOf(
+                    TipItem(
+                        title = "Fotossíntese 101",
+                        description = "Plantas transformam luz, água e CO2 em açúcar. Sem luz suficiente, a planta passa fome, não importa o fertilizante.",
+                        icon = Icons.Rounded.AutoAwesome
+                    ),
+                    TipItem(
+                        title = "A Saturação de Luz",
+                        description = "Existe um limite. Muita luz sem CO2 extra causa estresse oxidativo. Observe as pontas das folhas 'rezando' para cima.",
+                        icon = Icons.Rounded.Thermostat
                     )
                 )
             ),
@@ -304,7 +321,10 @@ fun GrowTipsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                LightRoleHero()
+            }
+
+            item {
                 Text(
                     "Categorias",
                     style = MaterialTheme.typography.titleMedium,
@@ -378,6 +398,57 @@ fun GrowTipsScreen(
 
             item {
                 Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun LightRoleHero() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFFFD600),
+                            Color(0xFFFF6D00)
+                        )
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.WbSunny,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "A Luz é o Motor",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Diferente de nós, plantas não comem matéria. Elas comem luz. " +
+                    "Através da fotossíntese, a planta transforma fótons em energia química, " +
+                    "construindo cada folha e cada flor. Entender a luz é a chave para um cultivo de elite.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
             }
         }
     }

@@ -31,16 +31,20 @@ class ViewModelFactories(container: AppContainer) {
         PosColhetaViewModel(container.application, container.database.harvestDao(), container.database.plantDao())
     }
 
-    val detail = DetailFactory(repository)
+    val detail = DetailFactory(repository, container.muralPreferencesRepository)
 
-    class DetailFactory(private val repository: com.daime.grow.domain.repository.GrowRepository) {
+    class DetailFactory(
+        private val repository: com.daime.grow.domain.repository.GrowRepository,
+        private val muralPreferences: com.daime.grow.data.preferences.MuralPreferencesRepository
+    ) {
         fun create(plantId: Long): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(PlantDetailViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
                     return PlantDetailViewModel(
                         savedStateHandle = androidx.lifecycle.SavedStateHandle(mapOf("plantId" to plantId)),
-                        repository = repository
+                        repository = repository,
+                        muralPreferences = muralPreferences
                     ) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel ${modelClass.name}")

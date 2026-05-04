@@ -98,33 +98,6 @@ fun PPFDScreen(
                 if (!uiState.isSensorAvailable) {
                     SensorUnavailableState()
                 } else {
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Banner de status
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Rounded.Info, 
-                                null, 
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "Modo experimental: Em fase de ajustes.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-
                     Spacer(modifier = Modifier.height(if (isTablet) 60.dp else 17.dp))
 
                     // Mostrador Principal

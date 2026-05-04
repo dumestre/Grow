@@ -672,7 +672,7 @@ private fun getDeviceUserId(): String {
                             remotePhotoUrl = plant.photoUri
                         }
 
-                        // Upsert usando local_id para evitar duplicatas
+                        // Upsert usando local_id para evitar duplicatas no servidor
                         supabase.from("plants").upsert(
                             PlantDto(
                                 user_id = userUuid,
@@ -703,6 +703,21 @@ private fun getDeviceUserId(): String {
         }
     }
 
+    private suspend fun removeLocalDuplicates() {
+        val allPlants = plantDao.getAllNow()
+        val seen = mutableSetOf<Pair<String, Long>>()
+        for (plant in allPlants) {
+            // Chave de unicidade: Nome + Data de Criação
+            val key = plant.name to plant.createdAt
+            if (key in seen) {
+                Log.w(TAG, "removeLocalDuplicates: Removendo planta duplicada: ${plant.name} (ID: ${plant.id})")
+                plantDao.deleteById(plant.id)
+            } else {
+                seen.add(key)
+            }
+        }
+    }
+
     override suspend fun syncPlantsFromRemote() {
         val supabase = supabaseClient ?: return
         
@@ -710,6 +725,9 @@ private fun getDeviceUserId(): String {
             Log.d(TAG, "syncPlantsFromRemote: usuário não logado, pulando download")
             return
         }
+
+        // Limpa duplicatas locais antes de baixar novas
+        removeLocalDuplicates()
 
         try {
             val remotePlants = supabase.from("plants")
@@ -722,17 +740,23 @@ private fun getDeviceUserId(): String {
                 try {
                     val dtoId = dto.id
                     
-                    // Primeiro tenta encontrar pela planta local pelo local_id (estratégia correta)
+                    // Estratégia de busca robusta para evitar duplicatas:
+                    // 1. Pela data de criação (mais confiável entre dispositivos)
+                    // 2. Pelo local_id (se coincidir)
+                    // 3. Pelo nome (fallback)
+                    val createdAt = dto.created_at
                     val localId = dto.local_id
-                    val existingPlant = if (localId != null && localId > 0L) {
+                    
+                    val existingPlant = if (createdAt != null && createdAt > 0) {
+                        plantDao.getPlantByCreatedAt(createdAt)
+                    } else if (localId != null && localId > 0L) {
                         plantDao.getPlantById(localId)
                     } else {
-                        // Fallback: verifica se já existe pelo nome (para plantas antigas)
                         plantDao.getPlantByName(dto.name)
                     }
 
                     if (existingPlant != null) {
-                        // Atualiza campos remota para local (evita sobrescrever dados locais importantes)
+                        // Atualiza campos remota para local
                         plantDao.update(
                             existingPlant.copy(
                                 name = dto.name,
@@ -747,8 +771,9 @@ private fun getDeviceUserId(): String {
                             )
                         )
                         
-                        // Se tinha local_id remoto nulo, atualiza agora
-                        if (dtoId != null && dto.local_id == null) {
+                        // Se o local_id no remote estiver diferente do ID local atual, atualiza no remote
+                        // Isso garante que cada dispositivo mapeie corretamente suas IDs locais
+                        if (dtoId != null && dto.local_id != existingPlant.id) {
                             supabase.from("plants").update({ set("local_id", existingPlant.id) }) {
                                 filter { eq("id", dtoId) }
                             }
@@ -769,7 +794,7 @@ private fun getDeviceUserId(): String {
                                 isHydroponic = dto.is_hydroponic
                             )
                         )
-                        // Atualiza o remote com o novo local_id
+                        // Atualiza o remote com o novo local_id deste dispositivo
                         if (dtoId != null) {
                             supabase.from("plants").update({ set("local_id", newId) }) {
                                 filter { eq("id", dtoId) }

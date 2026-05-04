@@ -50,6 +50,8 @@ import java.util.UUID
 import android.content.Context
 import androidx.core.content.FileProvider
 
+import com.daime.grow.ui.screen.mural.UsernameDialog
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantDetailScreen(
@@ -78,6 +80,7 @@ fun PlantDetailScreen(
     }
 
     var showHarvestDialog by remember { mutableStateOf(false) }
+    var showUsernameDialog by remember { mutableStateOf(false) }
 
     if (showHarvestDialog && details != null) {
         AlertDialog(
@@ -121,6 +124,24 @@ fun PlantDetailScreen(
         )
     }
 
+    if (showUsernameDialog) {
+        var usernameError by remember { mutableStateOf<String?>(null) }
+        UsernameDialog(
+            reason = "Para partilhar as suas plantas no mural, escolha um nome de usuário único:",
+            initialError = usernameError,
+            onDismiss = { showUsernameDialog = false },
+            onConfirm = { username ->
+                usernameError = null
+                viewModel.createOrGetUser(username, { _ ->
+                    showUsernameDialog = false
+                    viewModel.shareToMural()
+                }, {
+                    usernameError = "Nome de usuário já está em uso"
+                })
+            }
+        )
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             val message = when (event) {
@@ -132,6 +153,7 @@ fun PlantDetailScreen(
                 PlantDetailUiEvent.PhotoUpdated -> "Foto atualizada com sucesso!"
                 PlantDetailUiEvent.SharedToMural -> "Planta partilhada no mural!"
                 PlantDetailUiEvent.RemovedFromMural -> "Planta removida do mural!"
+                is PlantDetailUiEvent.UsernameTaken -> "Nome de usuário já está em uso"
             }
             snackbarHostState.showSnackbar(message)
         }
@@ -229,7 +251,7 @@ fun PlantDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     PhotoSection(details, onUpdatePhoto = { imagePickerLauncher.launch("image/*") })
-                    InfoSection(details, viewModel)
+                    InfoSection(state, viewModel, { showUsernameDialog = true })
                     QuickActionsSection(viewModel)
                     WateringSection(state, viewModel, expandedWatering) { expandedWatering = it }
                     NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it }
@@ -257,7 +279,7 @@ fun PlantDetailScreen(
                 )
             ) {
                 item { PhotoSection(details, onUpdatePhoto = { imagePickerLauncher.launch("image/*") }) }
-                item { InfoSection(details, viewModel) }
+                item { InfoSection(state, viewModel, { showUsernameDialog = true }) }
                 item { QuickActionsSection(viewModel) }
                 item { WateringSection(state, viewModel, expandedWatering) { expandedWatering = it } }
                 item { NutrientSection(state, viewModel, expandedNutrients) { expandedNutrients = it } }
@@ -277,7 +299,12 @@ fun PlantDetailScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewModel: PlantDetailViewModel) {
+private fun InfoSection(
+    state: com.daime.grow.ui.viewmodel.PlantDetailUiState,
+    viewModel: PlantDetailViewModel,
+    onRequestUsername: () -> Unit
+) {
+    val details = state.details ?: return
     DetailAccentCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -296,7 +323,13 @@ private fun InfoSection(details: com.daime.grow.domain.model.PlantDetails, viewM
                 
                 if (!details.plant.sharedOnMural) {
                     TextButton(
-                        onClick = { viewModel.shareToMural() },
+                        onClick = { 
+                            if (state.currentUsername != null) {
+                                viewModel.shareToMural()
+                            } else {
+                                onRequestUsername()
+                            }
+                        },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {

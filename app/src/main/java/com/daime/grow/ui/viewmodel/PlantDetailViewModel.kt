@@ -26,6 +26,8 @@ import androidx.lifecycle.SavedStateHandle
 import javax.inject.Inject
 import dagger.hilt.android.lifecycle.HiltViewModel
 
+import com.daime.grow.data.preferences.MuralPreferencesRepository
+
 data class PlantDetailUiState(
     val details: PlantDetails? = null,
     val wateringVolume: String = "",
@@ -33,7 +35,8 @@ data class PlantDetailUiState(
     val wateringSubstrate: String = "",
     val nutrientWeek: String = "",
     val nutrientEc: String = "",
-    val nutrientPh: String = ""
+    val nutrientPh: String = "",
+    val currentUsername: String? = null
 )
 
 sealed interface PlantDetailUiEvent {
@@ -45,12 +48,14 @@ sealed interface PlantDetailUiEvent {
     data object PhotoUpdated : PlantDetailUiEvent
     data object SharedToMural : PlantDetailUiEvent
     data object RemovedFromMural : PlantDetailUiEvent
+    data class UsernameTaken(val username: String) : PlantDetailUiEvent
 }
 
 @HiltViewModel
 class PlantDetailViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val repository: GrowRepository
+    private val repository: GrowRepository,
+    private val muralPreferences: MuralPreferencesRepository
 ) : ViewModel() {
     private val plantId: Long = checkNotNull(savedStateHandle["plantId"])
 
@@ -62,11 +67,35 @@ class PlantDetailViewModel @Inject constructor(
 
     val uiState: StateFlow<PlantDetailUiState> = combine(
         detailsFlow,
-        formState
-    ) { details, form ->
-        form.copy(details = details)
+        formState,
+        muralPreferences.currentUsername
+    ) { details, form, username ->
+        form.copy(details = details, currentUsername = username)
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlantDetailUiState())
+
+    fun createOrGetUser(username: String, onComplete: (String) -> Unit, onUsernameTaken: () -> Unit) {
+        viewModelScope.launch {
+            val userUuid = repository.getCurrentUserId() ?: ""
+            // Esta lógica simplificada assume que se o repository não tem o usuário, 
+            // precisamos criar ou buscar. Como o repository é o que gerencia,
+            // vamos delegar para o repository no futuro se necessário, 
+            // mas aqui usaremos a lógica de sucesso/falha baseada no que o usuário relatou.
+            
+            // Na verdade, vamos usar o createOrGetUser do repository que já cuida disso.
+            try {
+                val createdId = repository.createOrGetUser(username)
+                if (createdId > 0) {
+                    muralPreferences.saveUsername(username)
+                    onComplete(username)
+                } else {
+                    onUsernameTaken()
+                }
+            } catch (e: Exception) {
+                onUsernameTaken()
+            }
+        }
+    }
 
     fun addQuickAction(type: String, note: String = "") {
         viewModelScope.launch { repository.addQuickEvent(plantId, type, note) }
