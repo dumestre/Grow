@@ -734,75 +734,99 @@ private fun getDeviceUserId(): String {
                 .select { filter { eq("user_id", userUuid) } }
                 .decodeList<PlantDto>()
 
-            val now = System.currentTimeMillis()
+            if (remotePlants.isEmpty()) return
 
-            for (dto in remotePlants) {
+            val now = System.currentTimeMillis()
+            
+            // Agrupa por createdAt para identificar duplicatas no servidor
+            // Se createdAt for nulo, usamos o nome como fallback para o agrupamento
+            val groupedRemote = remotePlants.groupBy { it.created_at ?: it.name.hashCode().toLong() }
+
+            for ((createdAt, dtos) in groupedRemote) {
                 try {
-                    val dtoId = dto.id
+                    // Se houver duplicatas no servidor para a mesma planta (mesmo createdAt)
+                    // escolhemos a mais recente (pelo updated_at) como fonte da verdade
+                    val sourceDto = dtos.maxByOrNull { it.updated_at ?: 0L } ?: continue
+                    val dtoId = sourceDto.id
                     
-                    // Estratégia de busca robusta para evitar duplicatas:
-                    // 1. Pela data de criação (mais confiável entre dispositivos)
-                    // 2. Pelo local_id (se coincidir)
-                    // 3. Pelo nome (fallback)
-                    val createdAt = dto.created_at
-                    val localId = dto.local_id
-                    
-                    val existingPlant = if (createdAt != null && createdAt > 0) {
+                    // Estratégia de busca robusta para evitar duplicatas locais:
+                    val existingPlant = if (createdAt > 0) {
                         plantDao.getPlantByCreatedAt(createdAt)
-                    } else if (localId != null && localId > 0L) {
-                        plantDao.getPlantById(localId)
                     } else {
-                        plantDao.getPlantByName(dto.name)
+                        plantDao.getPlantByName(sourceDto.name)
                     }
 
                     if (existingPlant != null) {
                         // Atualiza campos remota para local
                         plantDao.update(
                             existingPlant.copy(
-                                name = dto.name,
-                                strain = dto.strain ?: "",
-                                stage = dto.stage,
-                                medium = dto.medium ?: "",
-                                days = dto.days,
-                                photoUri = dto.photo_url,
-                                nextWateringDate = dto.next_watering_date,
-                                sortOrder = dto.sort_order,
-                                isHydroponic = dto.is_hydroponic
+                                name = sourceDto.name,
+                                strain = sourceDto.strain ?: "",
+                                stage = sourceDto.stage,
+                                medium = sourceDto.medium ?: "",
+                                days = sourceDto.days,
+                                photoUri = sourceDto.photo_url,
+                                nextWateringDate = sourceDto.next_watering_date,
+                                sortOrder = sourceDto.sort_order,
+                                isHydroponic = sourceDto.is_hydroponic
                             )
                         )
                         
-                        // Se o local_id no remote estiver diferente do ID local atual, atualiza no remote
-                        // Isso garante que cada dispositivo mapeie corretamente suas IDs locais
-                        if (dtoId != null && dto.local_id != existingPlant.id) {
-                            supabase.from("plants").update({ set("local_id", existingPlant.id) }) {
-                                filter { eq("id", dtoId) }
+                        // Atualiza o local_id no servidor para o registro principal
+                        if (dtoId != null && sourceDto.local_id != existingPlant.id) {
+                            try {
+                                supabase.from("plants").update({ set("local_id", existingPlant.id) }) {
+                                    filter { eq("id", dtoId) }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Erro ao atualizar local_id no server para ${sourceDto.name}: ${e.message}")
                             }
                         }
                     } else {
                         // Cria nova planta local
                         val newId = plantDao.insert(
                             PlantEntity(
-                                name = dto.name,
-                                strain = dto.strain ?: "",
-                                stage = dto.stage,
-                                medium = dto.medium ?: "",
-                                days = dto.days,
-                                photoUri = dto.photo_url,
-                                nextWateringDate = dto.next_watering_date,
-                                sortOrder = dto.sort_order,
-                                createdAt = dto.created_at ?: now,
-                                isHydroponic = dto.is_hydroponic
+                                name = sourceDto.name,
+                                strain = sourceDto.strain ?: "",
+                                stage = sourceDto.stage,
+                                medium = sourceDto.medium ?: "",
+                                days = sourceDto.days,
+                                photoUri = sourceDto.photo_url,
+                                nextWateringDate = sourceDto.next_watering_date,
+                                sortOrder = sourceDto.sort_order,
+                                createdAt = sourceDto.created_at ?: now,
+                                isHydroponic = sourceDto.is_hydroponic
                             )
                         )
                         // Atualiza o remote com o novo local_id deste dispositivo
                         if (dtoId != null) {
-                            supabase.from("plants").update({ set("local_id", newId) }) {
-                                filter { eq("id", dtoId) }
+                            try {
+                                supabase.from("plants").update({ set("local_id", newId) }) {
+                                    filter { eq("id", dtoId) }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Erro ao setar novo local_id no server para ${sourceDto.name}: ${e.message}")
                             }
                         }
                     }
+
+                    // Limpeza de duplicatas no servidor: deleta os registros extras que têm o mesmo createdAt
+                    if (dtos.size > 1) {
+                        val idsToDelete = dtos.filter { it.id != sourceDto.id }.mapNotNull { it.id }
+                        if (idsToDelete.isNotEmpty()) {
+                            Log.w(TAG, "Limpando ${idsToDelete.size} duplicatas no servidor para planta ${sourceDto.name}")
+                            for (idToDelete in idsToDelete) {
+                                try {
+                                    supabase.from("plants").delete { filter { eq("id", idToDelete) } }
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Erro ao deletar duplicata remota $idToDelete: ${e.message}")
+                                }
+                            }
+                        }
+                    }
+                    
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erro ao importar planta ${dto.name}: ${e.message}")
+                    Log.e(TAG, "Erro ao processar planta remota: ${e.message}")
                 }
             }
         } catch (e: Exception) {

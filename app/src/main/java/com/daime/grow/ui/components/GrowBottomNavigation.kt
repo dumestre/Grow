@@ -4,8 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -187,10 +186,7 @@ fun GrowBottomNavigationBar(
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 )
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
+                    animationSpec = tween(durationMillis = 10)
                 )
         ) {
             val dragState = rememberDraggableState { delta: Float ->
@@ -228,8 +224,8 @@ fun GrowBottomNavigationBar(
             AnimatedContent(
                 targetState = isExpanded,
                 transitionSpec = {
-                    fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow))
-                        .togetherWith(fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow)))
+                    fadeIn(animationSpec = tween(durationMillis = 40))
+                        .togetherWith(fadeOut(animationSpec = tween(durationMillis = 40)))
                         .using(SizeTransform(clip = false))
                 },
                 label = "BottomBarExpansion"

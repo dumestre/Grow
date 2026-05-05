@@ -12,6 +12,7 @@ class GrowApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.daime.grow.data.remote.SupabaseClient.init(this)
         NotificationHelper.createNotificationChannel(this)
         appContainer = AppContainer(this)
     }

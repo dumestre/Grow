@@ -110,10 +110,10 @@ fun GrowRoot(container: AppContainer) {
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                // Aumentando o threshold para evitar que qualquer toque esconda a barra
-                if (available.y < -15) {
+                // Threshold ajustado para melhor responsividade
+                if (available.y < -8) {
                     isBottomBarVisible = false
-                } else if (available.y > 15) {
+                } else if (available.y > 8) {
                     isBottomBarVisible = true
                 }
                 return Offset.Zero
@@ -227,11 +227,11 @@ fun GrowRoot(container: AppContainer) {
                             visible = isBottomBarVisible,
                             enter = slideInVertically(
                                 initialOffsetY = { it },
-                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium)
                             ),
                             exit = slideOutVertically(
                                 targetOffsetY = { it },
-                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium)
                             )
                         ) {
                             GrowBottomNavigationBar(

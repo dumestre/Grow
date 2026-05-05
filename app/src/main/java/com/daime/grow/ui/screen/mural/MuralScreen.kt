@@ -294,7 +294,7 @@ fun MuralPostItem(
                         text = post.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF01264),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -497,13 +497,13 @@ private fun MetaLine(label: String, value: String) {
             text = "$label:",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF1B5E20)
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF3A3A3A)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
