@@ -72,8 +72,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -175,6 +177,7 @@ fun GrowBottomNavigationBar(
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     notificationBadgeCount: Int = 0
 ) {
+    val haptic = LocalHapticFeedback.current
     var isExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
@@ -206,7 +209,10 @@ fun GrowBottomNavigationBar(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = { isExpanded = !isExpanded }
+                        onClick = {
+                            isExpanded = !isExpanded
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -346,6 +352,7 @@ private fun NavIconItem(
     modifier: Modifier = Modifier,
     badgeCount: Int = 0
 ) {
+    val haptic = LocalHapticFeedback.current
     val selected = currentRoute == item.route
     val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val useAlternativeForItem = maskHomeIcon && item == BottomNavItem.Home
@@ -357,7 +364,10 @@ private fun NavIconItem(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = false, radius = 40.dp),
-                onClick = { onNavigate(item.route) }
+                onClick = {
+                    onNavigate(item.route)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
             ),
         contentAlignment = Alignment.Center
     ) {

@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
@@ -63,6 +64,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -89,6 +91,7 @@ fun HomeScreen(
     onDraggingChanged: (Boolean) -> Unit = {},
     externalTrashBounds: Rect? = null
 ) {
+    val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
@@ -349,6 +352,7 @@ fun HomeScreen(
                                     onDragStart = {
                                         val currentIndex = orderedPlants.indexOfFirst { it.id == plant.id }
                                         if (currentIndex == -1) return@detectDragGesturesAfterLongPress
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         draggedIndex = currentIndex
                                         dropIndex = currentIndex
                                         draggedPlantId = plant.id

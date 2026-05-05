@@ -51,8 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -76,6 +78,7 @@ fun SettingsScreen(
     onUpdateUsername: (String, (Boolean) -> Unit) -> Unit,
     onBack: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val securityNullable by viewModel.security.collectAsStateWithLifecycle()
     val security = securityNullable ?: SecurityPreferences()
     val isSecurityLoaded = securityNullable != null
@@ -209,6 +212,7 @@ confirmButton = {
                                     DarkThemeMode.LIGHT -> false
                                 }
                                 val nextMode = if (isCurrentlyDark) DarkThemeMode.LIGHT else DarkThemeMode.DARK
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.setDarkThemeMode(nextMode)
                             }
                         },
@@ -449,17 +453,24 @@ private fun SecuritySettingsContent(
     canSavePin: Boolean,
     onSavePin: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         RowSetting(
             title = stringResource(R.string.settings_lock_pin_biometric),
             checked = security.lockEnabled,
-            onCheckedChange = viewModel::setLockEnabled
+            onCheckedChange = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.setLockEnabled(it)
+            }
         )
 
         RowSetting(
             title = stringResource(R.string.settings_biometric),
             checked = security.biometricEnabled,
-            onCheckedChange = viewModel::setBiometricEnabled
+            onCheckedChange = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.setBiometricEnabled(it)
+            }
         )
 
         OutlinedTextField(
@@ -492,7 +503,10 @@ private fun SecuritySettingsContent(
             Text(stringResource(R.string.settings_reveal_pin))
             Switch(
                 checked = revealPin,
-                onCheckedChange = onRevealPinChange,
+                onCheckedChange = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onRevealPinChange(it)
+                },
                 modifier = Modifier.scale(0.7f)
             )
         }
