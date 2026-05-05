@@ -275,7 +275,7 @@ fun GrowBottomNavigationBar(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp)
+                            .height(48.dp)
                             .padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
@@ -302,14 +302,14 @@ fun GrowBottomNavigationBar(
                             containerColor = MaterialTheme.colorScheme.tertiary,
                             shape = CircleShape,
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(38.dp)
                                 .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
                             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                modifier = Modifier.size(22.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = Color(0xFF1B5E20)
                             )
                         }
@@ -379,21 +379,21 @@ private fun NavIconItem(
                     item.iconRes != null && !useAlternativeForItem -> Icon(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = color
                     )
 
                     item.iconRes != null && useAlternativeForItem -> Icon(
                         imageVector = item.alternativeIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = color
                     )
 
                     else -> Icon(
                         imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                         contentDescription = title,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = color
                     )
                 }
