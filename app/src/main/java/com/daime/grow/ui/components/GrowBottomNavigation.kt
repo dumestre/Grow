@@ -185,6 +185,7 @@ fun GrowBottomNavigationBar(
                     MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 )
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
                 .animateContentSize(
                     animationSpec = tween(durationMillis = 10)
                 )
@@ -235,7 +236,6 @@ fun GrowBottomNavigationBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(300.dp)
-                            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
                             .padding(horizontal = 8.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -276,7 +276,6 @@ fun GrowBottomNavigationBar(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
                             .padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
