@@ -1,7 +1,6 @@
 package com.daime.grow
 
 import android.Manifest
-import android.media.MediaPlayer
 import android.util.Log
 import android.content.pm.PackageManager
 import android.os.Build
@@ -49,10 +48,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        if (savedInstanceState == null) {
-            playOpeningSound()
-        }
 
         enableEdgeToEdge()
         appUpdateManager = AppUpdateManagerFactory.create(this)
@@ -185,17 +180,6 @@ class MainActivity : ComponentActivity() {
                     APP_UPDATE_REQUEST_CODE
                 )
             }
-        }
-    }
-
-    private fun playOpeningSound() {
-        try {
-            MediaPlayer.create(this, R.raw.open)?.apply {
-                setOnCompletionListener { release() }
-                start()
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Erro ao tocar som de abertura", e)
         }
     }
 
