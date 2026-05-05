@@ -96,21 +96,21 @@ enum class BottomNavItem(
 ) {
     Home(
         route = NavRoute.Home.route,
-        titleRes = com.daime.grow.R.string.nav_plantas,
+        titleRes = R.string.nav_plantas,
         iconRes = null,
         selectedIcon = Icons.Outlined.Spa,
         unselectedIcon = Icons.Outlined.Spa
     ),
     PosColheta(
         route = NavRoute.PosColheta.route,
-        titleRes = com.daime.grow.R.string.nav_pos,
+        titleRes = R.string.nav_pos,
         iconRes = null,
         selectedIcon = Icons.Outlined.Inventory2,
         unselectedIcon = Icons.Outlined.Inventory2
     ),
     Mural(
         route = NavRoute.Mural.route,
-        titleRes = com.daime.grow.R.string.nav_mural,
+        titleRes = R.string.nav_mural,
         iconRes = null,
         selectedIcon = Icons.Outlined.Public,
         unselectedIcon = Icons.Outlined.Public
@@ -124,7 +124,7 @@ enum class BottomNavItem(
     ),
     Notifications(
         route = NavRoute.Notifications.route,
-        titleRes = com.daime.grow.R.string.nav_avisos,
+        titleRes = R.string.nav_avisos,
         iconRes = null,
         selectedIcon = Icons.Filled.Notifications,
         unselectedIcon = Icons.Outlined.Notifications,
@@ -132,21 +132,21 @@ enum class BottomNavItem(
     ),
     Settings(
         route = NavRoute.Settings.route,
-        titleRes = com.daime.grow.R.string.nav_ajustes,
+        titleRes = R.string.nav_ajustes,
         iconRes = null,
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings
     ),
     Tips(
         route = NavRoute.GrowTips.route,
-        titleRes = com.daime.grow.R.string.nav_dicas,
+        titleRes = R.string.nav_dicas,
         iconRes = null,
         selectedIcon = Icons.Rounded.Lightbulb,
         unselectedIcon = Icons.Rounded.Lightbulb
     ),
     PPFD(
         route = NavRoute.PPFD.route,
-        titleRes = com.daime.grow.R.string.nav_ppfd,
+        titleRes = R.string.nav_ppfd,
         iconRes = null,
         selectedIcon = Icons.Rounded.WbSunny,
         unselectedIcon = Icons.Rounded.WbSunny

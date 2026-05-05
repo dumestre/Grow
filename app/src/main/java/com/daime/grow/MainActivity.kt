@@ -1,6 +1,7 @@
 package com.daime.grow
 
 import android.Manifest
+import android.media.MediaPlayer
 import android.util.Log
 import android.content.pm.PackageManager
 import android.os.Build
@@ -19,7 +20,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.daime.grow.data.preferences.SecurityPreferencesRepository
 import com.daime.grow.data.worker.MuralNotificationWorker
 import com.daime.grow.data.worker.PlantSyncWorker
 import com.daime.grow.domain.model.DarkThemeMode
@@ -50,6 +50,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (savedInstanceState == null) {
+            playOpeningSound()
+        }
+
         enableEdgeToEdge()
         appUpdateManager = AppUpdateManagerFactory.create(this)
 
@@ -57,12 +61,13 @@ class MainActivity : ComponentActivity() {
         checkForImmediateAppUpdate()
 
         val container = (application as GrowApplication).appContainer
-        val securityRepository = SecurityPreferencesRepository(this)
+        val securityRepository = container.preferencesRepository
 
         setContent {
-            val darkThemeMode by securityRepository.observe()
-                .map { it.darkTheme }
-                .collectAsStateWithLifecycle(initialValue = DarkThemeMode.SYSTEM)
+            val securityState by securityRepository.observe()
+                .collectAsStateWithLifecycle(initialValue = null)
+
+            val darkThemeMode = securityState?.darkTheme ?: DarkThemeMode.SYSTEM
 
             val useDarkTheme = when (darkThemeMode) {
                 DarkThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -180,6 +185,17 @@ class MainActivity : ComponentActivity() {
                     APP_UPDATE_REQUEST_CODE
                 )
             }
+        }
+    }
+
+    private fun playOpeningSound() {
+        try {
+            MediaPlayer.create(this, R.raw.open)?.apply {
+                setOnCompletionListener { release() }
+                start()
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Erro ao tocar som de abertura", e)
         }
     }
 

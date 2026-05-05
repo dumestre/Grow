@@ -28,11 +28,11 @@ class SettingsViewModel @Inject constructor(
         data object BackupImportError : UiEvent
     }
 
-    val security: StateFlow<SecurityPreferences> = repository.observeSecurityPreferences()
+    val security: StateFlow<SecurityPreferences?> = repository.observeSecurityPreferences()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SecurityPreferences()
+            initialValue = null
         )
 
     private val _events = MutableSharedFlow<UiEvent>()

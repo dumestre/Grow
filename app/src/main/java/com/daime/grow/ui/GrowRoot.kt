@@ -6,15 +6,27 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -25,8 +37,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -36,7 +48,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.daime.grow.core.AppContainer
 import com.daime.grow.data.preferences.AppPreferencesRepository
-import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.ui.components.GrowBottomNavigationBar
 import com.daime.grow.ui.components.GrowNavigationRail
 import com.daime.grow.ui.components.NotificationSheet
@@ -46,18 +57,26 @@ import com.daime.grow.ui.screen.auth.GoogleLoginScreen
 import com.daime.grow.ui.screen.detail.PlantDetailScreen
 import com.daime.grow.ui.screen.home.HomeScreen
 import com.daime.grow.ui.screen.lock.LockScreen
-import com.daime.grow.ui.screen.onboarding.DisclaimerScreen
 import com.daime.grow.ui.screen.mural.MuralPostScreen
-import kotlinx.coroutines.launch
 import com.daime.grow.ui.screen.mural.MuralScreen
+import com.daime.grow.ui.screen.onboarding.DisclaimerScreen
 import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
+import com.daime.grow.ui.screen.ppfd.PPFDScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
 import com.daime.grow.ui.screen.store.StrainDetailScreen
 import com.daime.grow.ui.screen.store.StrainsScreen
-import com.daime.grow.ui.screen.store.StoreScreen
 import com.daime.grow.ui.screen.tips.GrowTipsScreen
-import com.daime.grow.ui.screen.ppfd.PPFDScreen
-import com.daime.grow.ui.viewmodel.*
+import com.daime.grow.ui.viewmodel.AddPlantViewModel
+import com.daime.grow.ui.viewmodel.HomeViewModel
+import com.daime.grow.ui.viewmodel.LockViewModel
+import com.daime.grow.ui.viewmodel.MuralEvent
+import com.daime.grow.ui.viewmodel.MuralViewModel
+import com.daime.grow.ui.viewmodel.NotificationViewModel
+import com.daime.grow.ui.viewmodel.PlantDetailViewModel
+import com.daime.grow.ui.viewmodel.PosColhetaViewModel
+import com.daime.grow.ui.viewmodel.SettingsViewModel
+import com.daime.grow.ui.viewmodel.ViewModelFactories
+import kotlinx.coroutines.launch
 
 @Composable
 fun GrowRoot(container: AppContainer) {
@@ -248,7 +267,7 @@ fun GrowRoot(container: AppContainer) {
                                     }
                                 },
                                 onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                                maskHomeIcon = securityPrefs.maskHomeIcon,
+                                maskHomeIcon = securityPrefs?.maskHomeIcon ?: true,
                                 onFabBounds = { trashBounds = it },
                                 notificationBadgeCount = unreadNotificationCount
                             )

@@ -3,6 +3,7 @@
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -75,7 +76,9 @@ fun SettingsScreen(
     onUpdateUsername: (String, (Boolean) -> Unit) -> Unit,
     onBack: () -> Unit
 ) {
-    val security by viewModel.security.collectAsStateWithLifecycle()
+    val securityNullable by viewModel.security.collectAsStateWithLifecycle()
+    val security = securityNullable ?: SecurityPreferences()
+    val isSecurityLoaded = securityNullable != null
     var pinInput by remember { mutableStateOf("") }
     var pinConfirmInput by remember { mutableStateOf("") }
     var revealPin by remember { mutableStateOf(false) }
@@ -177,6 +180,8 @@ confirmButton = {
         )
     }
 
+    val systemInDarkTheme = isSystemInDarkTheme()
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -196,20 +201,31 @@ confirmButton = {
                     // Theme Toggle Button
                     IconButton(
                         onClick = {
-                            val newTheme = when (security.darkTheme) {
-                                DarkThemeMode.DARK -> DarkThemeMode.LIGHT
-                                else -> DarkThemeMode.DARK
+                            if (isSecurityLoaded) {
+                                val currentMode = security.darkTheme
+                                val isCurrentlyDark = when (currentMode) {
+                                    DarkThemeMode.SYSTEM -> systemInDarkTheme
+                                    DarkThemeMode.DARK -> true
+                                    DarkThemeMode.LIGHT -> false
+                                }
+                                val nextMode = if (isCurrentlyDark) DarkThemeMode.LIGHT else DarkThemeMode.DARK
+                                viewModel.setDarkThemeMode(nextMode)
                             }
-                            viewModel.setDarkThemeMode(newTheme)
-                        }
+                        },
+                        enabled = isSecurityLoaded
                     ) {
+                        val isCurrentlyDark = when (security.darkTheme) {
+                            DarkThemeMode.SYSTEM -> systemInDarkTheme
+                            DarkThemeMode.DARK -> true
+                            DarkThemeMode.LIGHT -> false
+                        }
                         Icon(
-                            imageVector = if (security.darkTheme == DarkThemeMode.DARK) {
+                            imageVector = if (isCurrentlyDark) {
                                 Icons.Filled.LightMode
                             } else {
                                 Icons.Filled.DarkMode
                             },
-                            contentDescription = if (security.darkTheme == DarkThemeMode.DARK) {
+                            contentDescription = if (isCurrentlyDark) {
                                 "Mudar para tema claro"
                             } else {
                                 "Mudar para tema escuro"
