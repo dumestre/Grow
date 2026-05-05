@@ -74,24 +74,27 @@ class HomeViewModel @Inject constructor(
         HomeFilters(q, stage, asc)
     }
 
-    val uiState: StateFlow<HomeUiState> = filters
-        .flatMapLatest { f ->
+    val uiState: StateFlow<HomeUiState> = combine(
+        query,
+        filters.flatMapLatest { f ->
             combine(
                 repository.observePlants(f.query, f.stageFilter, f.sortAscending),
                 pendingDeleteIds,
                 _isRefreshing
             ) { plants, hiddenIds, refreshing ->
-                HomeUiState(
-                    query = f.query,
-                    stageFilter = f.stageFilter,
-                    sortAscending = f.sortAscending,
-                    plants = plants.filterNot { it.id in hiddenIds },
-                    isLoading = plants.isEmpty() && f.query.isEmpty() && f.stageFilter == PlantStage.ALL,
-                    isRefreshing = refreshing
-                )
+                Triple(plants.filterNot { it.id in hiddenIds }, refreshing, f)
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
+    ) { currentQuery, (filteredPlants, refreshing, f) ->
+        HomeUiState(
+            query = currentQuery,
+            stageFilter = f.stageFilter,
+            sortAscending = f.sortAscending,
+            plants = filteredPlants,
+            isLoading = filteredPlants.isEmpty() && currentQuery.isEmpty() && f.stageFilter == PlantStage.ALL,
+            isRefreshing = refreshing
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(isLoading = true))
 
     fun refresh() {
         viewModelScope.launch {
