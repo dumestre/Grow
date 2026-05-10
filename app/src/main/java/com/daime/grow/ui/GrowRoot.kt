@@ -1,4 +1,4 @@
-﻿package com.daime.grow.ui
+package com.daime.grow.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -63,8 +63,7 @@ import com.daime.grow.ui.screen.onboarding.DisclaimerScreen
 import com.daime.grow.ui.screen.poscolheta.PosColhetaScreen
 import com.daime.grow.ui.screen.ppfd.PPFDScreen
 import com.daime.grow.ui.screen.settings.SettingsScreen
-import com.daime.grow.ui.screen.store.StrainDetailScreen
-import com.daime.grow.ui.screen.store.StrainsScreen
+
 import com.daime.grow.ui.screen.tips.GrowTipsScreen
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
 import com.daime.grow.ui.viewmodel.HomeViewModel
@@ -207,7 +206,7 @@ fun GrowRoot(container: AppContainer) {
         NavRoute.Home.route,
         NavRoute.PosColheta.route,
         NavRoute.Mural.route,
-        NavRoute.Store.route,
+
         NavRoute.Notifications.route,
         NavRoute.Settings.route,
         NavRoute.PPFD.route
@@ -315,24 +314,7 @@ fun GrowRoot(container: AppContainer) {
                             )
                         }
 
-                        composable(NavRoute.Store.route) {
-                            StrainsScreen(
-                                innerPadding = innerPadding,
-                                onStrainClick = { strainId -> 
-                                    navController.navigate(NavRoute.StrainDetail.create(strainId))
-                                }
-                            )
-                        }
 
-                        composable(NavRoute.StrainDetail.route,
-                            arguments = listOf(navArgument("strainId") { type = NavType.StringType })
-                        ) { backStackEntry ->
-                            val strainId = backStackEntry.arguments?.getString("strainId") ?: return@composable
-                            StrainDetailScreen(
-                                strainId = strainId,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
 
                         composable(NavRoute.NewPlant.route) {
                             NewPlantScreen(

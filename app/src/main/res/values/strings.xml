@@ -122,6 +122,15 @@
     <string name="notification_hydroponic_title">Trocar solução 💧</string>
     <string name="notification_hydroponic_body">%1$s: chegou a hora de trocar a solução nutritiva.</string>
 
+    <string name="notification_channel_mural_name">Atividade do Mural</string>
+    <string name="notification_channel_mural_description">Notificações sobre comentários, curtidas e respostas no Mural</string>
+    <string name="notification_mural_comment_title">Novo comentário 💬</string>
+    <string name="notification_mural_comment_body">%1$s comentou na sua planta.</string>
+    <string name="notification_mural_like_title">Nova curtida ❤️</string>
+    <string name="notification_mural_like_body">%1$s curtiu sua planta.</string>
+    <string name="notification_mural_reply_title">Nova resposta 💬</string>
+    <string name="notification_mural_reply_body">%1$s respondeu ao seu comentário.</string>
+
     <string name="detail_action_harvest_long">Colher e Secar</string>
     
     <!-- Navegação -->

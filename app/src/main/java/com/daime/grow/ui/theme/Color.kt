@@ -1,4 +1,4 @@
-﻿package com.daime.grow.ui.theme
+package com.daime.grow.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
@@ -12,6 +12,9 @@ val GrowSurface = Color(0xFFFFFFFF)
 val GrowSurfaceSoft = Color(0xFFEAF8EE)
 val GrowOutline = Color(0xFFB7D6C0)
 
+val GrowHarvestStart = Color(0xFFFF4081)
+val GrowHarvestEnd = Color(0xFF9C27B0)
+
 // Cores escuras (Dark Theme)
 val GrowPrimaryDarkTheme = Color(0xFF4ADE80)
 val GrowPrimaryDarkContainer = Color(0xFF15803D)
@@ -22,3 +25,5 @@ val GrowTextDark = Color(0xFFBBF7D0)
 val GrowOutlineDark = Color(0xFF4A6B55)
 val GrowFabAccentDark = Color(0xFF22C55E)
 
+val GrowHarvestStartDark = Color(0xFFE91E63)
+val GrowHarvestEndDark = Color(0xFF7B1FA2)

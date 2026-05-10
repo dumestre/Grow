@@ -13,10 +13,11 @@ import io.github.jan.supabase.logging.LogLevel
 
 
 object SupabaseClient {
-    private var appContext: Context? = null
+    var context: Context? = null
+        private set
 
     fun init(context: Context) {
-        appContext = context.applicationContext
+        this.context = context.applicationContext
     }
 
     val isConfigured: Boolean
@@ -34,7 +35,7 @@ object SupabaseClient {
                 scheme = "com.daime.grow"
                 defaultExternalAuthAction = ExternalAuthAction.CustomTabs()
 
-                appContext?.let {
+                context?.let {
                     sessionManager = AndroidSessionManager(it)
                 }
             }

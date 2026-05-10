@@ -61,6 +61,9 @@ interface MuralDao {
     @Query("SELECT * FROM mural_users WHERE remoteId = :userUuid LIMIT 1")
     suspend fun getUserByRemoteId(userUuid: String): MuralUserEntity?
 
+    @Query("SELECT * FROM mural_users WHERE id = :id LIMIT 1")
+    suspend fun getUserById(id: Long): MuralUserEntity?
+
     @Query("SELECT * FROM mural_users WHERE email = :email LIMIT 1")
     suspend fun getUserByEmail(email: String): MuralUserEntity?
 

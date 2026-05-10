@@ -1,4 +1,4 @@
-﻿package com.daime.grow.ui.viewmodel
+package com.daime.grow.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -20,7 +20,7 @@ class ViewModelFactories(container: AppContainer) {
     val addPlant: ViewModelProvider.Factory = singleFactory { AddPlantViewModel(repository) }
     val lock: ViewModelProvider.Factory = singleFactory { LockViewModel(repository) }
     val settings: ViewModelProvider.Factory = singleFactory { SettingsViewModel(repository) }
-    val store: ViewModelProvider.Factory = singleFactory { StoreViewModel() }
+
     val mural: ViewModelProvider.Factory = singleFactory { 
         MuralViewModel(container.muralDao, container.muralPreferencesRepository, container.database.notificationDao()) 
     }

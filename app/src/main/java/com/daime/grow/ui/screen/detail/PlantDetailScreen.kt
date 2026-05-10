@@ -1,4 +1,4 @@
-﻿package com.daime.grow.ui.screen.detail
+package com.daime.grow.ui.screen.detail
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.RoundedBackButton
@@ -178,10 +180,17 @@ fun PlantDetailScreen(
                         .height(48.dp)
                         .background(
                             brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFFFF4081), // Rosa
-                                    Color(0xFF9C27B0)  // Roxo
-                                )
+                                colors = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+                                    listOf(
+                                        com.daime.grow.ui.theme.GrowHarvestStartDark,
+                                        com.daime.grow.ui.theme.GrowHarvestEndDark
+                                    )
+                                } else {
+                                    listOf(
+                                        com.daime.grow.ui.theme.GrowHarvestStart,
+                                        com.daime.grow.ui.theme.GrowHarvestEnd
+                                    )
+                                }
                             ),
                             shape = RoundedCornerShape(24.dp)
                         )
@@ -521,11 +530,14 @@ private fun PhotoSection(
                 .clickable { onUpdatePhoto() }
         ) {
             if (details.plant.photoUri != null) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = details.plant.photoUri,
                     contentDescription = "Foto da planta",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(modifier = Modifier.fillMaxSize().shimmerEffect())
+                    }
                 )
             } else {
                 Box(

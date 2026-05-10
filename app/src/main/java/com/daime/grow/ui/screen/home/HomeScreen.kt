@@ -1,8 +1,10 @@
-﻿package com.daime.grow.ui.screen.home
+package com.daime.grow.ui.screen.home
 
 import android.media.MediaPlayer
 import android.util.Log
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,8 +13,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -128,17 +133,22 @@ fun HomeScreen(
         onDraggingChanged(isDragging)
     }
 
-    val isOverTrash = isDragging &&
-        draggedCardBounds != null &&
-        externalTrashBounds != null &&
-        draggedCardBounds?.overlaps(
-            Rect(
-                left = externalTrashBounds.left - 24f,
-                top = externalTrashBounds.top - 24f,
-                right = externalTrashBounds.right + 24f,
-                bottom = externalTrashBounds.bottom + 24f
+    val isOverTrash by remember(isDragging, externalTrashBounds) {
+        androidx.compose.runtime.derivedStateOf {
+            val bounds = draggedCardBounds
+            isDragging &&
+            bounds != null &&
+            externalTrashBounds != null &&
+            bounds.overlaps(
+                Rect(
+                    left = externalTrashBounds.left - 24f,
+                    top = externalTrashBounds.top - 24f,
+                    right = externalTrashBounds.right + 24f,
+                    bottom = externalTrashBounds.bottom + 24f
+                )
             )
-        ) == true
+        }
+    }
     val draggedScale by animateFloatAsState(targetValue = if (isOverTrash) 0.5f else 1f, label = "dragged-scale")
 
     LaunchedEffect(state.plants) {
@@ -293,12 +303,10 @@ fun HomeScreen(
                     }
                 } else if (previewPlants.isEmpty()) {
                     item(span = { GridItemSpan(columnsCount) }) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = stringResource(R.string.home_empty_state),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
+                        AnimatedEmptyState(
+                            message = stringResource(R.string.home_empty_state),
+                            onAddPlant = onAddPlant
+                        )
                     }
                 } else {
                     itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
@@ -327,6 +335,7 @@ fun HomeScreen(
                         isSelected = isDraggedItem,
                         isDropTarget = isDragging && !isDraggedItem && dropIndex == index,
                         modifier = Modifier
+                            .animateItem()
                             .then(
                                 if (isDragging && isDraggedItem) {
                                     Modifier.offset {
@@ -443,5 +452,69 @@ private fun playOpeningSound(context: android.content.Context) {
         }
     } catch (e: Exception) {
         Log.e("HomeScreen", "Erro ao tocar som de abertura", e)
+    }
+}
+
+@Composable
+fun AnimatedEmptyState(message: String, onAddPlant: () -> Unit) {
+    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "empty_state")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "eco_scale"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "eco_alpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Eco,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                modifier = Modifier
+                    .size(64.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+            )
+        }
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        androidx.compose.material3.Button(onClick = onAddPlant) {
+            Text("Adicionar Primeira Planta")
+        }
     }
 }

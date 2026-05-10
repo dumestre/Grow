@@ -425,7 +425,7 @@ class MuralViewModel @Inject constructor(
             }
 
             val existingUuid = _currentUserUuid.value
-            if (existingUuid != null && existingUuid.isNotEmpty()) {
+            if (!existingUuid.isNullOrEmpty()) {
                 // Tenta associar o username ao UUID existente no remote
                 val success = updateUsernameForExistingUser(existingUuid, normalizedUsername)
                 if (success) {
@@ -450,7 +450,7 @@ class MuralViewModel @Inject constructor(
             }
 
             val existingUuid = _currentUserUuid.value
-            if (existingUuid != null && existingUuid.isNotEmpty()) {
+            if (!existingUuid.isNullOrEmpty()) {
                 val success = updateUsernameForExistingUser(existingUuid, normalizedUsername)
                 if (success) {
                     _currentUsername.value = normalizedUsername
@@ -541,19 +541,17 @@ class MuralViewModel @Inject constructor(
                     var username: String? = null
 
                     val supabase = this@MuralViewModel.supabase
-                    if (supabase != null) {
-                        try {
-                            val remoteUser = supabase.from("mural_users")
-                                .select { filter { eq("email", email) } }
-                                .decodeSingleOrNull<MuralUserDto>()
-                            
-                            if (remoteUser != null) {
-                                userUuid = remoteUser.id
-                                username = remoteUser.username
-                            }
-                        } catch (e: Exception) {
-                            android.util.Log.e("MuralViewModel", "Erro ao buscar usuario por email: ${e.message}")
+                    try {
+                        val remoteUser = supabase.from("mural_users")
+                            .select { filter { eq("email", email) } }
+                            .decodeSingleOrNull<MuralUserDto>()
+
+                        if (remoteUser != null) {
+                            userUuid = remoteUser.id
+                            username = remoteUser.username
                         }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MuralViewModel", "Erro ao buscar usuario por email: ${e.message}")
                     }
 
                     if (userUuid != null && username != null) {
@@ -884,8 +882,34 @@ class MuralViewModel @Inject constructor(
             }
             channel.subscribe()
             try {
-                changeFlow.collect {
+                changeFlow.collect { action ->
                     loadLikes(postId)
+                    
+                    if (action is PostgresAction.Insert) {
+                        val dto = action.decodeRecord<MuralLikeDto>()
+                        val currentUserId = _currentUserUuid.value
+                        val post = muralDao.getPostByRemoteId(postId)
+                        
+                        if (currentUserId != null && dto.user_id != currentUserId && post?.userId == currentUserId) {
+                            val user = muralDao.getUserByRemoteId(dto.user_id) ?: fetchUserFromRemote(dto.user_id)
+                            val username = user?.username ?: "Alguém"
+                            
+                            notificationDao.insertNotification(
+                                com.daime.grow.data.local.entity.NotificationEntity(
+                                    type = com.daime.grow.data.local.entity.NotificationType.NEW_LIKE,
+                                    username = username,
+                                    message = "Curtiu sua planta",
+                                    time = System.currentTimeMillis()
+                                )
+                            )
+                            
+                            com.daime.grow.data.reminder.NotificationHelper.showMuralLikeNotification(
+                                SupabaseClient.context ?: return@collect,
+                                postId,
+                                username
+                            )
+                        }
+                    }
                 }
             } finally {
                 channel.unsubscribe()
@@ -899,19 +923,67 @@ class MuralViewModel @Inject constructor(
             val existingComment = muralDao.getCommentByRemoteId(dto.id)
             if (existingComment != null) return
 
-            val user = muralDao.getUserByRemoteId(dto.user_id) ?: return
-            val post = muralDao.getPostByRemoteId(dto.post_id) ?: return
+            val user = muralDao.getUserByRemoteId(dto.user_id) ?: fetchUserFromRemote(dto.user_id)
+            val post = muralDao.getPostByRemoteId(dto.post_id) ?: return // Se não temos o post localmente, não sync comentário
 
             muralDao.insertComment(
                 MuralCommentEntity(
                     remoteId = dto.id,
                     localPostId = post.id,
-                    localUserId = user.id,
+                    localUserId = user?.id ?: 0,
                     content = dto.content,
                     createdAt = System.currentTimeMillis(),
                     parentId = dto.parent_id
                 )
             )
+
+            // Lógica de Notificação em Tempo Real
+            val currentUserId = _currentUserUuid.value
+            if (currentUserId != null && dto.user_id != currentUserId) {
+                // Se o comentário é no meu post
+                if (post.userId == currentUserId) {
+                    val username = user?.username ?: "Alguém"
+                    
+                    notificationDao.insertNotification(
+                        com.daime.grow.data.local.entity.NotificationEntity(
+                            type = com.daime.grow.data.local.entity.NotificationType.NEW_COMMENT,
+                            username = username,
+                            message = dto.content.take(100),
+                            time = System.currentTimeMillis()
+                        )
+                    )
+                    
+                    com.daime.grow.data.reminder.NotificationHelper.showMuralCommentNotification(
+                        SupabaseClient.context ?: return,
+                        dto.post_id,
+                        username
+                    )
+                } 
+                // Ou se é uma resposta a um comentário meu (precisaríamos checar parent_id)
+                else if (dto.parent_id != null) {
+                    val parentComment = muralDao.getCommentByRemoteId(dto.parent_id)
+                    val parentUser = parentComment?.let { muralDao.getUserById(it.localUserId) }
+                    
+                    if (parentUser?.remoteId == currentUserId) {
+                        val username = user?.username ?: "Alguém"
+                        
+                        notificationDao.insertNotification(
+                            com.daime.grow.data.local.entity.NotificationEntity(
+                                type = com.daime.grow.data.local.entity.NotificationType.NEW_REPLY,
+                                username = username,
+                                message = dto.content.take(100),
+                                time = System.currentTimeMillis()
+                            )
+                        )
+                        
+                        com.daime.grow.data.reminder.NotificationHelper.showMuralReplyNotification(
+                            SupabaseClient.context ?: return,
+                            dto.post_id,
+                            username
+                        )
+                    }
+                }
+            }
         } catch (e: Exception) {
             android.util.Log.e("MuralViewModel", "Erro ao sincronizar comentario: ${e.message}")
         }

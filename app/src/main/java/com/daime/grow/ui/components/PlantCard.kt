@@ -1,4 +1,4 @@
-﻿package com.daime.grow.ui.components
+package com.daime.grow.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.R
 import com.daime.grow.domain.model.Plant
 import java.text.SimpleDateFormat
@@ -165,13 +168,16 @@ fun PlantCard(
                         )
                     }
                 } else {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = plant.photoUri,
                         contentDescription = plant.name,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(128.dp),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(modifier = Modifier.fillMaxSize().shimmerEffect())
+                        }
                     )
                 }
 

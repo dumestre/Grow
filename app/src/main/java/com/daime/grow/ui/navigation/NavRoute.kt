@@ -1,11 +1,11 @@
-﻿package com.daime.grow.ui.navigation
+package com.daime.grow.ui.navigation
 
 sealed class NavRoute(val route: String) {
     data object Home : NavRoute("home")
     data object NewPlant : NavRoute("new_plant")
     data object PosColheta : NavRoute("pos_colheta")
     data object Mural : NavRoute("mural")
-    data object Store : NavRoute("store")
+
     data object Notifications : NavRoute("notifications")
     data object Settings : NavRoute("settings")
 
@@ -17,7 +17,5 @@ sealed class NavRoute(val route: String) {
     }
     data object GrowTips : NavRoute("tips")
     data object PPFD : NavRoute("ppfd")
-    data object StrainDetail : NavRoute("strain_detail/{strainId}") {
-        fun create(strainId: String) = "strain_detail/$strainId"
-    }
+
 }

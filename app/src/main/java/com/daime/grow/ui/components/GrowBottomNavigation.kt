@@ -117,13 +117,7 @@ enum class BottomNavItem(
         selectedIcon = Icons.Outlined.Public,
         unselectedIcon = Icons.Outlined.Public
     ),
-    Store(
-        route = NavRoute.Store.route,
-        titleRes = R.string.nav_strains,
-        iconRes = null,
-        selectedIcon = Icons.Rounded.Forest,
-        unselectedIcon = Icons.Outlined.Forest
-    ),
+
     Notifications(
         route = NavRoute.Notifications.route,
         titleRes = R.string.nav_avisos,
