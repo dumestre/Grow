@@ -67,6 +67,8 @@ import com.daime.grow.R
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.ui.viewmodel.SettingsViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +80,8 @@ fun SettingsScreen(
     accountEmail: String?,
     onSignOut: () -> Unit,
     onUpdateUsername: (String, (Boolean) -> Unit) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val securityNullable by viewModel.security.collectAsStateWithLifecycle()
@@ -190,7 +193,8 @@ confirmButton = {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },

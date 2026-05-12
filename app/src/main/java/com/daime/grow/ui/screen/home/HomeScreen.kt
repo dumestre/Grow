@@ -81,6 +81,8 @@ import com.daime.grow.ui.components.PlantCard
 import com.daime.grow.ui.theme.Poppins
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -95,7 +97,8 @@ fun HomeScreen(
     onOpenTips: () -> Unit = {},
     externalIsDragging: Boolean = false,
     onDraggingChanged: (Boolean) -> Unit = {},
-    externalTrashBounds: Rect? = null
+    externalTrashBounds: Rect? = null,
+    hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -163,7 +166,9 @@ fun HomeScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
         topBar = {
             TopAppBar(
                 title = {

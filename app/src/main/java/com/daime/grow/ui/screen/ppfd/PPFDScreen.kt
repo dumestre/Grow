@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.daime.grow.domain.model.LightSource
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +41,8 @@ import kotlinx.coroutines.launch
 fun PPFDScreen(
     innerPadding: PaddingValues,
     onBack: () -> Unit,
-    viewModel: PPFDViewModel = hiltViewModel()
+    viewModel: PPFDViewModel = hiltViewModel(),
+    hazeState: HazeState? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val sources = LightSource.entries
@@ -77,6 +80,7 @@ fun PPFDScreen(
 
         Scaffold(
             containerColor = Color.Transparent,
+            modifier = Modifier.then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
             topBar = {
                 TopAppBar(
                     title = { Text("Medidor PPFD", fontWeight = FontWeight.Bold) },

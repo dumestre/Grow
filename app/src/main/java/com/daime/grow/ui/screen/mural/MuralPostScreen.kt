@@ -34,6 +34,8 @@ import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.viewmodel.MuralEvent
 import com.daime.grow.ui.viewmodel.MuralViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +43,8 @@ fun MuralPostScreen(
     postId: String,
     innerPadding: PaddingValues,
     viewModel: MuralViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     val state by viewModel.postUiState.collectAsStateWithLifecycle()
     val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
@@ -66,7 +69,9 @@ fun MuralPostScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {

@@ -38,6 +38,8 @@ import coil.compose.AsyncImage
 import com.daime.grow.data.local.entity.HarvestBatchEntity
 import com.daime.grow.ui.viewmodel.HarvestBatchWithPhoto
 import com.daime.grow.ui.viewmodel.PosColhetaViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -46,7 +48,8 @@ import kotlin.math.roundToInt
 @Composable
 fun PosColhetaScreen(
     innerPadding: PaddingValues,
-    viewModel: PosColhetaViewModel
+    viewModel: PosColhetaViewModel,
+    hazeState: HazeState? = null
 ) {
     val tabs = listOf("Secagem", "Cura")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -60,6 +63,7 @@ fun PosColhetaScreen(
             .fillMaxSize()
             .padding(top = innerPadding.calculateTopPadding())
             .background(MaterialTheme.colorScheme.background) // Adicionado para garantir uniformidade do Haze
+            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
     ) {
         SecondaryTabRow(
             selectedTabIndex = pagerState.currentPage,

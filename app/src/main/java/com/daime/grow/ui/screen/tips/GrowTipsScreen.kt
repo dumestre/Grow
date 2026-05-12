@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 
 data class TipCategory(
@@ -39,7 +41,8 @@ data class TipItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GrowTipsScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     val categories = remember {
         listOf(
@@ -296,6 +299,7 @@ fun GrowTipsScreen(
     val horizontalPadding = if (isTablet) 32.dp else 20.dp
 
     Scaffold(
+        modifier = Modifier.then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
         topBar = {
             TopAppBar(
                 title = { },

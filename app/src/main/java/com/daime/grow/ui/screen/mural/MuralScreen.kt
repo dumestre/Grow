@@ -42,13 +42,16 @@ import com.daime.grow.data.local.dao.CommentWithUser
 import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.ui.viewmodel.MuralEvent
 import com.daime.grow.ui.viewmodel.MuralViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuralScreen(
     innerPadding: PaddingValues,
     viewModel: MuralViewModel,
-    onPostClick: (String) -> Unit
+    onPostClick: (String) -> Unit,
+    hazeState: HazeState? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentUserUuid by viewModel.currentUserUuid.collectAsStateWithLifecycle()
@@ -67,7 +70,8 @@ fun MuralScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
         topBar = {
             TopAppBar(
                 title = {
