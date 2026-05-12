@@ -51,8 +51,6 @@ import android.content.Context
 import androidx.core.content.FileProvider
 import com.daime.grow.ui.screen.mural.UsernameDialog
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.blur.blurEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -166,62 +164,76 @@ fun PlantDetailScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(details?.plant?.name ?: stringResource(R.string.detail_title_fallback)) },
+                title = {
+                    if (details == null) {
+                        Box(
+                            modifier = Modifier
+                                .width(128.dp)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .shimmerEffect()
+                        )
+                    } else {
+                        Text(details.plant.name)
+                    }
+                },
                 navigationIcon = { RoundedBackButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
-                contentAlignment = Alignment.Center
-            ) {
-                val harvestColors = if (isSystemInDarkTheme()) {
-                    listOf(
-                        com.daime.grow.ui.theme.GrowHarvestStartDark,
-                        com.daime.grow.ui.theme.GrowHarvestEndDark
-                    )
-                } else {
-                    listOf(
-                        com.daime.grow.ui.theme.GrowHarvestStart,
-                        com.daime.grow.ui.theme.GrowHarvestEnd
-                    )
-                }
-
-                androidx.compose.foundation.layout.Box(
+            if (details != null) {
+                Box(
                     modifier = Modifier
-                        .wrapContentSize()
-                        .height(48.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = harvestColors
-                            ),
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                        .clickable {
-                            showHarvestDialog = true
-                        },
+                        .padding(16.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                    val harvestColors = if (isSystemInDarkTheme()) {
+                        listOf(
+                            com.daime.grow.ui.theme.GrowHarvestStartDark,
+                            com.daime.grow.ui.theme.GrowHarvestEndDark
+                        )
+                    } else {
+                        listOf(
+                            com.daime.grow.ui.theme.GrowHarvestStart,
+                            com.daime.grow.ui.theme.GrowHarvestEnd
+                        )
+                    }
+
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .height(48.dp)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = harvestColors
+                                ),
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                            .clickable {
+                                showHarvestDialog = true
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.detail_harvest_button),
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.detail_harvest_button),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -229,9 +241,7 @@ fun PlantDetailScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         if (details == null) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                Text(stringResource(R.string.detail_loading), modifier = Modifier.padding(16.dp))
-            }
+            PlantDetailLoadingState(padding = padding, isTablet = isTablet)
             return@Scaffold
         }
 
@@ -304,6 +314,95 @@ fun PlantDetailScreen(
                 }
                 item { Text(stringResource(R.string.detail_timeline), style = MaterialTheme.typography.titleMedium) }
                 items(details.events) { event -> TimelineItem(event) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlantDetailLoadingState(
+    padding: PaddingValues,
+    isTablet: Boolean
+) {
+    if (isTablet) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                LoadingPhotoCard()
+                repeat(3) { LoadingDetailCard() }
+            }
+            Column(
+                modifier = Modifier.weight(1.2f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                repeat(4) { LoadingDetailCard(lines = 4) }
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(
+                top = padding.calculateTopPadding() + 16.dp,
+                bottom = padding.calculateBottomPadding() + 24.dp,
+                start = 16.dp,
+                end = 16.dp
+            )
+        ) {
+            item { LoadingPhotoCard() }
+            items(5) { index ->
+                LoadingDetailCard(lines = if (index == 0) 4 else 3)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingPhotoCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .shimmerEffect()
+        )
+    }
+}
+
+@Composable
+private fun LoadingDetailCard(lines: Int = 3) {
+    DetailAccentCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.48f)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .shimmerEffect()
+            )
+            repeat(lines) { index ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (index == lines - 1) 0.64f else 1f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .shimmerEffect()
+                )
             }
         }
     }

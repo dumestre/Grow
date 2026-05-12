@@ -92,6 +92,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.R
@@ -171,7 +172,7 @@ private val tipsGridItems = listOf(
     Triple("Pragas", Icons.Rounded.BugReport, Color(0xFFD32F2F))
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun GrowBottomNavigationBar(
     currentRoute: String?,
@@ -201,6 +202,8 @@ fun GrowBottomNavigationBar(
                         .then(
                             if (hazeState != null) {
                                 Modifier.hazeEffect(state = hazeState) {
+                                    canDrawArea = { area -> area.key == AppContentHazeKey }
+                                    forceInvalidateOnPreDraw = true
                                     blurEffect {
                                         blurRadius = 24.dp
                                     }

@@ -52,6 +52,7 @@ import com.daime.grow.core.AppContainer
 import com.daime.grow.data.preferences.AppPreferencesRepository
 import com.daime.grow.ui.components.GrowBottomNavigationBar
 import com.daime.grow.ui.components.GrowNavigationRail
+import com.daime.grow.ui.components.AppContentHazeKey
 import com.daime.grow.ui.components.NotificationSheet
 import com.daime.grow.ui.navigation.NavRoute
 import com.daime.grow.ui.screen.add.NewPlantScreen
@@ -254,7 +255,11 @@ fun GrowRoot(container: AppContainer) {
                     }
                 }
             ) { innerPadding ->
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(state = hazeState, key = AppContentHazeKey)
+                ) {
                     NavHost(
                         navController = navController,
                         startDestination = NavRoute.Home.route,
