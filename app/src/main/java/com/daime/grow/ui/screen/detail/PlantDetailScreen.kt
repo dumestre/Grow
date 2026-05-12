@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
@@ -50,12 +52,16 @@ import android.content.Context
 import androidx.core.content.FileProvider
 
 import com.daime.grow.ui.screen.mural.UsernameDialog
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.blurEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlantDetailScreen(
     innerPadding: PaddingValues,
     viewModel: PlantDetailViewModel,
+    hazeState: HazeState? = null,
     onBack: () -> Unit,
     onNavigateToPosColheta: () -> Unit = {}
 ) {
@@ -174,25 +180,37 @@ fun PlantDetailScreen(
                     .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
                 contentAlignment = Alignment.Center
             ) {
+                val harvestColors = if (isSystemInDarkTheme()) {
+                    listOf(
+                        com.daime.grow.ui.theme.GrowHarvestStartDark,
+                        com.daime.grow.ui.theme.GrowHarvestEndDark
+                    )
+                } else {
+                    listOf(
+                        com.daime.grow.ui.theme.GrowHarvestStart,
+                        com.daime.grow.ui.theme.GrowHarvestEnd
+                    )
+                }
+
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier
                         .wrapContentSize()
                         .height(48.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = if (androidx.compose.foundation.isSystemInDarkTheme()) {
-                                    listOf(
-                                        com.daime.grow.ui.theme.GrowHarvestStartDark,
-                                        com.daime.grow.ui.theme.GrowHarvestEndDark
+                        .clip(RoundedCornerShape(24.dp))
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(state = hazeState) {
+                                    blurEffect {
+                                        blurRadius = 24.dp
+                                    }
+                                }.background(
+                                    brush = Brush.linearGradient(
+                                        colors = harvestColors.map { it.copy(alpha = 0.5f) }
                                     )
-                                } else {
-                                    listOf(
-                                        com.daime.grow.ui.theme.GrowHarvestStart,
-                                        com.daime.grow.ui.theme.GrowHarvestEnd
-                                    )
-                                }
-                            ),
-                            shape = RoundedCornerShape(24.dp)
+                                )
+                            } else {
+                                Modifier.background(brush = Brush.linearGradient(colors = harvestColors))
+                            }
                         )
                         .clickable {
                             showHarvestDialog = true

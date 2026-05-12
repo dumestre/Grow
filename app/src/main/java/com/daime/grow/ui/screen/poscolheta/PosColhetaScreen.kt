@@ -59,6 +59,7 @@ fun PosColhetaScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = innerPadding.calculateTopPadding())
+            .background(MaterialTheme.colorScheme.background) // Adicionado para garantir uniformidade do Haze
     ) {
         SecondaryTabRow(
             selectedTabIndex = pagerState.currentPage,

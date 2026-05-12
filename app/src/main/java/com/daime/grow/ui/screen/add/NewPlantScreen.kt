@@ -49,11 +49,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -71,6 +73,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -207,12 +210,16 @@ fun NewPlantScreen(
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { strainRequester.requestFocus() }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
 
@@ -221,12 +228,17 @@ fun NewPlantScreen(
                     onValueChange = viewModel::onStrainChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(strainRequester),
+                        .focusRequester(strainRequester)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_strain)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { mediumRequester.requestFocus() }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
 
@@ -236,10 +248,22 @@ fun NewPlantScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PlantStage.entries.forEach { phase ->
+                        val isSelected = state.stage == phase
                         FilterChip(
                             onClick = { viewModel.onStageChange(phase) },
                             label = { Text(phase) },
-                            selected = state.stage == phase
+                            selected = isSelected,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                labelColor = MaterialTheme.colorScheme.onSurface,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            )
                         )
                     }
                 }
@@ -249,12 +273,17 @@ fun NewPlantScreen(
                     onValueChange = viewModel::onMediumChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(mediumRequester),
+                        .focusRequester(mediumRequester)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_medium)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { daysRequester.requestFocus() }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
 
@@ -263,7 +292,8 @@ fun NewPlantScreen(
                     onValueChange = viewModel::onDaysChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(daysRequester),
+                        .focusRequester(daysRequester)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_days)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -272,6 +302,10 @@ fun NewPlantScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = { focusManager.clearFocus() }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
                     )
                 )
 

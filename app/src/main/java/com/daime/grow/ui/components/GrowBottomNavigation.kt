@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -76,6 +77,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -188,181 +190,199 @@ fun GrowBottomNavigationBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    if (hazeState != null) {
-                        Modifier.hazeEffect(state = hazeState) {
-                            blurEffect {
-                                blurRadius = 24.dp
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+        ) {
+            Box {
+                // Camada de Fundo (Haze)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(state = hazeState) {
+                                    blurEffect {
+                                        blurRadius = 24.dp
+                                    }
+                                }
+                            } else {
+                                Modifier.background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                        )
+                                    )
+                                )
                             }
-                        }
-                    } else {
-                        Modifier.background(
+                        )
+                )
+
+                // Borda e Conteúdo
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                    if (MaterialTheme.colorScheme.surface == Color.White || !isSystemInDarkTheme()) 
+                                        Color.Black.copy(alpha = 0.1f) 
+                                    else 
+                                        Color.White.copy(alpha = 0.4f),
+                                    Color.White.copy(alpha = 0.05f)
                                 )
                             ),
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         )
+                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                        .animateContentSize(
+                            animationSpec = tween(durationMillis = 10)
+                        )
+                ) {
+                    val dragState = rememberDraggableState { delta: Float ->
+                        if (delta < -10f) isExpanded = true
+                        else if (delta > 10f) isExpanded = false
                     }
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.4f),
-                            Color.White.copy(alpha = 0.1f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                )
-                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                .animateContentSize(
-                    animationSpec = tween(durationMillis = 10)
-                )
-        ) {
-            val dragState = rememberDraggableState { delta: Float ->
-                if (delta < -10f) isExpanded = true
-                else if (delta > 10f) isExpanded = false
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(22.dp)
-                    .draggable(
-                        state = dragState,
-                        orientation = Orientation.Vertical
-                    )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {
-                            isExpanded = !isExpanded
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                // Barra visual para indicar arrasto
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .background(
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        )
-                )
-            }
-
-            AnimatedContent(
-                targetState = isExpanded,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(durationMillis = 40))
-                        .togetherWith(fadeOut(animationSpec = tween(durationMillis = 40)))
-                        .using(SizeTransform(clip = false))
-                },
-                label = "BottomBarExpansion"
-            ) { expanded ->
-                if (expanded) {
-                    LazyColumn(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp)
-                            .padding(horizontal = 8.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .height(22.dp)
+                            .draggable(
+                                state = dragState,
+                                orientation = Orientation.Vertical
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {
+                                    isExpanded = !isExpanded
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        val itemsCount = BottomNavItem.entries.size
-                        val rows = (itemsCount + 3) / 4
+                        // Barra visual para indicar arrasto
+                        Box(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
 
-                        items(rows) { rowIndex ->
+                    AnimatedContent(
+                        targetState = isExpanded,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(durationMillis = 40))
+                                .togetherWith(fadeOut(animationSpec = tween(durationMillis = 40)))
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "BottomBarExpansion"
+                    ) { expanded ->
+                        if (expanded) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp)
+                                    .padding(horizontal = 8.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                val itemsCount = BottomNavItem.entries.size
+                                val rows = (itemsCount + 3) / 4
+
+                                items(rows) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        repeat(4) { colIndex ->
+                                            val itemIndex = rowIndex * 4 + colIndex
+                                            if (itemIndex < itemsCount) {
+                                                val item = BottomNavItem.entries[itemIndex]
+                                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                                NavIconItem(
+                                                    item = item,
+                                                    currentRoute = currentRoute,
+                                                    onNavigate = {
+                                                        onNavigate(it)
+                                                        isExpanded = false
+                                                    },
+                                                    maskHomeIcon = maskHomeIcon,
+                                                    badgeCount = badgeCount,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .padding(horizontal = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                repeat(4) { colIndex ->
-                                    val itemIndex = rowIndex * 4 + colIndex
-                                    if (itemIndex < itemsCount) {
-                                        val item = BottomNavItem.entries[itemIndex]
+                                listOf(0, 1, 2).forEach { index ->
+                                    val item = BottomNavItem.entries.getOrNull(index)
+                                    if (item != null) {
                                         val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
                                         NavIconItem(
                                             item = item,
                                             currentRoute = currentRoute,
-                                            onNavigate = {
-                                                onNavigate(it)
-                                                isExpanded = false
-                                            },
+                                            onNavigate = onNavigate,
                                             maskHomeIcon = maskHomeIcon,
-                                            badgeCount = badgeCount,
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier.weight(1f),
+                                            badgeCount = badgeCount
                                         )
                                     } else {
                                         Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
-                            }
-                        }
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        listOf(0, 1, 2).forEach { index ->
-                            val item = BottomNavItem.entries.getOrNull(index)
-                            if (item != null) {
-                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                                NavIconItem(
-                                    item = item,
-                                    currentRoute = currentRoute,
-                                    onNavigate = onNavigate,
-                                    maskHomeIcon = maskHomeIcon,
-                                    modifier = Modifier.weight(1f),
-                                    badgeCount = badgeCount
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
 
-                        FloatingActionButton(
-                            onClick = onAddClick,
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
-                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color(0xFF1B5E20)
-                            )
-                        }
+                                FloatingActionButton(
+                                    onClick = onAddClick,
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    shape = CircleShape,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .onGloballyPositioned { onFabBounds(it.boundsInRoot()) },
+                                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color(0xFF1B5E20)
+                                    )
+                                }
 
-                        listOf(3, 4, 5).forEach { index ->
-                            val item = BottomNavItem.entries.getOrNull(index)
-                            if (item != null) {
-                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                                NavIconItem(
-                                    item = item,
-                                    currentRoute = currentRoute,
-                                    onNavigate = onNavigate,
-                                    maskHomeIcon = maskHomeIcon,
-                                    modifier = Modifier.weight(1f),
-                                    badgeCount = badgeCount
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
+                                listOf(3, 4, 5).forEach { index ->
+                                    val item = BottomNavItem.entries.getOrNull(index)
+                                    if (item != null) {
+                                        val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                        NavIconItem(
+                                            item = item,
+                                            currentRoute = currentRoute,
+                                            onNavigate = onNavigate,
+                                            maskHomeIcon = maskHomeIcon,
+                                            modifier = Modifier.weight(1f),
+                                            badgeCount = badgeCount
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
                             }
                         }
                     }

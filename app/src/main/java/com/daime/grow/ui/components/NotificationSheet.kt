@@ -41,6 +41,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.data.local.entity.NotificationEntity
 import com.daime.grow.data.local.entity.NotificationType
 import com.daime.grow.ui.viewmodel.NotificationViewModel
@@ -53,6 +56,7 @@ import java.util.Locale
 fun NotificationSheet(
     viewModel: NotificationViewModel,
     onDismiss: () -> Unit,
+    hazeState: HazeState? = null,
     onNavigateToPost: (Long) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -61,52 +65,89 @@ fun NotificationSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = Color.Transparent,
+        dragHandle = null
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.75f)
-                .padding(bottom = 32.dp)
-        ) {
-            Text(
-                text = "Avisos",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+        Box {
+            // Fundo com Haze
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .then(
+                        if (hazeState != null) {
+                            Modifier.hazeEffect(state = hazeState) {
+                                blurEffect {
+                                    blurRadius = 24.dp
+                                }
+                            }
+                        } else {
+                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+                        }
+                    )
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+            )
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                textAlign = TextAlign.Center
-            )
-            
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            
-            if (notifications.isEmpty()) {
+                    .fillMaxHeight(0.75f)
+                    .padding(bottom = 32.dp)
+            ) {
+                // Drag handle manual já que o padrão foi removido para o Haze ficar no fundo total
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Nenhum aviso no momento",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .width(32.dp)
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    ) {}
                 }
-            } else {
-                LazyColumn {
-                    items(notifications, key = { it.id }) { item ->
-                        NotificationRow(
-                            item = item,
-                            onClick = {
-                                viewModel.markAsRead(item.id)
-                                item.relatedId?.let { onNavigateToPost(it) }
-                            },
-                            onDelete = { viewModel.deleteNotification(item.id) }
+
+                Text(
+                    text = "Avisos",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    textAlign = TextAlign.Center
+                )
+                
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                
+                if (notifications.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Nenhum aviso no momento",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                        )
+                    }
+                } else {
+                    LazyColumn {
+                        items(notifications, key = { it.id }) { item ->
+                            NotificationRow(
+                                item = item,
+                                onClick = {
+                                    viewModel.markAsRead(item.id)
+                                    item.relatedId?.let { onNavigateToPost(it) }
+                                },
+                                onDelete = { viewModel.deleteNotification(item.id) }
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        }
                     }
                 }
             }

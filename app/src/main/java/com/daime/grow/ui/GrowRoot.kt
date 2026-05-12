@@ -321,8 +321,9 @@ fun GrowRoot(container: AppContainer) {
                         ) {
                             val detailViewModel: PlantDetailViewModel = hiltViewModel()
                             PlantDetailScreen(
-                                innerPadding = PaddingValues(),
+                                innerPadding = innerPadding,
                                 viewModel = detailViewModel,
+                                hazeState = hazeState,
                                 onBack = { navController.popBackStack() },
                                 onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
                             )
@@ -372,7 +373,8 @@ fun GrowRoot(container: AppContainer) {
                     if (showNotificationSheet) {
                         NotificationSheet(
                             viewModel = notificationViewModel,
-                            onDismiss = { showNotificationSheet = false }
+                            onDismiss = { showNotificationSheet = false },
+                            hazeState = hazeState
                         )
                     }
                 }

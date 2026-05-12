@@ -25,30 +25,43 @@ fun GlassCard(
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
-        modifier = modifier
-            .clip(shape)
-            .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(state = hazeState) {
-                        blurEffect {
-                            blurRadius = 24.dp
-                        }
-                    }
-                } else {
-                    Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
-                }
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.2f),
-                        Color.White.copy(alpha = 0.05f)
-                    )
-                ),
-                shape = shape
-            )
+        modifier = modifier.clip(shape)
     ) {
+        // Camada de Fundo (Haze ou Background fixo)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .then(
+                    if (hazeState != null) {
+                        Modifier.hazeEffect(state = hazeState) {
+                            blurEffect {
+                                blurRadius = 24.dp
+                            }
+                        }
+                    } else {
+                        Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+                    }
+                )
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)) // Camada de cor base
+        )
+
+        // Camada de Borda e Brilho (Separada para não afetar o conteúdo)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.2f),
+                            Color.White.copy(alpha = 0.05f)
+                        )
+                    ),
+                    shape = shape
+                )
+        )
+
+        // Conteúdo (Sem efeito haze/blur)
         content()
     }
 }
