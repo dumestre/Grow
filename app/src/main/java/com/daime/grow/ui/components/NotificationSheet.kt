@@ -42,8 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.data.local.entity.NotificationEntity
 import com.daime.grow.data.local.entity.NotificationType
 import com.daime.grow.ui.viewmodel.NotificationViewModel
@@ -69,22 +67,12 @@ fun NotificationSheet(
         dragHandle = null
     ) {
         Box {
-            // Fundo com Haze
+            // Evita usar Haze dentro do ModalBottomSheet. Em alguns aparelhos isso pode
+            // manter a UI ocupada renderizando blur no momento em que o sheet abre.
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .then(
-                        if (hazeState != null) {
-                            Modifier.hazeEffect(state = hazeState) {
-                                blurEffect {
-                                    blurRadius = 24.dp
-                                }
-                            }
-                        } else {
-                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
-                        }
-                    )
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
             )
 
             Column(
