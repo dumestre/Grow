@@ -210,7 +210,7 @@ fun NewPlantScreen(
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
-                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -229,7 +229,7 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(strainRequester)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_strain)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -254,7 +254,7 @@ fun NewPlantScreen(
                             label = { Text(phase) },
                             selected = isSelected,
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                                 labelColor = MaterialTheme.colorScheme.onSurface,
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -274,7 +274,7 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(mediumRequester)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_medium)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -293,7 +293,7 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(daysRequester)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), shape = OutlinedTextFieldDefaults.shape),
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_days)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(

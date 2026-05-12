@@ -254,119 +254,121 @@ fun GrowRoot(container: AppContainer) {
                     }
                 }
             ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .hazeSource(state = hazeState)
-                ) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = NavRoute.Home.route,
-                        modifier = Modifier.fillMaxSize()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .hazeSource(state = hazeState)
                     ) {
-                        composable(NavRoute.Home.route) {
-                            HomeScreen(
-                                innerPadding = innerPadding,
-                                viewModel = homeViewModel,
-                                settingsViewModel = settingsViewModel,
-                                onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
-                                onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
-                                onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
-                                onOpenTips = { navController.navigate(NavRoute.GrowTips.route) },
-                                externalIsDragging = isDraggingPlant,
-                                onDraggingChanged = { isDraggingPlant = it },
-                                externalTrashBounds = trashBounds
-                            )
-                        }
-
-                        composable(NavRoute.PosColheta.route) {
-                            PosColhetaScreen(
-                                innerPadding = innerPadding,
-                                viewModel = posColhetaViewModel
-                            )
-                        }
-
-                        composable(NavRoute.Mural.route) {
-                            MuralScreen(
-                                innerPadding = innerPadding,
-                                viewModel = muralViewModel,
-                                onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
-                            )
-                        }
-
-                        dialog(
-                            route = NavRoute.NewPlant.route,
-                            dialogProperties = DialogProperties(
-                                usePlatformDefaultWidth = false,
-                                decorFitsSystemWindows = false
-                            )
+                        NavHost(
+                            navController = navController,
+                            startDestination = NavRoute.Home.route,
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            NewPlantScreen(
-                                innerPadding = PaddingValues(),
-                                viewModel = addPlantViewModel,
-                                hazeState = hazeState,
-                                onSaved = { id ->
-                                    navController.popBackStack()
-                                    navController.navigate(NavRoute.Detail.create(id))
-                                },
-                                onClose = { navController.popBackStack() },
-                                onCheckUser = { username, onComplete, onUsernameTaken ->
-                                    muralViewModel.createOrGetUser(username, onComplete, onUsernameTaken)
-                                }
-                            )
-                        }
+                            composable(NavRoute.Home.route) {
+                                HomeScreen(
+                                    innerPadding = innerPadding,
+                                    viewModel = homeViewModel,
+                                    settingsViewModel = settingsViewModel,
+                                    onOpenDetails = { id -> navController.navigate(NavRoute.Detail.create(id)) },
+                                    onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
+                                    onAddPlant = { navController.navigate(NavRoute.NewPlant.route) },
+                                    onOpenTips = { navController.navigate(NavRoute.GrowTips.route) },
+                                    externalIsDragging = isDraggingPlant,
+                                    onDraggingChanged = { isDraggingPlant = it },
+                                    externalTrashBounds = trashBounds
+                                )
+                            }
 
-                        composable(NavRoute.Detail.route,
-                            arguments = listOf(navArgument("plantId") { type = NavType.LongType })
-                        ) {
-                            val detailViewModel: PlantDetailViewModel = hiltViewModel()
-                            PlantDetailScreen(
-                                innerPadding = innerPadding,
-                                viewModel = detailViewModel,
-                                hazeState = hazeState,
-                                onBack = { navController.popBackStack() },
-                                onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
-                            )
-                        }
+                            composable(NavRoute.PosColheta.route) {
+                                PosColhetaScreen(
+                                    innerPadding = innerPadding,
+                                    viewModel = posColhetaViewModel
+                                )
+                            }
 
-                        composable(NavRoute.Settings.route) {
-                            SettingsScreen(
-                                innerPadding = innerPadding,
-                                viewModel = settingsViewModel,
-                                accountUsername = currentUsername,
-                                accountEmail = currentUserEmail,
-                                onSignOut = { muralViewModel.signOut() },
-                                onUpdateUsername = { username, onComplete ->
-                                    muralViewModel.updateUsername(username, onComplete)
-                                },
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                            composable(NavRoute.Mural.route) {
+                                MuralScreen(
+                                    innerPadding = innerPadding,
+                                    viewModel = muralViewModel,
+                                    onPostClick = { postId -> navController.navigate(NavRoute.MuralPost.create(postId)) }
+                                )
+                            }
 
-                        composable(
-                            route = NavRoute.MuralPost.route,
-                            arguments = listOf(navArgument("postId") { type = NavType.StringType })
-                        ) {
-                            val currentMuralViewModel: MuralViewModel = hiltViewModel()
-                            MuralPostScreen(
-                                postId = checkNotNull(it.arguments?.getString("postId")),
-                                innerPadding = PaddingValues(),
-                                viewModel = currentMuralViewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                            dialog(
+                                route = NavRoute.NewPlant.route,
+                                dialogProperties = DialogProperties(
+                                    usePlatformDefaultWidth = false,
+                                    decorFitsSystemWindows = false
+                                )
+                            ) {
+                                NewPlantScreen(
+                                    innerPadding = PaddingValues(),
+                                    viewModel = addPlantViewModel,
+                                    hazeState = hazeState,
+                                    onSaved = { id ->
+                                        navController.popBackStack()
+                                        navController.navigate(NavRoute.Detail.create(id))
+                                    },
+                                    onClose = { navController.popBackStack() },
+                                    onCheckUser = { username, onComplete, onUsernameTaken ->
+                                        muralViewModel.createOrGetUser(username, onComplete, onUsernameTaken)
+                                    }
+                                )
+                            }
 
-                        composable(NavRoute.GrowTips.route) {
-                            GrowTipsScreen(
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                            composable(NavRoute.Detail.route,
+                                arguments = listOf(navArgument("plantId") { type = NavType.LongType })
+                            ) {
+                                val detailViewModel: PlantDetailViewModel = hiltViewModel()
+                                PlantDetailScreen(
+                                    innerPadding = innerPadding,
+                                    viewModel = detailViewModel,
+                                    hazeState = hazeState,
+                                    onBack = { navController.popBackStack() },
+                                    onNavigateToPosColheta = { navController.navigate(NavRoute.PosColheta.route) }
+                                )
+                            }
 
-                        composable(NavRoute.PPFD.route) {
-                            PPFDScreen(
-                                innerPadding = innerPadding,
-                                onBack = { navController.popBackStack() }
-                            )
+                            composable(NavRoute.Settings.route) {
+                                SettingsScreen(
+                                    innerPadding = innerPadding,
+                                    viewModel = settingsViewModel,
+                                    accountUsername = currentUsername,
+                                    accountEmail = currentUserEmail,
+                                    onSignOut = { muralViewModel.signOut() },
+                                    onUpdateUsername = { username, onComplete ->
+                                        muralViewModel.updateUsername(username, onComplete)
+                                    },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(
+                                route = NavRoute.MuralPost.route,
+                                arguments = listOf(navArgument("postId") { type = NavType.StringType })
+                            ) {
+                                val currentMuralViewModel: MuralViewModel = hiltViewModel()
+                                MuralPostScreen(
+                                    postId = checkNotNull(it.arguments?.getString("postId")),
+                                    innerPadding = PaddingValues(),
+                                    viewModel = currentMuralViewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(NavRoute.GrowTips.route) {
+                                GrowTipsScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(NavRoute.PPFD.route) {
+                                PPFDScreen(
+                                    innerPadding = innerPadding,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
                         }
                     }
 

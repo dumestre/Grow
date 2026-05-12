@@ -78,6 +78,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PlantCard
+import com.daime.grow.ui.theme.Poppins
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 import kotlin.math.roundToInt
@@ -226,11 +227,16 @@ fun HomeScreen(
                         ) {
                             Text(
                                 stringResource(R.string.home_focus_title),
-                                style = MaterialTheme.typography.headlineSmall
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontFamily = Poppins,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                )
                             )
                             Text(
                                 stringResource(R.string.home_focus_subtitle),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = Poppins
+                                )
                             )
                         }
                     }

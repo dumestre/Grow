@@ -36,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.R
@@ -50,7 +49,6 @@ import java.util.Date
 import java.util.UUID
 import android.content.Context
 import androidx.core.content.FileProvider
-
 import com.daime.grow.ui.screen.mural.UsernameDialog
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -196,21 +194,11 @@ fun PlantDetailScreen(
                     modifier = Modifier
                         .wrapContentSize()
                         .height(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .then(
-                            if (hazeState != null) {
-                                Modifier.hazeEffect(state = hazeState) {
-                                    blurEffect {
-                                        blurRadius = 24.dp
-                                    }
-                                }.background(
-                                    brush = Brush.linearGradient(
-                                        colors = harvestColors.map { it.copy(alpha = 0.5f) }
-                                    )
-                                )
-                            } else {
-                                Modifier.background(brush = Brush.linearGradient(colors = harvestColors))
-                            }
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = harvestColors
+                            ),
+                            shape = RoundedCornerShape(24.dp)
                         )
                         .clickable {
                             showHarvestDialog = true
