@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -34,7 +36,6 @@ import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -78,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PlantCard
+import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.ui.theme.Poppins
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
@@ -302,15 +304,8 @@ fun HomeScreen(
                 }
 
                 if (state.isLoading) {
-                    item(span = { GridItemSpan(columnsCount) }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                    items(if (isTablet) 8 else 6) {
+                        HomePlantCardPlaceholder()
                     }
                 } else if (previewPlants.isEmpty()) {
                     item(span = { GridItemSpan(columnsCount) }) {
@@ -451,6 +446,51 @@ fun HomeScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun HomePlantCardPlaceholder() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(128.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .shimmerEffect()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .shimmerEffect()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            repeat(4) { index ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(if (index == 3) 0.64f else 1f)
+                        .height(13.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .shimmerEffect()
+                )
+                if (index != 3) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
         }
     }
 }
