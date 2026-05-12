@@ -58,11 +58,11 @@ fun PosColhetaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
+            .padding(top = innerPadding.calculateTopPadding())
     ) {
         SecondaryTabRow(
             selectedTabIndex = pagerState.currentPage,
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
             contentColor = MaterialTheme.colorScheme.primary,
             indicator = {
                 TabRowDefaults.SecondaryIndicator(
@@ -99,12 +99,14 @@ fun PosColhetaScreen(
                     batches = dryingBatches,
                     emptyMessage = "Nenhuma planta em secagem.\nColha suas plantas quando estiverem prontas!",
                     onStartCure = viewModel::startCuring,
-                    onBurp = viewModel::burp
+                    onBurp = viewModel::burp,
+                    bottomPadding = innerPadding.calculateBottomPadding()
                 )
                 1 -> CuringTabContent(
                     batches = curingBatches,
                     emptyMessage = "Nenhuma planta em cura.\nFinalize a secagem para começar a cura!",
-                    onBurp = viewModel::burp
+                    onBurp = viewModel::burp,
+                    bottomPadding = innerPadding.calculateBottomPadding()
                 )
             }
         }
@@ -116,7 +118,8 @@ private fun DryingTabContent(
     batches: List<HarvestBatchWithPhoto>,
     emptyMessage: String,
     onStartCure: (Long) -> Unit,
-    onBurp: (Long) -> Unit
+    onBurp: (Long) -> Unit,
+    bottomPadding: androidx.compose.ui.unit.Dp = 0.dp
 ) {
     if (batches.isEmpty()) {
         EmptyStateView(
@@ -125,7 +128,12 @@ private fun DryingTabContent(
         )
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp, 
+                top = 16.dp, 
+                end = 16.dp, 
+                bottom = 16.dp + bottomPadding + 64.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(batches, key = { it.batch.id }) { batchWithPhoto ->
@@ -143,7 +151,8 @@ private fun DryingTabContent(
 private fun CuringTabContent(
     batches: List<HarvestBatchWithPhoto>,
     emptyMessage: String,
-    onBurp: (Long) -> Unit
+    onBurp: (Long) -> Unit,
+    bottomPadding: androidx.compose.ui.unit.Dp = 0.dp
 ) {
     if (batches.isEmpty()) {
         EmptyStateView(
@@ -152,7 +161,12 @@ private fun CuringTabContent(
         )
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp, 
+                top = 16.dp, 
+                end = 16.dp, 
+                bottom = 16.dp + bottomPadding + 64.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(batches, key = { it.batch.id }) { batchWithPhoto ->

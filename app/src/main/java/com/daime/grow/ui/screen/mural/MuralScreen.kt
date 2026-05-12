@@ -111,7 +111,7 @@ fun MuralScreen(
                         start = 16.dp, 
                         end = 16.dp, 
                         top = 8.dp, 
-                        bottom = 8.dp + innerPadding.calculateBottomPadding()
+                        bottom = 8.dp + innerPadding.calculateBottomPadding() + 64.dp
                     ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),

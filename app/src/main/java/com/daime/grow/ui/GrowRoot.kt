@@ -43,9 +43,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.ui.window.DialogProperties
 import com.daime.grow.core.AppContainer
 import com.daime.grow.data.preferences.AppPreferencesRepository
 import com.daime.grow.ui.components.GrowBottomNavigationBar
@@ -66,6 +68,9 @@ import com.daime.grow.ui.screen.settings.SettingsScreen
 
 import com.daime.grow.ui.screen.tips.GrowTipsScreen
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.LockViewModel
 import com.daime.grow.ui.viewmodel.MuralEvent
@@ -122,22 +127,8 @@ fun GrowRoot(container: AppContainer) {
     
     var isDraggingPlant by remember { mutableStateOf(false) }
     var trashBounds by remember { mutableStateOf<Rect?>(null) }
-
-    // Estado global para esconder a barra de navegação no scroll com threshold aumentado
-    var isBottomBarVisible by remember { mutableStateOf(true) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                // Threshold ajustado para melhor responsividade
-                if (available.y < -8) {
-                    isBottomBarVisible = false
-                } else if (available.y > 8) {
-                    isBottomBarVisible = true
-                }
-                return Offset.Zero
-            }
-        }
-    }
+    
+    val hazeState = rememberHazeState()
 
     if (!lockState.isReady) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -241,43 +232,32 @@ fun GrowRoot(container: AppContainer) {
                 modifier = Modifier.weight(1f),
                 bottomBar = {
                     if (!isTablet && showNavElements) {
-                        AnimatedVisibility(
-                            visible = isBottomBarVisible,
-                            enter = slideInVertically(
-                                initialOffsetY = { it },
-                                animationSpec = spring(stiffness = Spring.StiffnessMedium)
-                            ),
-                            exit = slideOutVertically(
-                                targetOffsetY = { it },
-                                animationSpec = spring(stiffness = Spring.StiffnessMedium)
-                            )
-                        ) {
-                            GrowBottomNavigationBar(
-                                currentRoute = currentRoute,
-                                onNavigate = { route ->
-                                    if (route == NavRoute.Notifications.route) {
-                                        showNotificationSheet = true
-                                    } else if (route != currentRoute) {
-                                        navController.navigate(route) {
-                                            popUpTo(NavRoute.Home.route) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
+                        GrowBottomNavigationBar(
+                            currentRoute = currentRoute,
+                            onNavigate = { route ->
+                                if (route == NavRoute.Notifications.route) {
+                                    showNotificationSheet = true
+                                } else if (route != currentRoute) {
+                                    navController.navigate(route) {
+                                        popUpTo(NavRoute.Home.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                },
-                                onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
-                                maskHomeIcon = securityPrefs?.maskHomeIcon ?: true,
-                                onFabBounds = { trashBounds = it },
-                                notificationBadgeCount = unreadNotificationCount
-                            )
-                        }
+                                }
+                            },
+                            onAddClick = { navController.navigate(NavRoute.NewPlant.route) },
+                            maskHomeIcon = securityPrefs?.maskHomeIcon ?: true,
+                            onFabBounds = { trashBounds = it },
+                            notificationBadgeCount = unreadNotificationCount,
+                            hazeState = hazeState
+                        )
                     }
                 }
             ) { innerPadding ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .nestedScroll(nestedScrollConnection)
+                        .hazeSource(state = hazeState)
                 ) {
                     NavHost(
                         navController = navController,
@@ -314,12 +294,17 @@ fun GrowRoot(container: AppContainer) {
                             )
                         }
 
-
-
-                        composable(NavRoute.NewPlant.route) {
+                        dialog(
+                            route = NavRoute.NewPlant.route,
+                            dialogProperties = DialogProperties(
+                                usePlatformDefaultWidth = false,
+                                decorFitsSystemWindows = false
+                            )
+                        ) {
                             NewPlantScreen(
                                 innerPadding = PaddingValues(),
                                 viewModel = addPlantViewModel,
+                                hazeState = hazeState,
                                 onSaved = { id ->
                                     navController.popBackStack()
                                     navController.navigate(NavRoute.Detail.create(id))
@@ -378,6 +363,7 @@ fun GrowRoot(container: AppContainer) {
 
                         composable(NavRoute.PPFD.route) {
                             PPFDScreen(
+                                innerPadding = innerPadding,
                                 onBack = { navController.popBackStack() }
                             )
                         }

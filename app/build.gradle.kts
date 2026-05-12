@@ -34,14 +34,14 @@ plugins {
 
 android {
     namespace = "com.daime.grow"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.daime.grow"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 18
-        versionName = "2.1"
+        targetSdk = 37
+        versionCode = 19
+        versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -95,6 +95,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.haze)
+    implementation(libs.haze.blur)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

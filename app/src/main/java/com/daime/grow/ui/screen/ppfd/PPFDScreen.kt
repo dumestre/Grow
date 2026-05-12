@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PPFDScreen(
+    innerPadding: PaddingValues,
     onBack: () -> Unit,
     viewModel: PPFDViewModel = hiltViewModel()
 ) {
@@ -139,7 +140,7 @@ fun PPFDScreen(
                     // Card de Dicas de Precisão
                     AccuracyTipsCard()
                     
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding() + 64.dp))
                 }
             }
         }

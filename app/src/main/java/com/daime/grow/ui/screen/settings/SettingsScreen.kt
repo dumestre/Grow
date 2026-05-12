@@ -61,6 +61,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import com.daime.grow.R
 import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.domain.model.SecurityPreferences
@@ -401,6 +403,8 @@ confirmButton = {
                         onOpenDocument = { openDocument.launch(arrayOf("application/json")) }
                     )
                 }
+
+                Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding() + 64.dp))
             }
         }
     }

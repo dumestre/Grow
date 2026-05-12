@@ -14,7 +14,9 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,16 +41,20 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Forest
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Yard
 import androidx.compose.material.icons.rounded.Agriculture
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material.icons.rounded.Forest
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Thermostat
@@ -83,6 +89,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.R
 import com.daime.grow.ui.navigation.NavRoute
 import com.daime.grow.ui.theme.GrowTheme
@@ -100,21 +109,21 @@ enum class BottomNavItem(
         route = NavRoute.Home.route,
         titleRes = R.string.nav_plantas,
         iconRes = null,
-        selectedIcon = Icons.Outlined.Spa,
+        selectedIcon = Icons.Rounded.Spa,
         unselectedIcon = Icons.Outlined.Spa
     ),
     PosColheta(
         route = NavRoute.PosColheta.route,
         titleRes = R.string.nav_pos,
         iconRes = null,
-        selectedIcon = Icons.Outlined.Inventory2,
+        selectedIcon = Icons.Rounded.Inventory2,
         unselectedIcon = Icons.Outlined.Inventory2
     ),
     Mural(
         route = NavRoute.Mural.route,
         titleRes = R.string.nav_mural,
         iconRes = null,
-        selectedIcon = Icons.Outlined.Public,
+        selectedIcon = Icons.Rounded.Public,
         unselectedIcon = Icons.Outlined.Public
     ),
 
@@ -138,14 +147,14 @@ enum class BottomNavItem(
         titleRes = R.string.nav_dicas,
         iconRes = null,
         selectedIcon = Icons.Rounded.Lightbulb,
-        unselectedIcon = Icons.Rounded.Lightbulb
+        unselectedIcon = Icons.Outlined.Lightbulb
     ),
     PPFD(
         route = NavRoute.PPFD.route,
         titleRes = R.string.nav_ppfd,
         iconRes = null,
         selectedIcon = Icons.Rounded.WbSunny,
-        unselectedIcon = Icons.Rounded.WbSunny
+        unselectedIcon = Icons.Outlined.WbSunny
     )
 }
 
@@ -169,7 +178,8 @@ fun GrowBottomNavigationBar(
     modifier: Modifier = Modifier,
     maskHomeIcon: Boolean = true,
     onFabBounds: (androidx.compose.ui.geometry.Rect) -> Unit = {},
-    notificationBadgeCount: Int = 0
+    notificationBadgeCount: Int = 0,
+    hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
     var isExpanded by remember { mutableStateOf(false) }
@@ -178,8 +188,33 @@ fun GrowBottomNavigationBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.surface,
+                .then(
+                    if (hazeState != null) {
+                        Modifier.hazeEffect(state = hazeState) {
+                            blurEffect {
+                                blurRadius = 24.dp
+                            }
+                        }
+                    } else {
+                        Modifier.background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                        )
+                    }
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.4f),
+                            Color.White.copy(alpha = 0.1f)
+                        )
+                    ),
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 )
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
@@ -195,7 +230,7 @@ fun GrowBottomNavigationBar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(32.dp)
+                    .height(22.dp)
                     .draggable(
                         state = dragState,
                         orientation = Orientation.Vertical

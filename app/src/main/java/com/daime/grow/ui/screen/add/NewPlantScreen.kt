@@ -8,17 +8,21 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -26,12 +30,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Share
@@ -45,6 +51,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -75,7 +82,9 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
+import com.daime.grow.ui.components.GlassCard
 import com.daime.grow.ui.components.PhotoPickerBox
+import dev.chrisbanes.haze.HazeState
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.screen.mural.UsernameDialog
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
@@ -87,6 +96,7 @@ import java.util.UUID
 fun NewPlantScreen(
     innerPadding: PaddingValues,
     viewModel: AddPlantViewModel,
+    hazeState: HazeState? = null,
     onSaved: (Long) -> Unit,
     onClose: () -> Unit,
     onCheckUser: (String, (String) -> Unit, () -> Unit) -> Unit
@@ -94,7 +104,6 @@ fun NewPlantScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    val snackbarHostState = remember { SnackbarHostState() }
 
     val strainRequester = remember { FocusRequester() }
     val mediumRequester = remember { FocusRequester() }
@@ -148,198 +157,219 @@ fun NewPlantScreen(
         }
     }
 
-    Scaffold(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-            .padding(16.dp),
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        Column(
+            .clickable(onClick = onClose), // Fecha ao clicar fora
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        GlassCard(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .padding(top = 64.dp) // Espaço no topo para não cobrir tudo
+                .clickable(enabled = false) {}, // Evita fechar ao clicar dentro
+            hazeState = hazeState
         ) {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.new_plant_title)) },
-                navigationIcon = { RoundedBackButton(onClick = onClose) }
-            )
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PhotoPickerBox(photoUri = state.photoUri, onClick = { showSheet = true })
-
-                    OutlinedTextField(
-                        value = state.name,
-                        onValueChange = viewModel::onNameChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.new_plant_name)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(
-                            onNext = { strainRequester.requestFocus() }
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(R.string.new_plant_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
-
-                    OutlinedTextField(
-                        value = state.strain,
-                        onValueChange = viewModel::onStrainChange,
+                    IconButton(
+                        onClick = onClose,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(strainRequester),
-                        label = { Text(stringResource(R.string.new_plant_strain)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(
-                            onNext = { mediumRequester.requestFocus() }
-                        )
-                    )
-
-                    Text(stringResource(R.string.new_plant_stage), style = MaterialTheme.typography.titleMedium)
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        PlantStage.entries.forEach { phase ->
-                            FilterChip(
-                                onClick = { viewModel.onStageChange(phase) },
-                                label = { Text(phase) },
-                                selected = state.stage == phase
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = state.medium,
-                        onValueChange = viewModel::onMediumChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(mediumRequester),
-                        label = { Text(stringResource(R.string.new_plant_medium)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(
-                            onNext = { daysRequester.requestFocus() }
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = state.days,
-                        onValueChange = viewModel::onDaysChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(daysRequester),
-                        label = { Text(stringResource(R.string.new_plant_days)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { focusManager.clearFocus() }
-                        )
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                if (!state.shareOnMural) {
-                                    showUsernameDialog = true
-                                } else {
-                                    viewModel.onShareOnMuralChange(false)
-                                }
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(
-                                imageVector = Icons.Rounded.Share,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column(modifier = Modifier.padding(start = 12.dp)) {
-                                Text(
-                                    text = "Compartilhar no Mural",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    text = "Outros usuários poderão ver e comentar",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = state.shareOnMural,
-                            onCheckedChange = null,
-                            modifier = Modifier
-                                .padding(start = 8.dp)
-                                .scale(0.7f)
-                        )
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { viewModel.onHydroponicChange(!state.isHydroponic) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(
-                                imageVector = Icons.Rounded.WaterDrop,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column(modifier = Modifier.padding(start = 12.dp)) {
-                                Text(
-                                    text = "Método Hidropônico",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    text = "Notificações de troca de solução",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = state.isHydroponic,
-                            onCheckedChange = { viewModel.onHydroponicChange(it) },
-                            modifier = Modifier
-                                .padding(start = 8.dp)
-                                .scale(0.7f)
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.new_plant_close),
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-            }
 
-            if (!state.error.isNullOrBlank()) {
-                Text(text = state.error ?: "", color = MaterialTheme.colorScheme.error)
-            }
+                PhotoPickerBox(photoUri = state.photoUri, onClick = { showSheet = true })
 
-            Button(
-                onClick = { viewModel.save(onSaved) },
-                enabled = !state.isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.new_plant_save))
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = viewModel::onNameChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.new_plant_name)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { strainRequester.requestFocus() }
+                    )
+                )
+
+                OutlinedTextField(
+                    value = state.strain,
+                    onValueChange = viewModel::onStrainChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(strainRequester),
+                    label = { Text(stringResource(R.string.new_plant_strain)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { mediumRequester.requestFocus() }
+                    )
+                )
+
+                Text(stringResource(R.string.new_plant_stage), style = MaterialTheme.typography.titleMedium)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PlantStage.entries.forEach { phase ->
+                        FilterChip(
+                            onClick = { viewModel.onStageChange(phase) },
+                            label = { Text(phase) },
+                            selected = state.stage == phase
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = state.medium,
+                    onValueChange = viewModel::onMediumChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(mediumRequester),
+                    label = { Text(stringResource(R.string.new_plant_medium)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(
+                        onNext = { daysRequester.requestFocus() }
+                    )
+                )
+
+                OutlinedTextField(
+                    value = state.days,
+                    onValueChange = viewModel::onDaysChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(daysRequester),
+                    label = { Text(stringResource(R.string.new_plant_days)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            if (!state.shareOnMural) {
+                                showUsernameDialog = true
+                            } else {
+                                viewModel.onShareOnMuralChange(false)
+                            }
+                        }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(
+                                text = "Compartilhar no Mural",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Outros usuários poderão ver e comentar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = state.shareOnMural,
+                        onCheckedChange = null,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .scale(0.7f)
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { viewModel.onHydroponicChange(!state.isHydroponic) }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(
+                            imageVector = Icons.Rounded.WaterDrop,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(
+                                text = "Método Hidropônico",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Notificações de troca de solução",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = state.isHydroponic,
+                        onCheckedChange = { viewModel.onHydroponicChange(it) },
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .scale(0.7f)
+                    )
+                }
+
+                if (!state.error.isNullOrBlank()) {
+                    Text(text = state.error ?: "", color = MaterialTheme.colorScheme.error)
+                }
+
+                Button(
+                    onClick = { viewModel.save(onSaved) },
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.new_plant_save))
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
