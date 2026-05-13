@@ -2,9 +2,12 @@ package com.daime.grow.ui.screen.home
 
 import android.media.MediaPlayer
 import android.util.Log
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,14 +23,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -38,19 +44,19 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -61,26 +67,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
+import com.daime.grow.domain.model.Plant
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PlantCard
 import com.daime.grow.ui.components.shimmerEffect
-import com.daime.grow.ui.theme.Poppins
+import com.daime.grow.ui.theme.GrowTheme
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 import dev.chrisbanes.haze.HazeState
@@ -103,14 +118,25 @@ fun HomeScreen(
     hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val searchFocusRequester = remember { FocusRequester() }
+    var isSearchExpanded by rememberSaveable { mutableStateOf(false) }
+    var ignoreNextOutsideTap by remember { mutableStateOf(false) }
+    val isSearchScrolled by remember {
+        derivedStateOf {
+            gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 24
+        }
+    }
+    val showCompactSearch = isSearchScrolled && !isSearchExpanded && state.query.isBlank()
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
     val columnsCount = if (isTablet) 4 else 2
+    val searchHorizontalPadding = if (isTablet) 32.dp else 16.dp
+    val expandedSearchWidth = (configuration.screenWidthDp.dp - (searchHorizontalPadding * 2)).coerceAtMost(600.dp)
 
     var hasPlayedSound by rememberSaveable { mutableStateOf(false) }
 
@@ -167,104 +193,62 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(isSearchExpanded) {
+        if (isSearchExpanded) {
+            searchFocusRequester.requestFocus()
+        }
+    }
+
+    LaunchedEffect(isSearchScrolled) {
+        if (!isSearchScrolled) {
+            isSearchExpanded = false
+        }
+    }
+
     Scaffold(
         modifier = Modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
             .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp)
-                            .then(if (isTablet) Modifier.widthIn(max = 600.dp) else Modifier),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    ) {
-                        OutlinedTextField(
-                            value = state.query,
-                            onValueChange = viewModel::onQueryChange,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.home_search_label), style = MaterialTheme.typography.bodyMedium) },
-                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                            textStyle = MaterialTheme.typography.bodyMedium,
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent
-                            )
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = state.isRefreshing,
-            onRefresh = viewModel::refresh,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnsCount),
-                state = gridState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = if (isTablet) 32.dp else 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(
-                    top = 8.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 64.dp
-                )
+            PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.fillMaxSize()
             ) {
-                item(span = { GridItemSpan(columnsCount) }) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.home_focus_title),
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontFamily = Poppins,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                )
-                            )
-                            Text(
-                                stringResource(R.string.home_focus_subtitle),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontFamily = Poppins
-                                )
-                            )
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(columnsCount),
+                    state = gridState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(isSearchScrolled, state.query.isBlank()) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Final)
+                                    if (event.changes.any { it.changedToUpIgnoreConsumed() }) {
+                                        if (ignoreNextOutsideTap) {
+                                            ignoreNextOutsideTap = false
+                                        } else {
+                                            focusManager.clearFocus()
+                                        }
+                                        if (isSearchScrolled && state.query.isBlank()) {
+                                            isSearchExpanded = false
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    }
-                }
-
-                item(span = { GridItemSpan(columnsCount) }) {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        PlantStage.filterEntries.forEach { phase ->
-                            FilterChip(
-                                onClick = { viewModel.onStageChange(phase) },
-                                label = { Text(phase) },
-                                selected = state.stageFilter == phase
-                            )
-                        }
-                    }
-                }
-
+                        .padding(horizontal = searchHorizontalPadding),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(
+                        top = if (showCompactSearch) 64.dp else 96.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 64.dp
+                    )
+                ) {
                 item(span = { GridItemSpan(columnsCount) }) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -422,6 +406,31 @@ fun HomeScreen(
                     )
                 }
             }
+                }
+            }
+
+            HomeSearchAndStageFilters(
+                query = state.query,
+                onQueryChange = viewModel::onQueryChange,
+                isCompact = showCompactSearch,
+                expandedWidth = expandedSearchWidth,
+                selectedStage = state.stageFilter,
+                onStageChange = viewModel::onStageChange,
+                focusRequester = searchFocusRequester,
+                onCompactClick = {
+                    ignoreNextOutsideTap = true
+                    isSearchExpanded = true
+                },
+                onFocusChanged = { isFocused ->
+                    isSearchExpanded = isFocused || !isSearchScrolled || state.query.isNotBlank()
+                },
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .offset(y = (-6).dp)
+                    .padding(horizontal = searchHorizontalPadding)
+                    .align(Alignment.TopStart)
+                    .zIndex(10f)
+            )
         }
     }
 
@@ -446,6 +455,191 @@ fun HomeScreen(
                     }
                 }
             )
+        }
+    }
+
+@Composable
+private fun HomeSearchAndStageFilters(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    isCompact: Boolean,
+    expandedWidth: Dp,
+    selectedStage: String,
+    onStageChange: (String) -> Unit,
+    focusRequester: FocusRequester? = null,
+    onCompactClick: () -> Unit = {},
+    onFocusChanged: (Boolean) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    if (isCompact) {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            HomeSearchField(
+                query = query,
+                onQueryChange = onQueryChange,
+                isCompact = true,
+                expandedWidth = expandedWidth,
+                focusRequester = focusRequester,
+                onCompactClick = onCompactClick,
+                onFocusChanged = onFocusChanged
+            )
+            HomeStageFilterChips(
+                selectedStage = selectedStage,
+                onStageChange = onStageChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp, top = 2.dp)
+            )
+        }
+    } else {
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            HomeSearchField(
+                query = query,
+                onQueryChange = onQueryChange,
+                isCompact = false,
+                expandedWidth = expandedWidth,
+                focusRequester = focusRequester,
+                onCompactClick = onCompactClick,
+                onFocusChanged = onFocusChanged
+            )
+            HomeStageFilterChips(
+                selectedStage = selectedStage,
+                onStageChange = onStageChange,
+                modifier = Modifier.width(expandedWidth)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun HomeStageFilterChips(
+    selectedStage: String,
+    onStageChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        FlowRow(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            PlantStage.filterEntries.forEach { phase ->
+                val isSelected = selectedStage == phase
+                FilterChip(
+                    onClick = { onStageChange(phase) },
+                    label = {
+                        Text(
+                            text = phase,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    selected = isSelected,
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        labelColor = MaterialTheme.colorScheme.onSurface,
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.height(30.dp),
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    isCompact: Boolean,
+    expandedWidth: Dp,
+    focusRequester: FocusRequester? = null,
+    onCompactClick: () -> Unit = {},
+    onFocusChanged: (Boolean) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val fieldWidth by animateDpAsState(
+        targetValue = if (isCompact) 48.dp else expandedWidth,
+        label = "home-search-width"
+    )
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = RoundedCornerShape(if (isCompact) 16.dp else 14.dp)
+    val showTextContent = fieldWidth > 56.dp
+
+    Surface(
+        modifier = modifier
+            .width(fieldWidth)
+            .height(48.dp)
+            .clip(shape)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
+                shape = shape
+            ),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
+        tonalElevation = if (isCompact) 4.dp else 2.dp,
+        shadowElevation = if (isCompact) 3.dp else 1.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .padding(end = if (showTextContent) 16.dp else 0.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .then(if (isCompact) Modifier.clickable(onClick = onCompactClick) else Modifier),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Outlined.Search,
+                    contentDescription = if (isCompact) stringResource(R.string.home_search_label) else null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            if (showTextContent) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (query.isEmpty()) {
+                        Text(
+                            stringResource(R.string.home_search_label),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    BasicTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                            .onFocusChanged { onFocusChanged(it.isFocused) },
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        singleLine = true,
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                    )
+                }
+            }
         }
     }
 }
@@ -566,6 +760,100 @@ fun AnimatedEmptyState(message: String, onAddPlant: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
         androidx.compose.material3.Button(onClick = onAddPlant) {
             Text("Adicionar Primeira Planta")
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun HomeScreenPreview() {
+    val now = System.currentTimeMillis()
+    val plants = listOf(
+        Plant(
+            id = 1,
+            name = "Green Apple",
+            strain = "Hybrid",
+            stage = PlantStage.VEGETATIVE,
+            medium = "Solo organico",
+            days = 24,
+            photoUri = null,
+            nextWateringDate = now,
+            createdAt = now
+        ),
+        Plant(
+            id = 2,
+            name = "Purple Kush",
+            strain = "Indica",
+            stage = PlantStage.FLOWER,
+            medium = "Coco",
+            days = 51,
+            photoUri = null,
+            nextWateringDate = now + 86_400_000,
+            createdAt = now
+        ),
+        Plant(
+            id = 3,
+            name = "Lemon Haze",
+            strain = "Sativa",
+            stage = PlantStage.SEEDLING,
+            medium = "Perlita",
+            days = 8,
+            photoUri = null,
+            nextWateringDate = null,
+            createdAt = now
+        )
+    )
+
+    GrowTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 96.dp, bottom = 96.dp)
+            ) {
+                item(span = { GridItemSpan(2) }) {
+                    FilterChip(
+                        onClick = {},
+                        selected = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.KeyboardArrowUp,
+                                contentDescription = null
+                            )
+                        },
+                        label = { Text("Mais antigas") }
+                    )
+                }
+                itemsIndexed(plants, key = { _, plant -> plant.id }) { _, plant ->
+                    PlantCard(
+                        plant = plant,
+                        onClick = {},
+                        onDeleteClick = {}
+                    )
+                }
+            }
+
+            HomeSearchAndStageFilters(
+                query = "",
+                onQueryChange = {},
+                isCompact = false,
+                expandedWidth = 358.dp,
+                selectedStage = PlantStage.ALL,
+                onStageChange = {},
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .offset(y = (-6).dp)
+                    .padding(horizontal = 16.dp)
+                    .align(Alignment.TopStart)
+            )
         }
     }
 }
