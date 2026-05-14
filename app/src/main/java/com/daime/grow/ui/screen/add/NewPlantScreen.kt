@@ -64,9 +64,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +77,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -108,9 +114,15 @@ fun NewPlantScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
     val strainRequester = remember { FocusRequester() }
     val mediumRequester = remember { FocusRequester() }
     val daysRequester = remember { FocusRequester() }
+    var columnRootY by remember { mutableIntStateOf(0) }
+    var strainFieldY by remember { mutableIntStateOf(0) }
+    var mediumFieldY by remember { mutableIntStateOf(0) }
+    var daysFieldY by remember { mutableIntStateOf(0) }
 
     var showSheet by remember { mutableStateOf(false) }
     var showUsernameDialog by remember { mutableStateOf(false) }
@@ -177,7 +189,8 @@ fun NewPlantScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                    .onGloballyPositioned { columnRootY = it.boundsInRoot().top.roundToInt() }
+                    .verticalScroll(scrollState)
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -215,7 +228,10 @@ fun NewPlantScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
-                        onNext = { strainRequester.requestFocus() }
+                        onNext = {
+                            strainRequester.requestFocus()
+                            scope.launch { scrollState.animateScrollTo(strainFieldY) }
+                        }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -229,12 +245,16 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(strainRequester)
+                        .onGloballyPositioned { strainFieldY = (it.boundsInRoot().top - columnRootY + scrollState.value).roundToInt() }
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_strain)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
-                        onNext = { mediumRequester.requestFocus() }
+                        onNext = {
+                            mediumRequester.requestFocus()
+                            scope.launch { scrollState.animateScrollTo(mediumFieldY) }
+                        }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -274,12 +294,16 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(mediumRequester)
+                        .onGloballyPositioned { mediumFieldY = (it.boundsInRoot().top - columnRootY + scrollState.value).roundToInt() }
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_medium)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
-                        onNext = { daysRequester.requestFocus() }
+                        onNext = {
+                            daysRequester.requestFocus()
+                            scope.launch { scrollState.animateScrollTo(daysFieldY) }
+                        }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -293,6 +317,7 @@ fun NewPlantScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(daysRequester)
+                        .onGloballyPositioned { daysFieldY = (it.boundsInRoot().top - columnRootY + scrollState.value).roundToInt() }
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = OutlinedTextFieldDefaults.shape),
                     label = { Text(stringResource(R.string.new_plant_days)) },
                     singleLine = true,

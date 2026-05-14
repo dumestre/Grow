@@ -1,19 +1,14 @@
 package com.daime.grow.ui.components
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -72,15 +67,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -185,7 +184,8 @@ fun GrowBottomNavigationBar(
     hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
-    var isExpanded by remember { mutableStateOf(false) }
+    var isDragActive by remember { mutableStateOf(false) }
+    var expandProgress by remember { mutableFloatStateOf(0f) }
 
     Box(modifier = modifier) {
         Column(
@@ -239,34 +239,47 @@ fun GrowBottomNavigationBar(
                             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                         )
                         .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                        .animateContentSize(
-                            animationSpec = tween(durationMillis = 10)
-                        )
                 ) {
-                    val dragState = rememberDraggableState { delta: Float ->
-                        if (delta < -10f) isExpanded = true
-                        else if (delta > 10f) isExpanded = false
-                    }
+                    val density = LocalDensity.current
+                    val totalExpandDistancePx = with(density) { 252.dp.toPx() }
+
+                    val animatedExpandProgress by animateFloatAsState(
+                        targetValue = expandProgress,
+                        animationSpec = if (isDragActive) snap() else tween(durationMillis = 300),
+                        label = "expandProgress"
+                    )
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(22.dp)
-                            .draggable(
-                                state = dragState,
-                                orientation = Orientation.Vertical
-                            )
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures(
+                                    onDragStart = { isDragActive = true },
+                                    onDragEnd = {
+                                        isDragActive = false
+                                        expandProgress = if (expandProgress > 0.5f) 1f else 0f
+                                    },
+                                    onDragCancel = {
+                                        isDragActive = false
+                                        expandProgress = if (expandProgress > 0.5f) 1f else 0f
+                                    },
+                                    onVerticalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        expandProgress = (expandProgress - dragAmount / totalExpandDistancePx).coerceIn(0f, 1f)
+                                    }
+                                )
+                            }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
                                 onClick = {
-                                    isExpanded = !isExpanded
+                                    expandProgress = if (animatedExpandProgress > 0.5f) 0f else 1f
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Barra visual para indicar arrasto
                         Box(
                             modifier = Modifier
                                 .width(40.dp)
@@ -278,56 +291,13 @@ fun GrowBottomNavigationBar(
                         )
                     }
 
-                    AnimatedContent(
-                        targetState = isExpanded,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(durationMillis = 40))
-                                .togetherWith(fadeOut(animationSpec = tween(durationMillis = 40)))
-                                .using(SizeTransform(clip = false))
-                        },
-                        label = "BottomBarExpansion"
-                    ) { expanded ->
-                        if (expanded) {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp)
-                                    .padding(horizontal = 8.dp, vertical = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                val itemsCount = BottomNavItem.entries.size
-                                val rows = (itemsCount + 3) / 4
-
-                                items(rows) { rowIndex ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceEvenly,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        repeat(4) { colIndex ->
-                                            val itemIndex = rowIndex * 4 + colIndex
-                                            if (itemIndex < itemsCount) {
-                                                val item = BottomNavItem.entries[itemIndex]
-                                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
-                                                NavIconItem(
-                                                    item = item,
-                                                    currentRoute = currentRoute,
-                                                    onNavigate = {
-                                                        onNavigate(it)
-                                                        isExpanded = false
-                                                    },
-                                                    maskHomeIcon = maskHomeIcon,
-                                                    badgeCount = badgeCount,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                            } else {
-                                                Spacer(modifier = Modifier.weight(1f))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp + (252.dp * animatedExpandProgress))
+                            .clipToBounds()
+                    ) {
+                        if (animatedExpandProgress < 0.5f) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -384,6 +354,45 @@ fun GrowBottomNavigationBar(
                                         )
                                     } else {
                                         Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                val itemsCount = BottomNavItem.entries.size
+                                val rows = (itemsCount + 3) / 4
+
+                                items(rows) { rowIndex ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        repeat(4) { colIndex ->
+                                            val itemIndex = rowIndex * 4 + colIndex
+                                            if (itemIndex < itemsCount) {
+                                                val item = BottomNavItem.entries[itemIndex]
+                                                val badgeCount = if (item == BottomNavItem.Notifications) notificationBadgeCount else 0
+                                                NavIconItem(
+                                                    item = item,
+                                                    currentRoute = currentRoute,
+                                                    onNavigate = {
+                                                        onNavigate(it)
+                                                        expandProgress = 0f
+                                                    },
+                                                    maskHomeIcon = maskHomeIcon,
+                                                    badgeCount = badgeCount,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            } else {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
+                                        }
                                     }
                                 }
                             }
