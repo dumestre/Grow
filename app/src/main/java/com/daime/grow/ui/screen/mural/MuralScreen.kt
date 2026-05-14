@@ -43,7 +43,7 @@ import com.daime.grow.data.local.dao.MuralPostWithPlant
 import com.daime.grow.ui.viewmodel.MuralEvent
 import com.daime.grow.ui.viewmodel.MuralViewModel
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,8 +70,7 @@ fun MuralScreen(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = {

@@ -39,7 +39,7 @@ import com.daime.grow.data.local.entity.HarvestBatchEntity
 import com.daime.grow.ui.viewmodel.HarvestBatchWithPhoto
 import com.daime.grow.ui.viewmodel.PosColhetaViewModel
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -63,7 +63,6 @@ fun PosColhetaScreen(
             .fillMaxSize()
             .padding(top = innerPadding.calculateTopPadding())
             .background(MaterialTheme.colorScheme.background) // Adicionado para garantir uniformidade do Haze
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
     ) {
         SecondaryTabRow(
             selectedTabIndex = pagerState.currentPage,

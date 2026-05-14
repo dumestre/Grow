@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
 
 
 data class TipCategory(
@@ -299,7 +299,7 @@ fun GrowTipsScreen(
     val horizontalPadding = if (isTablet) 32.dp else 20.dp
 
     Scaffold(
-        modifier = Modifier.then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
+        modifier = Modifier,
         topBar = {
             TopAppBar(
                 title = { },

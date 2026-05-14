@@ -2,8 +2,13 @@ package com.daime.grow.ui.screen.home
 
 import android.media.MediaPlayer
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -86,17 +92,23 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.Plant
+import kotlinx.coroutines.launch
 import com.daime.grow.domain.model.PlantStage
 import com.daime.grow.ui.components.PlantCard
 import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.ui.theme.GrowTheme
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.daime.grow.ui.components.AppContentHazeKey
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalHazeApi::class)
 @Composable
 fun HomeScreen(
     innerPadding: PaddingValues,
@@ -111,6 +123,8 @@ fun HomeScreen(
     externalTrashBounds: Rect? = null,
     hazeState: HazeState? = null
 ) {
+    val scope = rememberCoroutineScope()
+    val searchHazeState = rememberHazeState()
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
@@ -178,15 +192,17 @@ fun HomeScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
-    ) { padding ->
+    Scaffold { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(state = searchHazeState, key = AppContentHazeKey)
+            ) {
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
@@ -350,6 +366,7 @@ fun HomeScreen(
             }
                 }
             }
+            }
 
             HomeSearchAndStageFilters(
                 query = state.query,
@@ -358,11 +375,41 @@ fun HomeScreen(
                 onStageChange = viewModel::onStageChange,
                 sortAscending = state.sortAscending,
                 onToggleSort = viewModel::toggleSort,
+                hazeState = searchHazeState,
                 modifier = Modifier
                     .offset(y = 8.dp)
                     .align(Alignment.TopStart)
                     .zIndex(10f)
             )
+
+            val isNotAtTop by remember {
+                derivedStateOf {
+                    gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0
+                }
+            }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isNotAtTop && !isDragging,
+                enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it },
+                exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 96.dp)
+                    .zIndex(20f)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.KeyboardArrowUp,
+                    contentDescription = "Voltar ao topo",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clickable {
+                            scope.launch { gridState.animateScrollToItem(0) }
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        .padding(8.dp)
+                )
+            }
         }
     }
 
@@ -390,6 +437,7 @@ fun HomeScreen(
         }
     }
 
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 private fun HomeSearchAndStageFilters(
     query: String,
@@ -398,13 +446,33 @@ private fun HomeSearchAndStageFilters(
     onStageChange: (String) -> Unit,
     sortAscending: Boolean,
     onToggleSort: () -> Unit,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(16.dp))
+                .then(
+                    if (hazeState != null) {
+                        Modifier.hazeEffect(state = hazeState) {
+                            canDrawArea = { area -> area.key == AppContentHazeKey }
+                            forceInvalidateOnPreDraw = true
+                            blurEffect { blurRadius = 24.dp }
+                        }
+                    } else {
+                        Modifier.background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+                            RoundedCornerShape(16.dp)
+                        )
+                    }
+                )
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -769,6 +837,7 @@ private fun HomeScreenPreview() {
                     onStageChange = {},
                     sortAscending = true,
                     onToggleSort = {},
+                    hazeState = null,
                     modifier = Modifier
                         .offset(y = 8.dp)
                         .align(Alignment.TopStart)

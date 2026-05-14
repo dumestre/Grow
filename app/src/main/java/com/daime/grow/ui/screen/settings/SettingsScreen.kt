@@ -68,7 +68,7 @@ import com.daime.grow.domain.model.DarkThemeMode
 import com.daime.grow.domain.model.SecurityPreferences
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,8 +193,7 @@ confirmButton = {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },

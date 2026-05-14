@@ -35,7 +35,7 @@ import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.viewmodel.MuralEvent
 import com.daime.grow.ui.viewmodel.MuralViewModel
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,8 +70,7 @@ fun MuralPostScreen(
 
     Scaffold(
         modifier = Modifier
-            .fillMaxSize()
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier),
+            .fillMaxSize(),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
