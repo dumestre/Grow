@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.daime.grow.domain.model.LightSource
+import com.daime.grow.ui.util.DeviceUtils
 import dev.chrisbanes.haze.HazeState
 
 import kotlinx.coroutines.launch
@@ -238,7 +239,13 @@ private fun DynamicBackground(color: Color, ppfd: Double) {
                     radius = 1200f
                 )
             )
-            .blur(100.dp)
+            .then(
+                if (DeviceUtils.supportsBlurEffects) {
+                    Modifier.blur(100.dp)
+                } else {
+                    Modifier
+                }
+            )
     )
 }
 

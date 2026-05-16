@@ -236,9 +236,9 @@ class GrowRepositoryImpl @Inject constructor(
             if (photoUri != null && !photoUri.startsWith("http")) {
                 val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
                 if (bytes != null) {
-                    val fileName = "plant_$localId.webp"
+                    val fileName = "$userUuid/plant_$localId.webp"
                     val bucket = supabase.storage.from("plant-photos")
-                    bucket.upload(fileName, bytes)
+                    bucket.upload(fileName, bytes) { upsert = true }
                     remotePhotoUrl = bucket.publicUrl(fileName)
                 }
             } else if (photoUri?.startsWith("http") == true) {
@@ -287,9 +287,9 @@ class GrowRepositoryImpl @Inject constructor(
             if (photoUri != null && !photoUri.startsWith("http")) {
                 val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(photoUri))
                 if (bytes != null) {
-                    val fileName = "plant_${UUID.randomUUID()}.webp"
+                    val fileName = "$userUuid/plant_${UUID.randomUUID()}.webp"
                     val bucket = supabase.storage.from("plant-photos")
-                    bucket.upload(fileName, bytes)
+                    bucket.upload(fileName, bytes) { upsert = true }
                     remotePhotoUrl = bucket.publicUrl(fileName)
                 }
             } else {
@@ -663,9 +663,9 @@ private fun getDeviceUserId(): String {
                         if (plant.photoUri != null && !plant.photoUri.startsWith("http")) {
                             val bytes = ImageUtils.compressImageToWebP(appContext, Uri.parse(plant.photoUri))
                             if (bytes != null) {
-                                val fileName = "plant_${plant.id}.webp"
+                                val fileName = "$userUuid/plant_${plant.id}.webp"
                                 val bucket = supabase.storage.from("plant-photos")
-                                bucket.upload(fileName, bytes)
+                                bucket.upload(fileName, bytes) { upsert = true }
                                 remotePhotoUrl = bucket.publicUrl(fileName)
                             }
                         } else if (plant.photoUri?.startsWith("http") == true) {

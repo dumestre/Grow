@@ -28,15 +28,6 @@ class AndroidSessionManager(context: Context) : SessionManager {
         return json.decodeFromString(sessionStr)
     }
 
-    override suspend fun loadSessionOrNull(): UserSession? {
-        val sessionStr = prefs.getString(key, null) ?: return null
-        return try {
-            json.decodeFromString<UserSession>(sessionStr)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     override suspend fun deleteSession() {
         prefs.edit().remove(key).apply()
     }

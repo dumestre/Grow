@@ -17,6 +17,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 
+import com.daime.grow.ui.util.DeviceUtils
+
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
@@ -32,17 +34,23 @@ fun GlassCard(
             modifier = Modifier
                 .matchParentSize()
                 .then(
-                    if (hazeState != null) {
+                    if (hazeState != null && DeviceUtils.supportsBlurEffects) {
                         Modifier.hazeEffect(state = hazeState) {
                             blurEffect {
                                 blurRadius = 24.dp
                             }
                         }
                     } else {
-                        Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+                        Modifier.background(MaterialTheme.colorScheme.surface)
                     }
                 )
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)) // Camada de cor base
+                .background(
+                    if (DeviceUtils.supportsBlurEffects) {
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
+                    } else {
+                        Color.Transparent
+                    }
+                ) // Camada de cor base
         )
 
         // Camada de Borda e Brilho (Separada para não afetar o conteúdo)

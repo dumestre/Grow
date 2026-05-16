@@ -2,13 +2,8 @@ package com.daime.grow.ui.screen.home
 
 import android.media.MediaPlayer
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -35,13 +29,11 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Eco
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,13 +54,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -92,11 +87,12 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daime.grow.R
 import com.daime.grow.domain.model.Plant
-import kotlinx.coroutines.launch
 import com.daime.grow.domain.model.PlantStage
+import com.daime.grow.ui.components.AppContentHazeKey
 import com.daime.grow.ui.components.PlantCard
 import com.daime.grow.ui.components.shimmerEffect
 import com.daime.grow.ui.theme.GrowTheme
+import com.daime.grow.ui.util.DeviceUtils
 import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -105,7 +101,7 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.daime.grow.ui.components.AppContentHazeKey
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalHazeApi::class)
@@ -124,7 +120,6 @@ fun HomeScreen(
     hazeState: HazeState? = null
 ) {
     val scope = rememberCoroutineScope()
-    val searchHazeState = rememberHazeState()
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
@@ -137,6 +132,9 @@ fun HomeScreen(
     val searchHorizontalPadding = if (isTablet) 32.dp else 16.dp
     val expandedSearchWidth = (configuration.screenWidthDp.dp - (searchHorizontalPadding * 2)).coerceAtMost(600.dp)
 
+    // Estado local de Haze para evitar feedback loop com o root
+    val internalHazeState = rememberHazeState()
+
     var hasPlayedSound by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state.plants) {
@@ -146,7 +144,7 @@ fun HomeScreen(
         }
     }
 
-    var plantPendingDelete by remember { mutableStateOf<com.daime.grow.domain.model.Plant?>(null) }
+    var plantPendingDelete by remember { mutableStateOf<Plant?>(null) }
     var orderedPlants by remember { mutableStateOf(state.plants) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dropIndex by remember { mutableStateOf<Int?>(null) }
@@ -165,7 +163,7 @@ fun HomeScreen(
     }
 
     val isOverTrash by remember(isDragging, externalTrashBounds) {
-        androidx.compose.runtime.derivedStateOf {
+        derivedStateOf {
             val bounds = draggedCardBounds
             isDragging &&
             bounds != null &&
@@ -198,15 +196,19 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(state = searchHazeState, key = AppContentHazeKey)
-            ) {
+            // 1. CONTEÚDO (O que será borrado)
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (DeviceUtils.supportsBlurEffects) {
+                            Modifier.hazeSource(state = internalHazeState, key = AppContentHazeKey)
+                        } else {
+                            Modifier
+                        }
+                    )
             ) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columnsCount),
@@ -231,153 +233,150 @@ fun HomeScreen(
                         bottom = innerPadding.calculateBottomPadding() + 64.dp
                     )
                 ) {
-
-                val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
-                    val from = draggedIndex ?: -1
-                    val to = dropIndex ?: -1
-                    if (from != -1 && to != -1) {
-                        orderedPlants.toMutableList().apply {
-                            val dragged = removeAt(from)
-                            add(to, dragged)
-                        }
-                    } else orderedPlants
-                } else {
-                    orderedPlants
-                }
-
-                if (state.isLoading) {
-                    items(if (isTablet) 8 else 6) {
-                        HomePlantCardPlaceholder()
-                    }
-                } else if (previewPlants.isEmpty()) {
-                    item(span = { GridItemSpan(columnsCount) }) {
-                        AnimatedEmptyState(
-                            message = stringResource(R.string.home_empty_state),
-                            onAddPlant = onAddPlant
-                        )
-                    }
-                } else {
-                    itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
-                    val isDraggedItem = plant.id == draggedPlantId
-                    val fromIndex = draggedIndex
-                    val toIndex = dropIndex
-                    val dragCompensation = if (isDragging && isDraggedItem && fromIndex != null && toIndex != null) {
-                        val fromCol = fromIndex % columnsCount
-                        val toCol = toIndex % columnsCount
-                        val fromRow = fromIndex / columnsCount
-                        val toRow = toIndex / columnsCount
-                        IntOffset(
-                            x = ((toCol - fromCol) * reorderStepXPx).roundToInt(),
-                            y = ((toRow - fromRow) * reorderStepYPx).roundToInt()
-                        )
+                    val previewPlants = if (isDragging && draggedIndex != null && dropIndex != null) {
+                        val from = draggedIndex ?: -1
+                        val to = dropIndex ?: -1
+                        if (from != -1 && to != -1) {
+                            orderedPlants.toMutableList().apply {
+                                val dragged = removeAt(from)
+                                add(to, dragged)
+                            }
+                        } else orderedPlants
                     } else {
-                        IntOffset.Zero
+                        orderedPlants
                     }
 
-                    PlantCard(
-                        plant = plant,
-                        onClick = { onOpenDetails(plant.id) },
-                        onDeleteClick = { plantPendingDelete = plant },
-                        isEditing = isDragging,
-                        isShaking = isDragging && isDraggedItem,
-                        isSelected = isDraggedItem,
-                        isDropTarget = isDragging && !isDraggedItem && dropIndex == index,
-                        modifier = Modifier
-                            .animateItem()
-                            .then(
-                                if (isDragging && isDraggedItem) {
-                                    Modifier.offset {
-                                        IntOffset(
-                                            x = dragOffsetX.roundToInt() - dragCompensation.x,
-                                            y = dragOffsetY.roundToInt() - dragCompensation.y
+                    if (state.isLoading) {
+                        items(if (isTablet) 8 else 6) {
+                            HomePlantCardPlaceholder()
+                        }
+                    } else if (previewPlants.isEmpty()) {
+                        item(span = { GridItemSpan(columnsCount) }) {
+                            AnimatedEmptyState(
+                                message = stringResource(R.string.home_empty_state),
+                                onAddPlant = onAddPlant
+                            )
+                        }
+                    } else {
+                        itemsIndexed(previewPlants, key = { _, plant -> plant.id }) { index, plant ->
+                            val isDraggedItem = plant.id == draggedPlantId
+                            val fromIndex = draggedIndex
+                            val toIndex = dropIndex
+                            val dragCompensation = if (isDragging && isDraggedItem && fromIndex != null && toIndex != null) {
+                                val fromCol = fromIndex % columnsCount
+                                val toCol = toIndex % columnsCount
+                                val fromRow = fromIndex / columnsCount
+                                val toRow = toIndex / columnsCount
+                                IntOffset(
+                                    x = ((toCol - fromCol) * reorderStepXPx).roundToInt(),
+                                    y = ((toRow - fromRow) * reorderStepYPx).roundToInt()
+                                )
+                            } else {
+                                IntOffset.Zero
+                            }
+
+                            PlantCard(
+                                plant = plant,
+                                onClick = { onOpenDetails(plant.id) },
+                                onDeleteClick = { plantPendingDelete = plant },
+                                isEditing = isDragging,
+                                isShaking = isDragging && isDraggedItem,
+                                isSelected = isDraggedItem,
+                                isDropTarget = isDragging && !isDraggedItem && dropIndex == index,
+                                modifier = Modifier
+                                    .animateItem()
+                                    .then(
+                                        if (isDragging && isDraggedItem) {
+                                            Modifier.offset {
+                                                IntOffset(
+                                                    x = dragOffsetX.roundToInt() - dragCompensation.x,
+                                                    y = dragOffsetY.roundToInt() - dragCompensation.y
+                                                )
+                                            }
+                                                .graphicsLayer {
+                                                    scaleX = draggedScale
+                                                    scaleY = draggedScale
+                                                }
+                                                .zIndex(100f)
+                                                .onGloballyPositioned { coordinates ->
+                                                    draggedCardBounds = coordinates.boundsInRoot()
+                                                }
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .pointerInput(plant.id) {
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = {
+                                                val currentIndex = orderedPlants.indexOfFirst { it.id == plant.id }
+                                                if (currentIndex == -1) return@detectDragGesturesAfterLongPress
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                draggedIndex = currentIndex
+                                                dropIndex = currentIndex
+                                                draggedPlantId = plant.id
+                                                dragOffsetX = 0f
+                                                dragOffsetY = 0f
+                                            },
+                                            onDragEnd = {
+                                                val draggedId = draggedPlantId
+                                                val from = draggedIndex
+                                                val to = dropIndex
+                                                if (isOverTrash && draggedId != null) {
+                                                    viewModel.deletePlantImmediately(draggedId)
+                                                    orderedPlants = orderedPlants.filterNot { it.id == draggedId }
+                                                } else if (from != null && to != null && from != to) {
+                                                    orderedPlants = orderedPlants.toMutableList().apply {
+                                                        val moved = removeAt(from)
+                                                        add(to, moved)
+                                                    }
+                                                }
+                                                if (orderedPlants.isNotEmpty()) {
+                                                    viewModel.updatePlantsOrder(orderedPlants.map { it.id })
+                                                }
+                                                draggedIndex = null
+                                                dropIndex = null
+                                                draggedPlantId = null
+                                                dragOffsetX = 0f
+                                                dragOffsetY = 0f
+                                                draggedCardBounds = null
+                                            },
+                                            onDragCancel = {
+                                                draggedIndex = null
+                                                dropIndex = null
+                                                draggedPlantId = null
+                                                dragOffsetX = 0f
+                                                dragOffsetY = 0f
+                                                draggedCardBounds = null
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                if (orderedPlants.isEmpty()) return@detectDragGesturesAfterLongPress
+                                                change.consume()
+                                                val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                                dragOffsetX += dragAmount.x
+                                                dragOffsetY += dragAmount.y
+
+                                                val colShift = (dragOffsetX / reorderStepXPx).roundToInt()
+                                                val rowShift = (dragOffsetY / reorderStepYPx).roundToInt()
+                                                val target = (from + colShift + (rowShift * columnsCount)).coerceIn(0, orderedPlants.lastIndex)
+                                                dropIndex = target
+                                            }
                                         )
                                     }
-                                        .graphicsLayer {
-                                            scaleX = draggedScale
-                                            scaleY = draggedScale
-                                        }
-                                        .zIndex(100f)
-                                        .onGloballyPositioned { coordinates ->
-                                            draggedCardBounds = coordinates.boundsInRoot()
-                                        }
-                                } else {
-                                    Modifier
-                                }
                             )
-                            .pointerInput(plant.id) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        val currentIndex = orderedPlants.indexOfFirst { it.id == plant.id }
-                                        if (currentIndex == -1) return@detectDragGesturesAfterLongPress
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        draggedIndex = currentIndex
-                                        dropIndex = currentIndex
-                                        draggedPlantId = plant.id
-                                        dragOffsetX = 0f
-                                        dragOffsetY = 0f
-                                    },
-                                    onDragEnd = {
-                                        val draggedId = draggedPlantId
-                                        val from = draggedIndex
-                                        val to = dropIndex
-                                        if (isOverTrash && draggedId != null) {
-                                            viewModel.deletePlantImmediately(draggedId)
-                                            orderedPlants = orderedPlants.filterNot { it.id == draggedId }
-                                        } else if (from != null && to != null && from != to) {
-                                            orderedPlants = orderedPlants.toMutableList().apply {
-                                                val moved = removeAt(from)
-                                                add(to, moved)
-                                            }
-                                        }
-                                        if (orderedPlants.isNotEmpty()) {
-                                            viewModel.updatePlantsOrder(orderedPlants.map { it.id })
-                                        }
-                                        draggedIndex = null
-                                        dropIndex = null
-                                        draggedPlantId = null
-                                        dragOffsetX = 0f
-                                        dragOffsetY = 0f
-                                        draggedCardBounds = null
-                                    },
-                                    onDragCancel = {
-                                        draggedIndex = null
-                                        dropIndex = null
-                                        draggedPlantId = null
-                                        dragOffsetX = 0f
-                                        dragOffsetY = 0f
-                                        draggedCardBounds = null
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        if (orderedPlants.isEmpty()) return@detectDragGesturesAfterLongPress
-                                        change.consume()
-                                        val from = draggedIndex ?: return@detectDragGesturesAfterLongPress
-                                        dragOffsetX += dragAmount.x
-                                        dragOffsetY += dragAmount.y
-
-                                        val colShift = (dragOffsetX / reorderStepXPx).roundToInt()
-                                        val rowShift = (dragOffsetY / reorderStepYPx).roundToInt()
-                                        val target = (from + colShift + (rowShift * columnsCount)).coerceIn(0, orderedPlants.lastIndex)
-                                        dropIndex = target
-                                    }
-                                )
-                            }
-                    )
+                        }
+                    }
                 }
             }
-                }
-            }
-            }
 
-            HomeSearchAndStageFilters(
+            HomeTopBar(
                 query = state.query,
                 onQueryChange = viewModel::onQueryChange,
                 selectedStage = state.stageFilter,
                 onStageChange = viewModel::onStageChange,
                 sortAscending = state.sortAscending,
                 onToggleSort = viewModel::toggleSort,
-                hazeState = searchHazeState,
+                hazeState = internalHazeState,
                 modifier = Modifier
-                    .offset(y = 8.dp)
                     .align(Alignment.TopStart)
                     .zIndex(10f)
             )
@@ -397,45 +396,57 @@ fun HomeScreen(
                     .padding(bottom = 96.dp)
                     .zIndex(20f)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.KeyboardArrowUp,
-                    contentDescription = "Voltar ao topo",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clickable {
-                            scope.launch { gridState.animateScrollToItem(0) }
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                        .padding(8.dp)
-                )
+                Surface(
+                    onClick = {
+                        scope.launch { gridState.animateScrollToItem(0) }
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    },
+                    modifier = Modifier.size(48.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f), // Fundo mais leve e quase opaco
+                    tonalElevation = 2.dp,
+                    shadowElevation = 3.dp,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.KeyboardArrowUp,
+                            contentDescription = "Voltar ao topo",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
             }
         }
     }
 
     plantPendingDelete?.let { plant ->
-            AlertDialog(
-                onDismissRequest = { plantPendingDelete = null },
-                title = { Text(stringResource(R.string.home_delete_title)) },
-                text = { Text(stringResource(R.string.home_delete_text, plant.name)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.requestDelete(plant)
-                            plantPendingDelete = null
-                        }
-                    ) {
-                        Text(stringResource(R.string.home_delete_confirm), color = Color.Red)
+        AlertDialog(
+            onDismissRequest = { plantPendingDelete = null },
+            title = { Text(stringResource(R.string.home_delete_title)) },
+            text = { Text(stringResource(R.string.home_delete_text, plant.name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.requestDelete(plant)
+                        plantPendingDelete = null
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { plantPendingDelete = null }) {
-                        Text(stringResource(R.string.home_delete_cancel))
-                    }
+                ) {
+                    Text(stringResource(R.string.home_delete_confirm), color = Color.Red)
                 }
-            )
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { plantPendingDelete = null }) {
+                    Text(stringResource(R.string.home_delete_cancel))
+                }
+            }
+        )
     }
+}
 
 @OptIn(ExperimentalHazeApi::class)
 @Composable
@@ -449,6 +460,13 @@ private fun HomeSearchAndStageFilters(
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
+    // Usando fundo totalmente opaco no Android 15 para evitar crash de blending
+    val backgroundColor = if (DeviceUtils.supportsBlurEffects) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -458,20 +476,7 @@ private fun HomeSearchAndStageFilters(
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(16.dp))
-                .then(
-                    if (hazeState != null) {
-                        Modifier.hazeEffect(state = hazeState) {
-                            canDrawArea = { area -> area.key == AppContentHazeKey }
-                            forceInvalidateOnPreDraw = true
-                            blurEffect { blurRadius = 24.dp }
-                        }
-                    } else {
-                        Modifier.background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
-                            RoundedCornerShape(16.dp)
-                        )
-                    }
-                )
+                .background(backgroundColor)
         )
         Column(
             modifier = Modifier
@@ -483,12 +488,16 @@ private fun HomeSearchAndStageFilters(
                 query = query,
                 onQueryChange = onQueryChange,
             )
+            HomeStageFilterChips(
+                selectedStage = selectedStage,
+                onStageChange = onStageChange,
+            )
             FilterChip(
                 onClick = onToggleSort,
                 selected = true,
                 leadingIcon = {
                     Icon(
-                        imageVector = if (sortAscending) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        imageVector = if (sortAscending) Icons.Rounded.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                         contentDescription = null
                     )
                 },
@@ -514,10 +523,6 @@ private fun HomeSearchAndStageFilters(
                 ),
                 modifier = Modifier.height(30.dp),
                 shape = RoundedCornerShape(10.dp)
-            )
-            HomeStageFilterChips(
-                selectedStage = selectedStage,
-                onStageChange = onStageChange,
             )
         }
     }
@@ -814,7 +819,7 @@ private fun HomeScreenPreview() {
                             selected = true,
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Outlined.KeyboardArrowUp,
+                                    imageVector = Icons.Rounded.KeyboardArrowUp,
                                     contentDescription = null
                                 )
                             },

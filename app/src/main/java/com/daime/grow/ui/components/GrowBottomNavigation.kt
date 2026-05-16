@@ -8,7 +8,6 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -97,6 +96,7 @@ import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.R
 import com.daime.grow.ui.navigation.NavRoute
 import com.daime.grow.ui.theme.GrowTheme
+import com.daime.grow.ui.util.DeviceUtils
 
 enum class BottomNavItem(
     val route: String,
@@ -160,17 +160,6 @@ enum class BottomNavItem(
     )
 }
 
-private val tipsGridItems = listOf(
-    Triple("Estágios", Icons.Rounded.Spa, Color(0xFF4CAF50)),
-    Triple("Luz", Icons.Rounded.WbSunny, Color(0xFFFFB300)),
-    Triple("Nutrição", Icons.Rounded.Science, Color(0xFF9C27B0)),
-    Triple("Rega", Icons.Rounded.WaterDrop, Color(0xFF2196F3)),
-    Triple("Clima", Icons.Rounded.Thermostat, Color(0xFFFF5722)),
-    Triple("Treinos", Icons.Rounded.Construction, Color(0xFFE91E63)),
-    Triple("Colheita", Icons.Rounded.Agriculture, Color(0xFF795548)),
-    Triple("Pragas", Icons.Rounded.BugReport, Color(0xFFD32F2F))
-)
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
 fun GrowBottomNavigationBar(
@@ -200,23 +189,20 @@ fun GrowBottomNavigationBar(
                         .matchParentSize()
                         .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                         .then(
-                            if (hazeState != null) {
+                            if (hazeState != null && DeviceUtils.supportsBlurEffects) {
                                 Modifier.hazeEffect(state = hazeState) {
                                     canDrawArea = { area -> area.key == AppContentHazeKey }
-                                    forceInvalidateOnPreDraw = true
                                     blurEffect {
                                         blurRadius = 24.dp
                                     }
                                 }
                             } else {
-                                Modifier.background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                                        )
-                                    )
-                                )
+                                val backgroundColor = if (DeviceUtils.supportsBlurEffects) {
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                }
+                                Modifier.background(backgroundColor)
                             }
                         )
                 )

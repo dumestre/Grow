@@ -83,6 +83,8 @@ import com.daime.grow.ui.viewmodel.SettingsViewModel
 import com.daime.grow.ui.viewmodel.ViewModelFactories
 import kotlinx.coroutines.launch
 
+import com.daime.grow.ui.util.DeviceUtils
+
 @Composable
 fun GrowRoot(container: AppContainer) {
     val context = LocalContext.current
@@ -258,7 +260,13 @@ fun GrowRoot(container: AppContainer) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .hazeSource(state = hazeState, key = AppContentHazeKey)
+                        .then(
+                            if (DeviceUtils.supportsBlurEffects) {
+                                Modifier.hazeSource(state = hazeState, key = AppContentHazeKey)
+                            } else {
+                                Modifier
+                            }
+                        )
                 ) {
                     NavHost(
                         navController = navController,

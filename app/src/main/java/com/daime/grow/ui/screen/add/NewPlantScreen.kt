@@ -97,6 +97,7 @@ import dev.chrisbanes.haze.HazeState
 import com.daime.grow.ui.components.RoundedBackButton
 import com.daime.grow.ui.screen.mural.UsernameDialog
 import com.daime.grow.ui.viewmodel.AddPlantViewModel
+import dev.chrisbanes.haze.rememberHazeState
 import java.io.File
 import java.util.UUID
 
@@ -130,6 +131,9 @@ fun NewPlantScreen(
     var pendingCameraPhoto by remember { mutableStateOf<String?>(null) }
     var pendingCameraFile by remember { mutableStateOf<File?>(null) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Estado local para evitar feedback loop com o HazeState do Root
+    val internalHazeState = rememberHazeState()
 
     val pickMediaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -183,7 +187,7 @@ fun NewPlantScreen(
                 .fillMaxWidth()
                 .padding(top = 64.dp) // Espaço no topo para não cobrir tudo
                 .clickable(enabled = false) {}, // Evita fechar ao clicar dentro
-            hazeState = hazeState
+            hazeState = internalHazeState
         ) {
             Column(
                 modifier = Modifier
