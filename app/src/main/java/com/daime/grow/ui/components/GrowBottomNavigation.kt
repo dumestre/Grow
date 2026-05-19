@@ -184,28 +184,11 @@ fun GrowBottomNavigationBar(
         ) {
             Box {
                 // Camada de Fundo (Haze)
-                Box(
+                GlassCard(
                     modifier = Modifier
-                        .matchParentSize()
-                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                        .then(
-                            if (hazeState != null && DeviceUtils.supportsBlurEffects) {
-                                Modifier.hazeEffect(state = hazeState) {
-                                    canDrawArea = { area -> area.key == AppContentHazeKey }
-                                    blurEffect {
-                                        blurRadius = 24.dp
-                                    }
-                                }
-                            } else {
-                                val backgroundColor = if (DeviceUtils.supportsBlurEffects) {
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                                Modifier.background(backgroundColor)
-                            }
-                        )
-                )
+                        .matchParentSize(),
+                    hazeState = hazeState
+                ) { }
 
                 // Borda e Conteúdo
                 Column(

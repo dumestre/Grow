@@ -19,15 +19,18 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daime.grow.R
 import com.daime.grow.domain.model.PlantStage
+import com.daime.grow.ui.theme.GrowTheme
 import com.daime.grow.ui.util.DeviceUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import com.daime.grow.ui.components.AppContentHazeKey
+import com.daime.grow.ui.components.GlassCard
 
 @OptIn(ExperimentalHazeApi::class)
 @Composable
@@ -41,10 +44,10 @@ fun HomeTopBar(
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
-    // IMPORTANTE: Para evitar crashes e loops (feedback loop), agora usamos um HazeState local 
+    // IMPORTANTE: Para evitar crashes e loops (feedback loop), agora usamos um HazeState local
     // em vez do rootHazeState para componentes que estão dentro do hazeSource.
     // No Android 15, forçamos opacidade total para estabilidade
-    var backgroundColor = if (DeviceUtils.supportsBlurEffects) {
+    val backgroundColor = if (DeviceUtils.supportsBlurEffects) {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)
     } else {
         MaterialTheme.colorScheme.surface
@@ -54,78 +57,65 @@ fun HomeTopBar(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .border(
-                width = 0.5.dp,
-                color = Color(0xFFFF69B4).copy(alpha = 0.5f), // Rosa fino e suave
-                shape = RoundedCornerShape(16.dp)
-            )
-    ) {
-        // Camada de Fundo (Blur se suportado, caso contrário Sólido)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .then(
-                    if (hazeState != null && DeviceUtils.supportsBlurEffects) {
-                        Modifier.hazeEffect(state = hazeState) {
-                            canDrawArea = { area -> area.key == AppContentHazeKey }
-                            blurEffect {
-                                blurRadius = 20.dp
-                                noiseFactor = 0f
-                                backgroundColor = backgroundColor
-                            }
-                        }
-                    } else {
-                        Modifier.background(backgroundColor)
-                    }
-                )
-        )
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            HomeSearchField(
-                query = query,
-                onQueryChange = onQueryChange,
-            )
-            HomeStageFilterChips(
-                selectedStage = selectedStage,
-                onStageChange = onStageChange,
-            )
-            FilterChip(
-                onClick = onToggleSort,
-                selected = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = if (sortAscending) Icons.Rounded.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = null
-                    )
-                },
-                label = {
-                    Text(
-                        stringResource(
-                            if (sortAscending) R.string.home_sort_asc else R.string.home_sort_desc
-                        ),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    labelColor = MaterialTheme.colorScheme.primary,
-                    selectedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
+    ) {
+        Box {
+            // Camada de Fundo (Blur se suportado, caso contrário Sólido)
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .matchParentSize(),
+                hazeState = hazeState
+            ) {
+
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HomeSearchField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                )
+                HomeStageFilterChips(
+                    selectedStage = selectedStage,
+                    onStageChange = onStageChange,
+                )
+                FilterChip(
+                    onClick = onToggleSort,
                     selected = true,
-                    borderColor = MaterialTheme.colorScheme.primary,
-                    selectedBorderColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.height(30.dp),
-                shape = RoundedCornerShape(10.dp)
-            )
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (sortAscending) Icons.Rounded.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                            contentDescription = null
+                        )
+                    },
+                    label = {
+                        Text(
+                            stringResource(
+                                if (sortAscending) R.string.home_sort_asc else R.string.home_sort_desc
+                            ),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        labelColor = MaterialTheme.colorScheme.primary,
+                        selectedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = true,
+                        borderColor = MaterialTheme.colorScheme.primary,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.height(30.dp),
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
         }
     }
 }
@@ -235,5 +225,21 @@ private fun HomeSearchField(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HomeTopBarPreview() {
+    GrowTheme {
+        HomeTopBar(
+            query = "",
+            onQueryChange = {},
+            selectedStage = PlantStage.ALL,
+            onStageChange = {},
+            sortAscending = true,
+            onToggleSort = {},
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

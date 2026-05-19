@@ -45,6 +45,8 @@ import dev.chrisbanes.haze.HazeState
 import com.daime.grow.data.local.entity.NotificationEntity
 import com.daime.grow.data.local.entity.NotificationType
 import com.daime.grow.ui.viewmodel.NotificationViewModel
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.hazeEffect
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,7 +61,7 @@ fun NotificationSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -72,7 +74,9 @@ fun NotificationSheet(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                    )
             )
 
             Column(
@@ -85,7 +89,7 @@ fun NotificationSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp),
+                        .height(15.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
@@ -103,12 +107,12 @@ fun NotificationSheet(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(8.dp),
                     textAlign = TextAlign.Center
                 )
-                
+
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                
+
                 if (notifications.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -183,9 +187,9 @@ fun NotificationRow(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(12.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
             val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
             Text(
@@ -201,7 +205,7 @@ fun NotificationRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
-        
+
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Delete,
@@ -216,7 +220,7 @@ fun NotificationRow(
 private fun formatTime(timestamp: Long, locale: Locale): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
-    
+
     return when {
         diff < 60000 -> "agora mesmo"
         diff < 3600000 -> "há ${diff / 60000} min"

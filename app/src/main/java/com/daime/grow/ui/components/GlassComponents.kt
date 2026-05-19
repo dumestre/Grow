@@ -38,6 +38,7 @@ fun GlassCard(
                         Modifier.hazeEffect(state = hazeState) {
                             blurEffect {
                                 blurRadius = 24.dp
+                                noiseFactor = 0f
                             }
                         }
                     } else {
