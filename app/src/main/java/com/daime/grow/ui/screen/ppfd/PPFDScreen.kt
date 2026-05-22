@@ -55,6 +55,16 @@ fun PPFDScreen(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isTablet = configuration.smallestScreenWidthDp >= 600
 
+    val cameraPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.toggleMode()
+        }
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     // Sincroniza o pager com o ViewModel
     LaunchedEffect(pagerState.currentPage) {
         viewModel.updateLightSource(sources[pagerState.currentPage])
@@ -76,8 +86,17 @@ fun PPFDScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Fundo Dinâmico (Efeito de Brilho)
-        DynamicBackground(ppfdColor, uiState.ppfd)
+        // Fundo Dinâmico ou Preview da Câmera
+        if (uiState.mode == PPFDMode.CAMERA) {
+            CameraLightMeter(
+                onLuxUpdate = viewModel::onCameraLuxChanged,
+                modifier = Modifier.fillMaxSize().blur(if (uiState.isHoldActive) 20.dp else 0.dp)
+            )
+            // Overlay escuro para legibilidade
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+        } else {
+            DynamicBackground(ppfdColor, uiState.ppfd)
+        }
 
         Scaffold(
             containerColor = Color.Transparent,
@@ -88,6 +107,26 @@ fun PPFDScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Voltar")
+                        }
+                    },
+                    actions = {
+                        // Botão de Troca de Modo
+                        IconButton(onClick = {
+                            if (uiState.mode == PPFDMode.SENSOR) {
+                                val permission = android.Manifest.permission.CAMERA
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    viewModel.toggleMode()
+                                } else {
+                                    cameraPermissionLauncher.launch(permission)
+                                }
+                            } else {
+                                viewModel.toggleMode()
+                            }
+                        }) {
+                            Icon(
+                                if (uiState.mode == PPFDMode.SENSOR) Icons.Rounded.CameraAlt else Icons.Rounded.Sensors,
+                                contentDescription = "Trocar para ${if (uiState.mode == PPFDMode.SENSOR) "Câmera" else "Sensor"}"
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -101,8 +140,8 @@ fun PPFDScreen(
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (!uiState.isSensorAvailable) {
-                    SensorUnavailableState()
+                if (!uiState.isSensorAvailable && uiState.mode == PPFDMode.SENSOR) {
+                    SensorUnavailableState(onSwitchToCamera = viewModel::toggleMode)
                 } else {
                     Spacer(modifier = Modifier.height(if (isTablet) 60.dp else 17.dp))
 
@@ -507,7 +546,7 @@ private fun BottomControls(
 }
 
 @Composable
-private fun SensorUnavailableState() {
+private fun SensorUnavailableState(onSwitchToCamera: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -526,11 +565,20 @@ private fun SensorUnavailableState() {
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Seu dispositivo não possui o hardware necessário para medição de luz ambiente.",
+            text = "Seu dispositivo não possui o hardware necessário para medição de luz ambiente via sensor. Deseja tentar usar a câmera?",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onSwitchToCamera,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Rounded.CameraAlt, null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Usar Medição via Câmera")
+        }
     }
 }
 

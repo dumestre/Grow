@@ -13,13 +13,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
+enum class PPFDMode {
+    SENSOR, CAMERA
+}
+
 data class PPFDUiState(
     val lux: Float = 0f,
     val ppfd: Double = 0.0,
     val selectedSource: LightSource = LightSource.LED_WHITE,
     val calibrationMultiplier: Float = 1.0f,
     val isSensorAvailable: Boolean = true,
-    val isHoldActive: Boolean = false
+    val isHoldActive: Boolean = false,
+    val mode: PPFDMode = PPFDMode.SENSOR
 )
 
 @HiltViewModel
@@ -34,18 +39,46 @@ class PPFDViewModel @Inject constructor(
 
     init {
         if (lightSensor == null) {
-            _uiState.update { it.copy(isSensorAvailable = false) }
+            _uiState.update { it.copy(isSensorAvailable = false, mode = PPFDMode.CAMERA) }
         }
     }
 
     fun startMeasuring() {
-        lightSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        if (_uiState.value.mode == PPFDMode.SENSOR) {
+            lightSensor?.let {
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+            }
         }
     }
 
     fun stopMeasuring() {
         sensorManager.unregisterListener(this)
+    }
+
+    fun toggleMode() {
+        val newMode = if (_uiState.value.mode == PPFDMode.SENSOR) PPFDMode.CAMERA else PPFDMode.SENSOR
+        
+        // Se for para sensor e não estiver disponível, não troca ou avisa (aqui vou deixar trocar, o UI trata)
+        if (newMode == PPFDMode.SENSOR && lightSensor == null) return
+
+        _uiState.update { it.copy(mode = newMode) }
+        
+        if (newMode == PPFDMode.SENSOR) {
+            startMeasuring()
+        } else {
+            stopMeasuring()
+        }
+    }
+
+    fun onCameraLuxChanged(luxValue: Float) {
+        if (_uiState.value.mode == PPFDMode.CAMERA && !_uiState.value.isHoldActive) {
+            _uiState.update { 
+                it.copy(
+                    lux = luxValue,
+                    ppfd = calculatePPFD(luxValue, it.selectedSource, it.calibrationMultiplier)
+                )
+            }
+        }
     }
 
     fun updateLightSource(source: LightSource) {
