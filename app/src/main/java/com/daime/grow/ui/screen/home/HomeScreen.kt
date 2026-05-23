@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +47,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -61,7 +62,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
@@ -97,8 +97,6 @@ import com.daime.grow.ui.viewmodel.HomeViewModel
 import com.daime.grow.ui.viewmodel.SettingsViewModel
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
@@ -125,12 +123,17 @@ fun HomeScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
+    val pullRefreshState = rememberPullToRefreshState()
     
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
     val columnsCount = if (isTablet) 4 else 2
     val searchHorizontalPadding = if (isTablet) 32.dp else 16.dp
     val expandedSearchWidth = (configuration.screenWidthDp.dp - (searchHorizontalPadding * 2)).coerceAtMost(600.dp)
+    val density = LocalDensity.current
+    var topBarHeight by remember { mutableStateOf(148.dp) }
+    val topBarClearance = topBarHeight + 8.dp
+    val gridTopPadding = topBarHeight + 16.dp
 
     // Estado local de Haze para evitar feedback loop com o root
     val internalHazeState = rememberHazeState()
@@ -153,8 +156,8 @@ fun HomeScreen(
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var draggedCardBounds by remember { mutableStateOf<Rect?>(null) }
 
-    val reorderStepXPx = with(LocalDensity.current) { (configuration.screenWidthDp / columnsCount).dp.toPx() }
-    val reorderStepYPx = with(LocalDensity.current) { 190.dp.toPx() }
+    val reorderStepXPx = with(density) { (configuration.screenWidthDp / columnsCount).dp.toPx() }
+    val reorderStepYPx = with(density) { 190.dp.toPx() }
     
     val isDragging = draggedIndex != null
     
@@ -200,6 +203,7 @@ fun HomeScreen(
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = viewModel::refresh,
+                state = pullRefreshState,
                 modifier = Modifier
                     .fillMaxSize()
                     .then(
@@ -208,7 +212,18 @@ fun HomeScreen(
                         } else {
                             Modifier
                         }
+                    ),
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = topBarClearance),
+                        isRefreshing = state.isRefreshing,
+                        state = pullRefreshState,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        color = MaterialTheme.colorScheme.primary
                     )
+                }
             ) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(columnsCount),
@@ -229,7 +244,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(
-                        top = 156.dp,
+                        top = gridTopPadding,
                         bottom = innerPadding.calculateBottomPadding() + 64.dp
                     )
                 ) {
@@ -378,6 +393,9 @@ fun HomeScreen(
                 hazeState = internalHazeState,
                 modifier = Modifier
                     .align(Alignment.TopStart)
+                    .onGloballyPositioned { coordinates ->
+                        topBarHeight = with(density) { coordinates.size.height.toDp() }
+                    }
                     .zIndex(10f)
             )
 
