@@ -125,7 +125,7 @@ fun PPFDScreen(
                         }) {
                             Icon(
                                 if (uiState.mode == PPFDMode.SENSOR) Icons.Rounded.CameraAlt else Icons.Rounded.Sensors,
-                                contentDescription = "Trocar para ${if (uiState.mode == PPFDMode.SENSOR) "Câmera" else "Sensor"}"
+                                contentDescription = "Trocar para ${if (uiState.mode == PPFDMode.SENSOR) "Câmara" else "Sensor"}"
                             )
                         }
                     },
